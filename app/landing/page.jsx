@@ -129,40 +129,34 @@ export default function LandingPage() {
   const getIntegrationCode = (landing) => {
     if (!landing) return ''
     
-    const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BGv2Vm45eFGslcXFhakD-euIXAnOg6-bdqVWHoSw4gwvjvYYV1zBA_Q7uiNij5yvRqMwmDhpBYYSA1v5Z_GEv_k'
-    const appUrl = 'https://8011-49-36-144-217.ngrok-free.app' // Using the provided ngrok URL
+    const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BNV70f-uHInqVEOT9r2d6pVfK5WViCXdtoYjB87Nf8WUQZ6mDMSXEXGFQmJXl6bvGpvzL2jVSuPZUk-S9YS8rYc'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://push-notification-app-steel.vercel.app'
     
     return `<!-- Push Notification Integration Code for ${landing.name} -->
 <script>
 (function() {
   // Push notification configuration
-  const pushConfig = {
+  const PUSH_CONFIG = {
     appUrl: '${appUrl}',
     landingId: '${landing.landingId}',
     vapidKey: '${vapidKey}',
-    botCheck: ${landing.botProtection || true},
     redirects: {
-      allow: '${landing.allowRedirectUrl || ''}',
-      block: '${landing.blockRedirectUrl || ''}'
+      onAllow: ${landing.allowRedirectUrl ? `'${landing.allowRedirectUrl}'` : 'null'},
+      onBlock: ${landing.blockRedirectUrl ? `'${landing.blockRedirectUrl}'` : 'null'}
     }
   };
   
-  // Load push widget from your platform
+  // Load simple integration script
   const script = document.createElement('script');
-  script.src = pushConfig.appUrl + '/js/push-widget.js';
+  script.src = PUSH_CONFIG.appUrl + '/simple-integration.js';
   script.async = true;
-  script.onload = function() {
-    if (window.PushWidget) {
-      window.PushWidget.init(pushConfig);
-    }
-  };
   document.head.appendChild(script);
 })();
 </script>
 
-<!-- IMPORTANT: Also host this service worker file on your domain -->
-<!-- Download from: ${appUrl}/push-sw.js -->
-<!-- Host at: https://${landing.domain || landing.url?.replace('https://', '').replace('http://', '').split('/')[0]}/push-sw.js -->`
+<!-- Alternative: One-line integration -->
+<!-- <script src="${appUrl}/simple-integration.js"></script> -->
+<!-- Note: Update the configuration in the script with your landing ID -->`
   }
 
   return (
