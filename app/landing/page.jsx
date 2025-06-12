@@ -8,8 +8,10 @@ import DashboardLayout from '@/components/DashboardLayout'
 
 export default function LandingPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
   const [showCodeModal, setShowCodeModal] = useState(false)
   const [selectedLanding, setSelectedLanding] = useState(null)
+  const [editingLanding, setEditingLanding] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
     domain: '',
@@ -56,7 +58,21 @@ export default function LandingPage() {
       allowRedirectUrl: '',
       blockRedirectUrl: ''
     })
+    setEditingLanding(null)
     setShowCreateModal(true)
+  }
+
+  const handleOpenEditModal = (landing) => {
+    setFormData({
+      name: landing.name,
+      domain: landing.domain || landing.url?.replace('https://', '').replace('http://', '').split('/')[0],
+      landingId: landing.landingId,
+      botProtection: landing.botProtection !== false,
+      allowRedirectUrl: landing.allowRedirectUrl || '',
+      blockRedirectUrl: landing.blockRedirectUrl || ''
+    })
+    setEditingLanding(landing)
+    setShowEditModal(true)
   }
 
   const handleCreateLanding = async () => {
@@ -123,6 +139,51 @@ export default function LandingPage() {
       setLandingPages(landingPages.filter(page => page.id !== id))
     } catch (err) {
       alert(`Error: ${err.message}`)
+    }
+  }
+
+  const handleUpdateLanding = async () => {
+    // Validate form
+    if (!formData.name || !formData.domain || !formData.landingId) {
+      alert('Please fill in all required fields')
+      return
+    }
+
+    try {
+      setSaving(true)
+      setError(null)
+      
+      const response = await fetch('/api/landing', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ...formData,
+          id: editingLanding.id
+        })
+      })
+
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update landing page')
+      }
+
+      // Update in list
+      setLandingPages(landingPages.map(page => 
+        page.id === editingLanding.id ? data : page
+      ))
+      
+      // Close modal
+      setShowEditModal(false)
+      setEditingLanding(null)
+      
+    } catch (err) {
+      setError(err.message)
+      alert(`Error: ${err.message}`)
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -271,7 +332,11 @@ export default function LandingPage() {
                           >
                             <FiCode />
                           </Button>
-                          <Button size="sm" variant="outline-secondary">
+                          <Button 
+                            size="sm" 
+                            variant="outline-secondary"
+                            onClick={() => handleOpenEditModal(landing)}
+                          >
                             <FiEdit2 />
                           </Button>
                           <Button 
@@ -407,6 +472,104 @@ export default function LandingPage() {
           >
             {saving ? <Spinner animation="border" size="sm" className="me-2" /> : null}
             Create Landing Page
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Edit Landing Page Modal */}
+      <Modal show={showEditModal} onHide={() => setShowEditModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Edit Landing Page</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Landing Page Name *</Form.Label>
+              <Form.Control 
+                type="text" 
+                placeholder="e.g., Main Website, Blog Section" 
+                value={formData.name}
+                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Domain *</Form.Label>
+              <Form.Control 
+                type="text" 
+                placeholder="example.com (without https://)" 
+                value={formData.domain}
+                onChange={(e) => setFormData({...formData, domain: e.target.value})}
+                required
+              />
+              <Form.Text className="text-muted">
+                Enter domain without protocol (e.g., alerts-intuit.com)
+              </Form.Text>
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Landing Page ID *</Form.Label>
+              <Form.Control 
+                type="text" 
+                placeholder="unique-landing-id" 
+                value={formData.landingId}
+                onChange={(e) => setFormData({...formData, landingId: e.target.value})}
+                disabled
+              />
+              <Form.Text className="text-muted">
+                Landing Page ID cannot be changed
+              </Form.Text>
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Check 
+                type="switch"
+                label="Enable Bot Protection"
+                checked={formData.botProtection}
+                onChange={(e) => setFormData({...formData, botProtection: e.target.checked})}
+              />
+            </Form.Group>
+            
+            <hr className="my-4" />
+            
+            <h6 className="mb-3">Redirect Settings</h6>
+            
+            <Form.Group className="mb-3">
+              <Form.Label>Redirect URL on Allow</Form.Label>
+              <Form.Control 
+                type="url" 
+                placeholder="https://example.com/thank-you"
+                value={formData.allowRedirectUrl}
+                onChange={(e) => setFormData({...formData, allowRedirectUrl: e.target.value})}
+              />
+              <Form.Text className="text-muted">
+                Where to redirect users after they allow notifications
+              </Form.Text>
+            </Form.Group>
+            
+            <Form.Group className="mb-3">
+              <Form.Label>Redirect URL on Block</Form.Label>
+              <Form.Control 
+                type="url" 
+                placeholder="https://example.com/notifications-info"
+                value={formData.blockRedirectUrl}
+                onChange={(e) => setFormData({...formData, blockRedirectUrl: e.target.value})}
+              />
+              <Form.Text className="text-muted">
+                Where to redirect users after they block notifications
+              </Form.Text>
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowEditModal(false)}>
+            Cancel
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={handleUpdateLanding}
+            disabled={saving}
+          >
+            {saving ? <Spinner animation="border" size="sm" className="me-2" /> : null}
+            Update Landing Page
           </Button>
         </Modal.Footer>
       </Modal>
