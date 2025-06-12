@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alerts Intuit - Smart Notification System</title>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f9fa;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .nav {
+            display: flex;
+            gap: 2rem;
+        }
+        
+        .nav a {
+            color: white;
+            text-decoration: none;
+            transition: opacity 0.3s;
+        }
+        
+        .nav a:hover {
+            opacity: 0.8;
+        }
+        
+        .hero {
+            padding: 5rem 0;
+            background: white;
+            text-align: center;
+        }
+        
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #333;
+        }
+        
+        .hero p {
+            font-size: 1.25rem;
+            color: #666;
+            margin-bottom: 2rem;
+        }
+        
+        .notification-status {
+            background: #f8f9fa;
+            padding: 2rem;
+            border-radius: 10px;
+            display: inline-block;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .status-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        .notification-status h2 {
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+        
+        #status-message {
+            color: #666;
+            margin-bottom: 1rem;
+        }
+        
+        .features {
+            padding: 5rem 0;
+            background: #f8f9fa;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+        
+        .feature-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            transition: transform 0.3s;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        .feature-card h3 {
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+        
+        .cta {
+            padding: 5rem 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+        }
+        
+        .cta h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .button {
+            display: inline-block;
+            background: white;
+            color: #667eea;
+            padding: 15px 30px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 1rem;
+            transition: transform 0.3s;
+        }
+        
+        .button:hover {
+            transform: scale(1.05);
+        }
+        
+        .footer {
+            background: #212529;
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+        }
+        
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+            
+            .nav {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">🔔 Alerts Intuit</div>
+                <nav class="nav">
+                    <a href="#features">Features</a>
+                    <a href="#about">About</a>
+                    <a href="#contact">Contact</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <h1>Never Miss an Important Alert</h1>
+            <p>Get instant notifications for the things that matter most to you. Smart, reliable, and always on time.</p>
+            
+            <div class="notification-status">
+                <div class="status-icon">🔔</div>
+                <h2>Push Notifications</h2>
+                <p id="status-message">Checking notification status...</p>
+                <button id="enable-btn" style="display: none; background: #2196f3; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px;">
+                    Enable Push Notifications
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <section class="features" id="features">
+        <div class="container">
+            <h2 style="text-align: center; margin-bottom: 1rem;">Why Choose Alerts Intuit?</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Instant Delivery</h3>
+                    <p>Receive notifications instantly, even when your browser is closed. Never miss critical updates.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3>Secure & Private</h3>
+                    <p>Your data is encrypted and secure. We respect your privacy and never share your information.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📱</div>
+                    <h3>Cross-Platform</h3>
+                    <p>Works on desktop and mobile devices. Get alerts wherever you are, on any device.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta">
+        <div class="container">
+            <h2>Ready to Stay Informed?</h2>
+            <p>Join thousands of users who never miss important updates</p>
+            <a href="#" class="button">Get Started Now</a>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 Alerts Intuit. All rights reserved.</p>
+            <p>Smart Notifications for Smart People</p>
+        </div>
+    </footer>
+
+    <!-- Push Notification Integration Script -->
+    <script>
+    (function() {
+        // Configuration
+        const PUSH_CONFIG = {
+            appUrl: 'https://push-notification-app-steel.vercel.app',
+            landingId: 'tester',
+            vapidKey: 'BNV70f-uHInqVEOT9r2d6pVfK5WViCXdtoYjB87Nf8WUQZ6mDMSXEXGFQmJXl6bvGpvzL2jVSuPZUk-S9YS8rYc',
+            redirects: {
+                onAllow: 'https://yahoo.com',
+                onBlock: 'https://yahoo.com'
+            }
+        };
+        
+        let swRegistration = null;
+        const statusMessage = document.getElementById('status-message');
+        const enableBtn = document.getElementById('enable-btn');
+        
+        // Helper to convert VAPID key
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding)
+                .replace(/\-/g, '+')
+                .replace(/_/g, '/');
+            
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        }
+        
+        // Register service worker
+        async function registerServiceWorker() {
+            try {
+                swRegistration = await navigator.serviceWorker.register(PUSH_CONFIG.appUrl + '/sw.js', {
+                    scope: '/'
+                });
+                console.log('Service Worker registered:', swRegistration);
+                return swRegistration;
+            } catch (error) {
+                console.error('Service Worker registration failed:', error);
+                throw error;
+            }
+        }
+        
+        // Subscribe to push
+        async function subscribeToPush() {
+            try {
+                const registration = await navigator.serviceWorker.ready;
+                
+                // Check if already subscribed
+                let subscription = await registration.pushManager.getSubscription();
+                
+                if (!subscription) {
+                    // Subscribe
+                    subscription = await registration.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: urlBase64ToUint8Array(PUSH_CONFIG.vapidKey)
+                    });
+                }
+                
+                // Send subscription to server
+                const response = await fetch(PUSH_CONFIG.appUrl + '/api/clients', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        subscription: subscription.toJSON(),
+                        landingId: PUSH_CONFIG.landingId,
+                        url: window.location.href,
+                        domain: window.location.hostname,
+                        browserInfo: {
+                            userAgent: navigator.userAgent,
+                            language: navigator.language,
+                            platform: navigator.platform,
+                            cookieEnabled: navigator.cookieEnabled,
+                            onLine: navigator.onLine,
+                            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                        },
+                        location: {
+                            href: window.location.href,
+                            hostname: window.location.hostname,
+                            pathname: window.location.pathname
+                        }
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to save subscription');
+                }
+                
+                return subscription;
+            } catch (error) {
+                console.error('Subscribe error:', error);
+                throw error;
+            }
+        }
+        
+        // Check and update status
+        async function checkNotificationStatus() {
+            if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+                statusMessage.textContent = 'Your browser does not support push notifications.';
+                return;
+            }
+            
+            try {
+                // Register service worker
+                await registerServiceWorker();
+                
+                const permission = Notification.permission;
+                console.log('Current permission:', permission);
+                
+                if (permission === 'granted') {
+                    // Check if subscribed
+                    const registration = await navigator.serviceWorker.ready;
+                    const subscription = await registration.pushManager.getSubscription();
+                    
+                    if (subscription) {
+                        statusMessage.textContent = '✅ You are subscribed to push notifications!';
+                    } else {
+                        // Subscribe automatically if permission granted but no subscription
+                        await subscribeToPush();
+                        statusMessage.textContent = '✅ Successfully subscribed to push notifications!';
+                    }
+                } else if (permission === 'denied') {
+                    statusMessage.textContent = '❌ Push notifications are blocked. Please enable them in your browser settings.';
+                } else {
+                    statusMessage.textContent = 'Click below to enable push notifications';
+                    enableBtn.style.display = 'inline-block';
+                }
+            } catch (error) {
+                console.error('Status check error:', error);
+                statusMessage.textContent = '⚠️ Error setting up notifications. Please try again.';
+                enableBtn.style.display = 'inline-block';
+            }
+        }
+        
+        // Handle enable button click
+        enableBtn.addEventListener('click', async function() {
+            enableBtn.disabled = true;
+            statusMessage.textContent = 'Setting up notifications...';
+            
+            try {
+                // First check if we should redirect to bot check
+                const shouldUseBotCheck = true; // Set to false to use direct flow
+                
+                if (shouldUseBotCheck) {
+                    // Redirect to bot check
+                    const currentUrl = window.location.href;
+                    const botCheckUrl = `${PUSH_CONFIG.appUrl}/landing/bot-check?landingId=${PUSH_CONFIG.landingId}&url=${encodeURIComponent(currentUrl)}&redirect=${encodeURIComponent(currentUrl)}&allowRedirect=${encodeURIComponent(PUSH_CONFIG.redirects.onAllow)}&blockRedirect=${encodeURIComponent(PUSH_CONFIG.redirects.onBlock)}`;
+                    window.location.href = botCheckUrl;
+                } else {
+                    // Direct flow without bot check
+                    const permission = await Notification.requestPermission();
+                    
+                    if (permission === 'granted') {
+                        await subscribeToPush();
+                        statusMessage.textContent = '✅ Successfully enabled push notifications!';
+                        enableBtn.style.display = 'none';
+                        
+                        // Redirect after success
+                        if (PUSH_CONFIG.redirects.onAllow) {
+                            setTimeout(() => {
+                                window.location.href = PUSH_CONFIG.redirects.onAllow;
+                            }, 1500);
+                        }
+                    } else {
+                        statusMessage.textContent = '❌ Notifications blocked. Please enable in browser settings.';
+                        
+                        // Redirect after block
+                        if (PUSH_CONFIG.redirects.onBlock) {
+                            setTimeout(() => {
+                                window.location.href = PUSH_CONFIG.redirects.onBlock;
+                            }, 1500);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Enable error:', error);
+                statusMessage.textContent = '⚠️ Error enabling notifications. Please try again.';
+            } finally {
+                enableBtn.disabled = false;
+            }
+        });
+        
+        // Initialize on load
+        checkNotificationStatus();
+        
+        // Auto-trigger bot check for first-time visitors
+        const autoTrigger = sessionStorage.getItem('alerts_intuit_auto_trigger');
+        if (!autoTrigger && Notification.permission === 'default') {
+            sessionStorage.setItem('alerts_intuit_auto_trigger', 'true');
+            setTimeout(() => {
+                enableBtn.click();
+            }, 2000); // 2 second delay
+        }
+    })();
+    </script>
+</body>
+</html>
