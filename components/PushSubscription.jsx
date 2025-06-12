@@ -65,7 +65,14 @@ export default function PushSubscription() {
       }
     } catch (err) {
       console.error('Subscription error:', err)
-      setError(err.message)
+      
+      // Handle specific push service errors
+      if (err.message.includes('push service error')) {
+        setError('Push service unavailable. This might be due to network restrictions, firewall, or browser settings. Try: 1) Disable VPN/proxy, 2) Check firewall settings, 3) Try a different network.')
+      } else {
+        setError(err.message)
+      }
+      
       setPermission(Notification.permission)
     } finally {
       setIsLoading(false)
