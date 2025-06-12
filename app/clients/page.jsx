@@ -21,9 +21,10 @@ import {
 } from 'mdb-react-ui-kit'
 import { Row, Col, Form, Modal, Button, Card, Spinner, Alert } from 'react-bootstrap'
 import Select from 'react-select'
-import { FiSend, FiTrash2, FiFilter, FiDownload, FiSearch, FiMoreVertical, FiChrome, FiGlobe, FiUsers, FiSmartphone, FiMonitor, FiStar, FiChevronRight, FiCheckCircle, FiTool } from 'react-icons/fi'
-import { SiFirefox, SiSafari, SiGooglechrome, SiMicrosoftedge, SiWindows, SiApple, SiLinux, SiAndroid } from 'react-icons/si'
+import { FiSend, FiTrash2, FiFilter, FiDownload, FiSearch, FiMoreVertical, FiGlobe, FiUsers, FiSmartphone, FiMonitor, FiStar, FiChevronRight, FiCheckCircle } from 'react-icons/fi'
+import { SiFirefox, SiSafari, SiGooglechrome } from 'react-icons/si'
 import { RiEdgeLine } from 'react-icons/ri'
+import { FaWindows, FaApple, FaLinux, FaAndroid } from 'react-icons/fa'
 import DashboardLayout from '@/components/DashboardLayout'
 import { useApi, apiCall } from '@/lib/hooks/useApi'
 
@@ -395,15 +396,15 @@ export default function Clients() {
   const getOSIcon = (os) => {
     const osName = os?.toLowerCase() || 'unknown'
     if (osName.includes('windows')) {
-      return <SiWindows size={20} className="text-info me-2" />
+      return <FaWindows size={18} className="text-info me-2" />
     } else if (osName.includes('mac')) {
-      return <SiApple size={20} className="text-dark me-2" />
+      return <FaApple size={18} className="text-dark me-2" />
     } else if (osName.includes('linux')) {
-      return <SiLinux size={20} className="text-warning me-2" />
+      return <FaLinux size={18} className="text-warning me-2" />
     } else if (osName.includes('android')) {
-      return <SiAndroid size={20} className="text-success me-2" />
+      return <FaAndroid size={18} className="text-success me-2" />
     } else if (osName.includes('ios')) {
-      return <SiApple size={20} className="text-dark me-2" />
+      return <FaApple size={18} className="text-dark me-2" />
     } else {
       return <MDBIcon fas icon="laptop" className="text-secondary me-2" />
     }
