@@ -676,7 +676,7 @@ export default function Clients() {
                       </td>
                       <td className="align-middle text-center">
                         <MDBDropdown>
-                          <MDBDropdownToggle tag='button' className='btn btn-link text-dark p-0'>
+                          <MDBDropdownToggle tag='a' className='btn btn-link text-dark p-0'>
                             <FiMoreVertical size={20} />
                           </MDBDropdownToggle>
                           <MDBDropdownMenu>
