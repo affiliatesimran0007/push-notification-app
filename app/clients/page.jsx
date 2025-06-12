@@ -675,28 +675,19 @@ export default function Clients() {
                         </div>
                       </td>
                       <td className="align-middle text-center">
-                        <div className="dropdown">
-                          <button 
-                            className="btn btn-link text-dark p-0" 
-                            type="button" 
-                            data-bs-toggle="dropdown" 
-                            aria-expanded="false"
-                          >
+                        <MDBDropdown>
+                          <MDBDropdownToggle tag='button' className='btn btn-link text-dark p-0'>
                             <FiMoreVertical size={20} />
-                          </button>
-                          <ul className="dropdown-menu">
-                            <li>
-                              <button className="dropdown-item" onClick={() => handleSendNotification(client)}>
-                                <FiSend className="me-2" /> Send Notification
-                              </button>
-                            </li>
-                            <li>
-                              <button className="dropdown-item text-danger" onClick={() => handleDeleteClient(client.id)}>
-                                <FiTrash2 className="me-2" /> Delete
-                              </button>
-                            </li>
-                          </ul>
-                        </div>
+                          </MDBDropdownToggle>
+                          <MDBDropdownMenu basic>
+                            <MDBDropdownItem onClick={() => handleSendNotification(client)}>
+                              <FiSend className="me-2" /> Send Notification
+                            </MDBDropdownItem>
+                            <MDBDropdownItem className="text-danger" onClick={() => handleDeleteClient(client.id)}>
+                              <FiTrash2 className="me-2" /> Delete
+                            </MDBDropdownItem>
+                          </MDBDropdownMenu>
+                        </MDBDropdown>
                       </td>
                     </tr>
                   ))}
