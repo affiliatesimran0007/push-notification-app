@@ -635,7 +635,7 @@ export default function Clients() {
                             {getFlagEmoji(client.country)}
                           </span>
                           <div>
-                            <div>{client.country}</div>
+                            <div>{client.city && client.city !== 'Unknown' ? client.city : client.country}</div>
                             <small className="text-muted">{formatIP(client.ip)}</small>
                           </div>
                         </div>
