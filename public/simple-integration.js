@@ -6,7 +6,7 @@
   const PUSH_CONFIG = {
     appUrl: 'https://push-notification-app-steel.vercel.app', // Your server URL
     landingId: '1', // Your landing page ID
-    vapidKey: 'BNV70f-uHInqVEOT9r2d6pVfK5WViCXdtoYjB87Nf8WUQZ6mDMSXEXGFQmJXl6bvGpvzL2jVSuPZUk-S9YS8rYc', // Get from your app settings
+    vapidKey: 'BGv2Vm45eFGslcXFhakD-euIXAnOg6-bdqVWHoSw4gwvjvYYV1zBA_Q7uiNij5yvRqMwmDhpBYYSA1v5Z_GEv_k', // Get from your app settings
     
     // Optional: Custom redirect URLs
     redirects: {

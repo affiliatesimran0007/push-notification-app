@@ -190,7 +190,7 @@ export default function LandingPage() {
   const getIntegrationCode = (landing) => {
     if (!landing) return ''
     
-    const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BNV70f-uHInqVEOT9r2d6pVfK5WViCXdtoYjB87Nf8WUQZ6mDMSXEXGFQmJXl6bvGpvzL2jVSuPZUk-S9YS8rYc'
+    const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BGv2Vm45eFGslcXFhakD-euIXAnOg6-bdqVWHoSw4gwvjvYYV1zBA_Q7uiNij5yvRqMwmDhpBYYSA1v5Z_GEv_k'
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://push-notification-app-steel.vercel.app'
     
     return `<!-- Push Notification Integration Code for ${landing.name} -->
