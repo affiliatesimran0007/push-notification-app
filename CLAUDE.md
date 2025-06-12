@@ -70,7 +70,7 @@ This is a Next.js 15.3.3 push notification platform MVP built with the App Route
 
 5. **Dark Theme**: The sidebar uses a dark theme (#212529) while main content uses light backgrounds. Maintain this contrast for consistency.
 
-6. **Landing Pages**: The landing page system allows multi-domain support with bot protection and custom redirects. See `LANDING_PAGES_GUIDE.md` for detailed documentation.
+6. **Landing Pages**: The landing page system allows multi-domain support with bot protection and custom redirects.
 
 7. **Hydration Issues**: 
    - Some pages use `export const dynamic = 'force-dynamic'` in layout files to prevent hydration errors
@@ -89,3 +89,24 @@ This is a Next.js 15.3.3 push notification platform MVP built with the App Route
    - Collects browser info, device details, timezone, platform
    - Shows native browser notification permission prompt after 1.5s delay
    - Supports custom redirect URLs based on user's Allow/Block decision
+
+10. **Database**: 
+   - PostgreSQL with Prisma ORM
+   - External database hosted on Aiven
+   - Schema includes: clients, notifications, campaigns, templates, landing pages
+
+11. **Push Notification Implementation**:
+   - Web Push API with VAPID authentication
+   - Service workers: `sw.js` (main), `push-sw.js` (dedicated push handler)
+   - Supports Chrome, Firefox, Edge, Safari (iOS 16.4+)
+   - Real-time client updates via Server-Sent Events
+
+12. **Integration Methods**:
+   - Direct HTML pages: `alerts-intuit-direct.html`, `alerts-intuit-ios.html`, `alerts-intuit-manual.html`
+   - JavaScript widget: `push-widget.js`
+   - Simple integration script: `simple-integration.js`
+
+13. **Timezone Support**:
+   - Browser timezone automatically detected using `Intl.DateTimeFormat()`
+   - Displayed in Push Clients location field as "Unknown (timezone)"
+   - No external IP geolocation APIs used

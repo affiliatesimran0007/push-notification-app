@@ -22,7 +22,7 @@ import {
 import { Row, Col, Form, Modal, Button, Card, Spinner, Alert } from 'react-bootstrap'
 import Select from 'react-select'
 import { FiSend, FiTrash2, FiFilter, FiDownload, FiSearch, FiMoreVertical, FiChrome, FiGlobe, FiUsers, FiSmartphone, FiMonitor, FiStar, FiChevronRight, FiCheckCircle, FiTool } from 'react-icons/fi'
-import { SiFirefox, SiSafari, SiGooglechrome, SiMicrosoftedge } from 'react-icons/si'
+import { SiFirefox, SiSafari, SiGooglechrome, SiMicrosoftedge, SiWindows, SiApple, SiLinux, SiAndroid } from 'react-icons/si'
 import { RiEdgeLine } from 'react-icons/ri'
 import DashboardLayout from '@/components/DashboardLayout'
 import { useApi, apiCall } from '@/lib/hooks/useApi'
@@ -392,6 +392,23 @@ export default function Clients() {
     }
   }
 
+  const getOSIcon = (os) => {
+    const osName = os?.toLowerCase() || 'unknown'
+    if (osName.includes('windows')) {
+      return <SiWindows size={20} className="text-info me-2" />
+    } else if (osName.includes('mac')) {
+      return <SiApple size={20} className="text-dark me-2" />
+    } else if (osName.includes('linux')) {
+      return <SiLinux size={20} className="text-warning me-2" />
+    } else if (osName.includes('android')) {
+      return <SiAndroid size={20} className="text-success me-2" />
+    } else if (osName.includes('ios')) {
+      return <SiApple size={20} className="text-dark me-2" />
+    } else {
+      return <MDBIcon fas icon="laptop" className="text-secondary me-2" />
+    }
+  }
+
   const [showSegmentModal, setShowSegmentModal] = useState(false)
   // Calculate real segments from client data
   const segments = [
@@ -576,6 +593,7 @@ export default function Clients() {
                       <th className="fw-medium">Subscription Date</th>
                       <th className="fw-medium">Browser</th>
                       <th className="fw-medium">Location</th>
+                      <th className="fw-medium">Operating System</th>
                       <th className="fw-medium">Device</th>
                       <th className="fw-medium">Access</th>
                       <th className="fw-medium">Subscribed URL</th>
@@ -642,13 +660,14 @@ export default function Clients() {
                       </td>
                       <td className="align-middle">
                         <div className="d-flex align-items-center">
+                          {getOSIcon(client.os)}
+                          <span>{client.os === 'unknown' ? 'Unknown' : client.os}</span>
+                        </div>
+                      </td>
+                      <td className="align-middle">
+                        <div className="d-flex align-items-center">
                           <MDBIcon fas icon={getDeviceIcon(client.device)} className="me-2 text-muted" />
-                          <div>
-                            <div className="text-capitalize">{client.device === 'unknown' ? 'Unknown' : client.device}</div>
-                            {client.os && client.os !== 'unknown' && (
-                              <small className="text-muted">{client.os}</small>
-                            )}
-                          </div>
+                          <span className="text-capitalize">{client.device === 'unknown' ? 'Unknown' : client.device}</span>
                         </div>
                       </td>
                       <td className="align-middle">
