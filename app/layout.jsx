@@ -1,4 +1,5 @@
 import './globals.css'
+import ServiceWorkerProvider from './components/ServiceWorkerProvider'
 
 export const metadata = {
   title: 'Push Notification App',
@@ -11,7 +12,10 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <ServiceWorkerProvider />
+        {children}
+      </body>
     </html>
   )
 }

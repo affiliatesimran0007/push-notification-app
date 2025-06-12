@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SW Registration</title>
+</head>
+<body>
+    <script>
+    // This page is loaded in an iframe to ensure service worker is registered
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js')
+            .then(function(registration) {
+                console.log('Service Worker registered via iframe:', registration.scope);
+                // Notify parent window
+                if (window.parent !== window) {
+                    window.parent.postMessage({
+                        type: 'SW_REGISTERED',
+                        scope: registration.scope
+                    }, '*');
+                }
+            })
+            .catch(function(error) {
+                console.error('Service Worker registration failed:', error);
+                if (window.parent !== window) {
+                    window.parent.postMessage({
+                        type: 'SW_REGISTRATION_FAILED',
+                        error: error.message
+                    }, '*');
+                }
+            });
+    }
+    </script>
+</body>
+</html>
