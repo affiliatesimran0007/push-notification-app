@@ -679,7 +679,7 @@ export default function Clients() {
                           <MDBDropdownToggle tag='button' className='btn btn-link text-dark p-0'>
                             <FiMoreVertical size={20} />
                           </MDBDropdownToggle>
-                          <MDBDropdownMenu basic>
+                          <MDBDropdownMenu>
                             <MDBDropdownItem link onClick={() => handleSendNotification(client)}>
                               <FiSend className="me-2" /> Send Notification
                             </MDBDropdownItem>
