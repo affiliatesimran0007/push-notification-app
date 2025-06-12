@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Simple</title>
+</head>
+<body>
+    <h1>Welcome to our site</h1>
+    <div id="debug" style="background:#f0f0f0; padding:20px; margin:20px 0; font-family:monospace;"></div>
+    
+    <script>
+    function log(msg) {
+        var d = document.getElementById('debug');
+        d.innerHTML += msg + '<br>';
+        console.log(msg);
+    }
+    
+    log('1. Script starting...');
+    log('2. Current domain: ' + window.location.hostname);
+    log('3. Protocol: ' + window.location.protocol);
+    
+    try {
+        log('4. Creating script element...');
+        var script = document.createElement('script');
+        
+        log('5. Setting script src...');
+        script.src = 'https://99d2-49-36-144-217.ngrok-free.app/js/push-widget.js';
+        
+        script.onload = function() {
+            log('6. Script loaded successfully!');
+            log('7. Checking for PushWidget: ' + (typeof window.PushWidget));
+            
+            if (window.PushWidget) {
+                log('8. PushWidget found, calling init...');
+                try {
+                    window.PushWidget.init({
+                        appUrl: 'https://99d2-49-36-144-217.ngrok-free.app',
+                        landingId: 'alerts-intuit-main',
+                        vapidKey: 'BGv2Vm45eFGslcXFhakD-euIXAnOg6-bdqVWHoSw4gwvjvYYV1zBA_Q7uiNij5yvRqMwmDhpBYYSA1v5Z_GEv_k',
+                        botCheck: true,
+                        redirects: {
+                            allow: 'https://alerts-intuit.com/thank-you',
+                            block: 'https://alerts-intuit.com/notifications-blocked'
+                        }
+                    });
+                    log('9. Init called successfully!');
+                } catch (e) {
+                    log('ERROR in init: ' + e.message);
+                }
+            } else {
+                log('ERROR: PushWidget not found on window');
+            }
+        };
+        
+        script.onerror = function(e) {
+            log('ERROR: Script failed to load!');
+            log('Error details: ' + JSON.stringify(e));
+        };
+        
+        log('10. Appending script to body...');
+        document.body.appendChild(script);
+        log('11. Script appended');
+        
+    } catch (e) {
+        log('CAUGHT ERROR: ' + e.message);
+        log('Stack: ' + e.stack);
+    }
+    
+    // Also try a simple fetch to test CORS
+    log('12. Testing fetch to ngrok...');
+    fetch('https://99d2-49-36-144-217.ngrok-free.app/api/landing')
+        .then(function(r) { 
+            log('13. Fetch successful, status: ' + r.status); 
+        })
+        .catch(function(e) { 
+            log('13. Fetch failed: ' + e.message); 
+        });
+    </script>
+</body>
+</html>

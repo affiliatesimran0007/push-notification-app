@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Alerts Intuit Integration</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .log {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        .error { color: #d32f2f; }
+        .success { color: #388e3c; }
+        .info { color: #1976d2; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>Debug Alerts Intuit Push Integration</h1>
+    <p>This page simulates what should happen on alerts-intuit.com</p>
+    
+    <div>
+        <button onclick="clearStorageAndReload()">Clear Storage & Reload</button>
+        <button onclick="checkLocalStorage()">Check LocalStorage</button>
+        <button onclick="checkServiceWorker()">Check Service Worker</button>
+    </div>
+    
+    <div class="log" id="log">
+        <div class="log-entry info">Page loaded. Starting debug...</div>
+    </div>
+    
+    <!-- Your Push Notification Integration Code -->
+    <script>
+    function log(message, type = 'info') {
+        const logDiv = document.getElementById('log');
+        const entry = document.createElement('div');
+        entry.className = `log-entry ${type}`;
+        entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+        logDiv.appendChild(entry);
+        logDiv.scrollTop = logDiv.scrollHeight;
+    }
+    
+    function clearStorageAndReload() {
+        localStorage.clear();
+        sessionStorage.clear();
+        log('Cleared all storage', 'success');
+        setTimeout(() => {
+            window.location.reload();
+        }, 1000);
+    }
+    
+    function checkLocalStorage() {
+        const keys = Object.keys(localStorage);
+        if (keys.length === 0) {
+            log('LocalStorage is empty', 'info');
+        } else {
+            keys.forEach(key => {
+                log(`LocalStorage: ${key} = ${localStorage.getItem(key)}`, 'info');
+            });
+        }
+    }
+    
+    async function checkServiceWorker() {
+        try {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            if (registrations.length === 0) {
+                log('No service workers registered', 'info');
+            } else {
+                for (const reg of registrations) {
+                    log(`Service Worker: ${reg.scope} - ${reg.active ? 'Active' : 'Inactive'}`, 'success');
+                    const sub = await reg.pushManager.getSubscription();
+                    if (sub) {
+                        log(`Push subscription found: ${sub.endpoint.substring(0, 50)}...`, 'success');
+                    }
+                }
+            }
+        } catch (error) {
+            log(`Service Worker error: ${error.message}`, 'error');
+        }
+    }
+    
+    // Start integration code
+    log('Starting push widget initialization...', 'info');
+    
+    (function() {
+      // Push notification configuration
+      const pushConfig = {
+        appUrl: 'https://8011-49-36-144-217.ngrok-free.app',
+        landingId: 'alerts-intuit-main',
+        vapidKey: 'BGv2Vm45eFGslcXFhakD-euIXAnOg6-bdqVWHoSw4gwvjvYYV1zBA_Q7uiNij5yvRqMwmDhpBYYSA1v5Z_GEv_k',
+        botCheck: true,
+        redirects: {
+          allow: 'https://alerts-intuit.com/thank-you',
+          block: 'https://alerts-intuit.com/notifications-blocked'
+        }
+      };
+      
+      log(`Config: appUrl = ${pushConfig.appUrl}`, 'info');
+      log(`Config: landingId = ${pushConfig.landingId}`, 'info');
+      log(`Config: botCheck = ${pushConfig.botCheck}`, 'info');
+      
+      // Load push widget from your platform
+      const script = document.createElement('script');
+      script.src = pushConfig.appUrl + '/js/push-widget.js';
+      script.async = true;
+      
+      script.onload = function() {
+        log('Push widget script loaded successfully', 'success');
+        if (window.PushWidget) {
+          log('PushWidget object found, initializing...', 'info');
+          try {
+            window.PushWidget.init(pushConfig);
+            log('PushWidget.init() called successfully', 'success');
+            
+            // Check widget state
+            setTimeout(() => {
+                log(`Widget subscribed state: ${window.PushWidget.subscribed}`, 'info');
+                checkLocalStorage();
+            }, 1000);
+          } catch (error) {
+            log(`PushWidget.init() error: ${error.message}`, 'error');
+          }
+        } else {
+          log('PushWidget object not found on window', 'error');
+        }
+      };
+      
+      script.onerror = function(error) {
+        log(`Failed to load push widget script: ${error}`, 'error');
+      };
+      
+      log(`Appending script to document head...`, 'info');
+      document.head.appendChild(script);
+    })();
+    
+    // Check URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('push-subscribed')) {
+        log(`URL has push-subscribed=${urlParams.get('push-subscribed')}`, 'success');
+    }
+    if (urlParams.get('push-landing-id')) {
+        log(`URL has push-landing-id=${urlParams.get('push-landing-id')}`, 'info');
+    }
+    
+    // Check initial state
+    setTimeout(() => {
+        checkServiceWorker();
+    }, 2000);
+    </script>
+</body>
+</html>

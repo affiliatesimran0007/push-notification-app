@@ -1,0 +1,455 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { Container, Row, Col, Card, Button, Table, Modal, Form, Alert, Spinner } from 'react-bootstrap'
+import { FiGlobe, FiPlus, FiEdit2, FiTrash2, FiExternalLink, FiCode } from 'react-icons/fi'
+import Link from 'next/link'
+import DashboardLayout from '@/components/DashboardLayout'
+
+export default function LandingPage() {
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showCodeModal, setShowCodeModal] = useState(false)
+  const [selectedLanding, setSelectedLanding] = useState(null)
+  const [formData, setFormData] = useState({
+    name: '',
+    domain: '',
+    landingId: '',
+    botProtection: true,
+    allowRedirectUrl: '',
+    blockRedirectUrl: ''
+  })
+  const [landingPages, setLandingPages] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [saving, setSaving] = useState(false)
+
+  // Fetch landing pages on component mount
+  useEffect(() => {
+    fetchLandingPages()
+  }, [])
+
+  const fetchLandingPages = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/landing')
+      if (!response.ok) throw new Error('Failed to fetch landing pages')
+      const data = await response.json()
+      setLandingPages(data)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleShowCode = (landing) => {
+    setSelectedLanding(landing)
+    setShowCodeModal(true)
+  }
+
+  const handleOpenCreateModal = () => {
+    setFormData({
+      name: '',
+      domain: '',
+      landingId: '',
+      botProtection: true,
+      allowRedirectUrl: '',
+      blockRedirectUrl: ''
+    })
+    setShowCreateModal(true)
+  }
+
+  const handleCreateLanding = async () => {
+    // Validate form
+    if (!formData.name || !formData.domain || !formData.landingId) {
+      alert('Please fill in all required fields')
+      return
+    }
+
+    try {
+      setSaving(true)
+      setError(null)
+      
+      const response = await fetch('/api/landing', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      })
+
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create landing page')
+      }
+
+      // Add to list
+      setLandingPages([...landingPages, data])
+      
+      // Reset form and close modal
+      setFormData({
+        name: '',
+        domain: '',
+        landingId: '',
+        botProtection: true,
+        allowRedirectUrl: '',
+        blockRedirectUrl: ''
+      })
+      setShowCreateModal(false)
+      
+      // Show the integration code
+      setTimeout(() => {
+        handleShowCode(data)
+      }, 500)
+    } catch (err) {
+      setError(err.message)
+      alert(`Error: ${err.message}`)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDeleteLanding = async (id) => {
+    if (!confirm('Are you sure you want to delete this landing page?')) return
+    
+    try {
+      const response = await fetch(`/api/landing?id=${id}`, {
+        method: 'DELETE'
+      })
+      
+      if (!response.ok) throw new Error('Failed to delete landing page')
+      
+      setLandingPages(landingPages.filter(page => page.id !== id))
+    } catch (err) {
+      alert(`Error: ${err.message}`)
+    }
+  }
+
+  const getIntegrationCode = (landing) => {
+    if (!landing) return ''
+    
+    const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BGv2Vm45eFGslcXFhakD-euIXAnOg6-bdqVWHoSw4gwvjvYYV1zBA_Q7uiNij5yvRqMwmDhpBYYSA1v5Z_GEv_k'
+    const appUrl = 'https://8011-49-36-144-217.ngrok-free.app' // Using the provided ngrok URL
+    
+    return `<!-- Push Notification Integration Code for ${landing.name} -->
+<script>
+(function() {
+  // Push notification configuration
+  const pushConfig = {
+    appUrl: '${appUrl}',
+    landingId: '${landing.landingId}',
+    vapidKey: '${vapidKey}',
+    botCheck: ${landing.botProtection || true},
+    redirects: {
+      allow: '${landing.allowRedirectUrl || ''}',
+      block: '${landing.blockRedirectUrl || ''}'
+    }
+  };
+  
+  // Load push widget from your platform
+  const script = document.createElement('script');
+  script.src = pushConfig.appUrl + '/js/push-widget.js';
+  script.async = true;
+  script.onload = function() {
+    if (window.PushWidget) {
+      window.PushWidget.init(pushConfig);
+    }
+  };
+  document.head.appendChild(script);
+})();
+</script>
+
+<!-- IMPORTANT: Also host this service worker file on your domain -->
+<!-- Download from: ${appUrl}/push-sw.js -->
+<!-- Host at: https://${landing.domain || landing.url?.replace('https://', '').replace('http://', '').split('/')[0]}/push-sw.js -->`
+  }
+
+  return (
+    <DashboardLayout>
+      <div className="mb-4">
+        <h2>Landing Pages</h2>
+      </div>
+
+      <Row className="mb-4">
+        <Col>
+          <Card className="shadow-sm">
+            <Card.Body>
+              <h5>What are Landing Pages?</h5>
+              <p className="text-muted mb-3">
+                Landing pages are the entry points where users can subscribe to push notifications. 
+                Each landing page has its own unique configuration and bot protection to ensure quality subscribers.
+              </p>
+              <div className="d-flex gap-3">
+                <Link href="/landing/bot-check" className="btn btn-outline-primary">
+                  <FiExternalLink className="me-2" />
+                  View Bot Check Demo
+                </Link>
+                <Link href="/landing/setup" className="btn btn-outline-success">
+                  <FiGlobe className="me-2" />
+                  Domain Setup Guide
+                </Link>
+                <Button variant="outline-secondary" onClick={() => setShowCodeModal(true)}>
+                  <FiCode className="me-2" />
+                  JavaScript Integration
+                </Button>
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
+      <Row>
+        <Col>
+          <Card className="shadow-sm">
+            <Card.Body>
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h5 className="mb-0">Your Landing Pages</h5>
+                <Button 
+                  variant="primary" 
+                  onClick={handleOpenCreateModal}
+                  className="d-flex align-items-center gap-2"
+                >
+                  <FiPlus /> Create Landing Page
+                </Button>
+              </div>
+              {loading ? (
+                <div className="text-center py-5">
+                  <Spinner animation="border" />
+                  <p className="mt-2">Loading landing pages...</p>
+                </div>
+              ) : error ? (
+                <Alert variant="danger">
+                  <strong>Error:</strong> {error}
+                </Alert>
+              ) : (
+              <Table responsive hover>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>URL</th>
+                    <th>Status</th>
+                    <th>Redirect</th>
+                    <th>Subscribers</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {landingPages.map((landing) => (
+                    <tr key={landing.id}>
+                      <td className="fw-bold">{landing.name}</td>
+                      <td>
+                        <a href={landing.url} target="_blank" rel="noopener noreferrer">
+                          {landing.url}
+                        </a>
+                      </td>
+                      <td>
+                        <span className={`badge bg-${landing.status === 'active' ? 'success' : 'secondary'}`}>
+                          {landing.status}
+                        </span>
+                      </td>
+                      <td>
+                        <div>
+                          <span className={`badge bg-${landing.enableRedirect ? 'info' : 'danger'} mb-1`}>
+                            {landing.enableRedirect ? 'Enabled' : 'Disabled'}
+                          </span>
+                          {landing.enableRedirect && (
+                            <div className="small mt-1">
+                              <div className="text-success">
+                                <strong>Allow:</strong> {landing.allowRedirectUrl || 'Not set'}
+                              </div>
+                              <div className="text-danger">
+                                <strong>Block:</strong> {landing.blockRedirectUrl || 'Not set'}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td>{landing.subscribers.toLocaleString()}</td>
+                      <td>{landing.created}</td>
+                      <td>
+                        <div className="d-flex gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline-primary"
+                            onClick={() => handleShowCode(landing)}
+                          >
+                            <FiCode />
+                          </Button>
+                          <Button size="sm" variant="outline-secondary">
+                            <FiEdit2 />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline-danger"
+                            onClick={() => handleDeleteLanding(landing.id)}
+                          >
+                            <FiTrash2 />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+              )}
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Create Landing Page Modal */}
+      <Modal show={showCreateModal} onHide={() => setShowCreateModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Create New Landing Page</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Landing Page Name *</Form.Label>
+              <Form.Control 
+                type="text" 
+                placeholder="e.g., Main Website, Blog Section" 
+                value={formData.name}
+                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Domain *</Form.Label>
+              <Form.Control 
+                type="text" 
+                placeholder="example.com (without https://)" 
+                value={formData.domain}
+                onChange={(e) => setFormData({...formData, domain: e.target.value})}
+                required
+              />
+              <Form.Text className="text-muted">
+                Enter domain without protocol (e.g., alerts-intuit.com)
+              </Form.Text>
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Landing Page ID *</Form.Label>
+              <Form.Control 
+                type="text" 
+                placeholder="unique-landing-id" 
+                value={formData.landingId}
+                onChange={(e) => setFormData({...formData, landingId: e.target.value})}
+                required
+              />
+              <Form.Text className="text-muted">
+                A unique identifier for this landing page
+              </Form.Text>
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Check 
+                type="switch"
+                label="Enable Bot Protection"
+                checked={formData.botProtection}
+                onChange={(e) => setFormData({...formData, botProtection: e.target.checked})}
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Check 
+                type="checkbox" 
+                label="Enable GDPR compliance features"
+                defaultChecked
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Check 
+                type="checkbox" 
+                label="Require double opt-in"
+              />
+            </Form.Group>
+            
+            <hr className="my-4" />
+            
+            <h6 className="mb-3">Redirect Settings</h6>
+            <Form.Group className="mb-3">
+              <Form.Check 
+                type="checkbox" 
+                label="Enable custom redirects after permission prompt"
+                id="enableRedirect"
+              />
+            </Form.Group>
+            
+            <Form.Group className="mb-3">
+              <Form.Label>Redirect URL on Allow</Form.Label>
+              <Form.Control 
+                type="url" 
+                placeholder="https://example.com/thank-you"
+                value={formData.allowRedirectUrl}
+                onChange={(e) => setFormData({...formData, allowRedirectUrl: e.target.value})}
+              />
+              <Form.Text className="text-muted">
+                Where to redirect users after they allow notifications
+              </Form.Text>
+            </Form.Group>
+            
+            <Form.Group className="mb-3">
+              <Form.Label>Redirect URL on Block</Form.Label>
+              <Form.Control 
+                type="url" 
+                placeholder="https://example.com/notifications-info"
+                value={formData.blockRedirectUrl}
+                onChange={(e) => setFormData({...formData, blockRedirectUrl: e.target.value})}
+              />
+              <Form.Text className="text-muted">
+                Where to redirect users after they block notifications
+              </Form.Text>
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowCreateModal(false)}>
+            Cancel
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={handleCreateLanding}
+            disabled={saving}
+          >
+            {saving ? <Spinner animation="border" size="sm" className="me-2" /> : null}
+            Create Landing Page
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Integration Code Modal */}
+      <Modal show={showCodeModal} onHide={() => setShowCodeModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>
+            {selectedLanding ? `Integration Code - ${selectedLanding.name}` : 'Integration Guide'}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p className="mb-3">
+            Add this code snippet to your website's HTML, preferably in the &lt;head&gt; section:
+          </p>
+          <div className="bg-dark text-light p-3 rounded" style={{ fontFamily: 'monospace' }}>
+            <pre className="mb-0" style={{ whiteSpace: 'pre-wrap' }}>
+              {getIntegrationCode(selectedLanding)}
+            </pre>
+          </div>
+          <div className="mt-3">
+            <h6>Integration Steps:</h6>
+            <ol>
+              <li>Copy the code snippet above</li>
+              <li>Paste it into your website's HTML &lt;head&gt; section</li>
+              <li>Replace YOUR_APP_ID with your actual App ID from Settings</li>
+              <li>The bot check will automatically appear for new visitors</li>
+              <li>Users who pass the check can subscribe to notifications</li>
+            </ol>
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowCodeModal(false)}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    </DashboardLayout>
+  )
+}

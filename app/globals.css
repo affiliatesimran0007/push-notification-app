@@ -1,0 +1,511 @@
+/* Import Bootstrap CSS */
+@import 'bootstrap/dist/css/bootstrap.min.css';
+/* Import MDB React UI Kit CSS */
+@import 'mdb-react-ui-kit/dist/css/mdb.min.css';
+/* Import React Datepicker styles */
+@import 'react-datepicker/dist/react-datepicker.css';
+
+/* Custom global styles */
+:root {
+  --navbar-height: 56px;
+  --sidebar-width: 250px;
+}
+
+body {
+  background-color: #f5f5f5;
+}
+
+/* Main layout styles */
+.main-layout {
+  display: flex;
+  min-height: 100vh;
+  padding-top: var(--navbar-height);
+}
+
+.sidebar {
+  width: var(--sidebar-width);
+  background-color: #212529;
+  border-right: 1px solid #343a40;
+  position: fixed;
+  top: var(--navbar-height);
+  bottom: 0;
+  left: 0;
+  overflow-y: auto;
+  transition: all 0.3s ease-in-out;
+  z-index: 1040;
+}
+
+.sidebar.collapsed {
+  width: 60px;
+  overflow-x: hidden;
+}
+
+.sidebar.collapsed .nav-link span {
+  display: none;
+}
+
+.sidebar.collapsed .nav-link {
+  padding: 0.75rem 1rem;
+  justify-content: center;
+}
+
+.sidebar.collapsed .ms-4 {
+  display: none;
+}
+
+.sidebar.collapsed .justify-content-between {
+  justify-content: center !important;
+}
+
+/* Sidebar toggle button */
+.sidebar-toggle-wrapper {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1050;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 0 10px;
+}
+
+.sidebar-toggle-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #adb5bd;
+  width: 100%;
+  max-width: 200px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  font-size: 14px;
+}
+
+.sidebar-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.sidebar.collapsed .sidebar-toggle-btn {
+  max-width: 40px;
+  padding: 0;
+}
+
+.sidebar.collapsed .sidebar-toggle-btn span {
+  display: none;
+}
+
+.main-content {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  transition: margin-left 0.3s ease-in-out;
+}
+
+.main-content.sidebar-collapsed {
+  margin-left: 60px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .sidebar {
+    z-index: 1000;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    transform: translateX(-100%);
+  }
+  
+  .sidebar.collapsed {
+    transform: translateX(0);
+    width: var(--sidebar-width);
+  }
+  
+  .main-content {
+    margin-left: 0;
+  }
+  
+  .main-content.sidebar-collapsed {
+    margin-left: 0;
+  }
+}
+
+/* Custom card styles */
+.custom-card {
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 1px solid #dee2e6 !important;
+}
+
+.custom-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Enhanced card borders for better visibility */
+.card {
+  border: 1px solid #dee2e6 !important;
+}
+
+.shadow-sm {
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+}
+
+/* Chart container */
+.chart-container {
+  position: relative;
+  height: 300px;
+}
+
+/* Notification preview */
+.notification-preview {
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+/* Sidebar navigation */
+.sidebar-nav .nav-link {
+  color: #adb5bd;
+  padding: 0.75rem 1rem;
+  border-radius: 0;
+  transition: all 0.3s ease;
+}
+
+.sidebar-nav .nav-link:hover {
+  background-color: #343a40;
+  color: #fff;
+}
+
+.sidebar-nav .nav-link.active {
+  background-color: #0d6efd;
+  border-left: 3px solid #0d6efd;
+  color: #fff;
+  font-weight: 500;
+}
+
+.sidebar-nav .nav-link svg {
+  transition: transform 0.3s ease;
+}
+
+.sidebar-nav .nav-link:hover svg {
+  transform: translateX(3px);
+}
+
+/* Dropdown submenu styles */
+.sidebar-nav .ms-4 .nav-link {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  border-left: 2px solid transparent;
+}
+
+.sidebar-nav .ms-4 .nav-link:hover {
+  border-left-color: #0d6efd;
+  background-color: #2c3034;
+}
+
+.sidebar-nav .ms-4 .nav-link.active {
+  background-color: #495057;
+  border-left: 2px solid #0d6efd;
+  font-weight: 500;
+}
+
+/* Dropdown navigation styles */
+.sidebar-nav .nav-link.ps-4 {
+  font-size: 0.875rem;
+  padding: 0.5rem 1rem 0.5rem 3rem;
+  color: #8b92a0;
+}
+
+.sidebar-nav .nav-link.ps-4:hover {
+  background-color: #2c3136;
+  color: #fff;
+}
+
+.sidebar-nav .nav-link.ps-4.active {
+  background-color: transparent;
+  border-left: 2px solid #0d6efd;
+  color: #0d6efd;
+  font-weight: 500;
+}
+
+/* MDB Card overrides for consistency */
+.card.shadow-sm {
+  border: 1px solid #dee2e6 !important;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+}
+
+/* Table borders */
+.table {
+  border-color: #dee2e6;
+}
+
+.table thead th {
+  border-bottom: 2px solid #dee2e6;
+}
+
+/* Badge styles */
+.badge {
+  font-weight: 500;
+}
+
+/* Progress bar styles */
+.progress {
+  background-color: #e9ecef;
+}
+
+/* Form control focus */
+.form-control:focus,
+.form-select:focus {
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Button hover states */
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+/* MDB Tabs customization */
+.nav-tabs .nav-link {
+  font-size: 1rem !important;
+  font-weight: 500;
+  padding: 0.75rem 1.25rem !important;
+  color: #495057;
+}
+
+.nav-tabs .nav-link.active {
+  font-weight: 600;
+  color: #0d6efd;
+}
+
+.nav-tabs .nav-link:hover {
+  color: #0d6efd;
+}
+
+/* React Select customization */
+.react-select__control {
+  background-color: white !important;
+  border: 1px solid #ced4da !important;
+  min-height: 38px;
+}
+
+.react-select__control:hover {
+  border-color: #86b7fe !important;
+}
+
+.react-select__control--is-focused {
+  border-color: #86b7fe !important;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+}
+
+.react-select__placeholder {
+  color: #6c757d !important;
+}
+
+/* Filter card styling */
+.filter-card {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+}
+
+/* Dark sidebar scrollbar */
+.sidebar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: #1a1d20;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: #495057;
+  border-radius: 4px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: #6c757d;
+}
+
+/* Device Preview Styles */
+.device-preview-desktop {
+  position: relative;
+  background: #2d2d2d;
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+}
+
+.device-preview-desktop::before {
+  content: '';
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  width: 8px;
+  height: 8px;
+  background: #ff5f57;
+  border-radius: 50%;
+  box-shadow: 12px 0 0 #ffbd2e, 24px 0 0 #28ca42;
+}
+
+.device-screen-desktop {
+  background: #f5f5f5;
+  border-radius: 6px;
+  margin-top: 30px;
+  min-height: 200px;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.device-preview-android {
+  position: relative;
+  background: #1a1a1a;
+  border-radius: 30px;
+  padding: 12px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+.device-preview-android::before {
+  content: '';
+  position: absolute;
+  top: 25px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 4px;
+  background: #333;
+  border-radius: 2px;
+}
+
+.device-screen-android {
+  background: #f5f5f5;
+  border-radius: 20px;
+  min-height: 400px;
+  position: relative;
+  overflow: hidden;
+}
+
+.android-status-bar {
+  background: #212121;
+  color: white;
+  padding: 8px 20px;
+  font-size: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.device-preview-ios {
+  position: relative;
+  background: #1a1a1a;
+  border-radius: 40px;
+  padding: 12px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+.device-preview-ios::before {
+  content: '';
+  position: absolute;
+  top: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 25px;
+  background: #1a1a1a;
+  border-radius: 0 0 20px 20px;
+}
+
+.device-screen-ios {
+  background: #000;
+  border-radius: 30px;
+  min-height: 400px;
+  position: relative;
+  overflow: hidden;
+}
+
+.ios-status-bar {
+  background: #f2f2f7;
+  padding: 10px 20px 5px;
+  font-size: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #000;
+}
+
+.notification-popup {
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* New client row animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.new-client-row {
+  transition: all 0.5s ease-out;
+  position: relative;
+}
+
+.new-client-row td {
+  position: relative;
+  overflow: visible;
+}
+
+.new-client-row td:nth-child(2)::before {
+  content: '✨ NEW';
+  position: absolute;
+  left: -70px;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: #28a745;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: bold;
+  animation: pulse 1s ease-in-out infinite;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+@keyframes pulse {
+  0% {
+    transform: translateY(-50%) scale(1);
+  }
+  50% {
+    transform: translateY(-50%) scale(1.05);
+  }
+  100% {
+    transform: translateY(-50%) scale(1);
+  }
+}
