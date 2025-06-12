@@ -13,6 +13,7 @@ self.addEventListener('activate', (event) => {
 // Handle push notifications
 self.addEventListener('push', (event) => {
   console.log('Push notification received:', event)
+  console.log('Push data:', event.data ? event.data.text() : 'No data')
 
   if (!event.data) {
     console.log('Push notification without data')
@@ -21,6 +22,8 @@ self.addEventListener('push', (event) => {
 
   try {
     const data = event.data.json()
+    console.log('Parsed push data:', data)
+    
     const { title, body, icon, badge, url, tag, requireInteraction, actions, data: customData } = data
 
     const options = {
@@ -35,14 +38,21 @@ self.addEventListener('push', (event) => {
       },
       actions: actions || [],
       vibrate: [200, 100, 200],
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      silent: false // Ensure notification is not silent
     }
 
+    console.log('Showing notification with options:', options)
+
     event.waitUntil(
-      self.registration.showNotification(title, options)
+      self.registration.showNotification(title, options).then(() => {
+        console.log('Notification shown successfully')
+      }).catch(error => {
+        console.error('Failed to show notification:', error)
+      })
     )
   } catch (error) {
-    console.error('Error showing notification:', error)
+    console.error('Error processing push notification:', error)
   }
 })
 
@@ -128,3 +138,30 @@ async function retryFailedNotifications() {
   // Implement retry logic for failed notifications
   console.log('Retrying failed notifications...')
 }
+
+// Handle messages from the page (for testing)
+self.addEventListener('message', (event) => {
+  console.log('Service worker received message:', event.data)
+  
+  if (event.data && event.data.type === 'PUSH_TEST') {
+    // Simulate a push event
+    const { data } = event.data
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: data.icon,
+      badge: data.badge,
+      tag: data.tag,
+      data: { url: data.url }
+    }).then(() => {
+      console.log('Test notification shown')
+      if (event.ports[0]) {
+        event.ports[0].postMessage({ success: true })
+      }
+    }).catch(error => {
+      console.error('Failed to show test notification:', error)
+      if (event.ports[0]) {
+        event.ports[0].postMessage({ success: false, error: error.message })
+      }
+    })
+  }
+})

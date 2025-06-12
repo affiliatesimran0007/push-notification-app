@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chrome Notification Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .section {
+            background: #f5f5f5;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .log {
+            background: #333;
+            color: #0f0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .error { color: #f44336; }
+        .success { color: #4CAF50; }
+        .warning { color: #ff9800; }
+    </style>
+</head>
+<body>
+    <h1>Chrome Notification Debug Test</h1>
+    
+    <div class="section">
+        <h2>Test Local Notifications</h2>
+        <button onclick="testLocalNotification()">Test Local Notification</button>
+        <button onclick="testServiceWorkerNotification()">Test via Service Worker</button>
+        <p id="local-status"></p>
+    </div>
+
+    <div class="section">
+        <h2>Test Push Notifications</h2>
+        <button onclick="getSubscription()">Get Current Subscription</button>
+        <button onclick="sendTestPush()">Send Test Push</button>
+        <button onclick="sendDirectPush()">Send Direct Push (No Server)</button>
+        <p id="push-status"></p>
+    </div>
+
+    <div class="section">
+        <h2>Chrome Notification Settings</h2>
+        <button onclick="checkChromeSettings()">Check Chrome Settings</button>
+        <div id="chrome-info"></div>
+    </div>
+
+    <div class="section">
+        <h2>Debug Log</h2>
+        <div id="log" class="log"></div>
+    </div>
+
+    <script>
+        let currentSubscription = null;
+        
+        function log(msg, type = 'info') {
+            const logEl = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            const color = type === 'error' ? '#ff5555' : type === 'success' ? '#55ff55' : '#ffffff';
+            logEl.innerHTML += `<div style="color: ${color}">[${time}] ${msg}</div>`;
+            logEl.scrollTop = logEl.scrollHeight;
+            console.log(`[${type.toUpperCase()}]`, msg);
+        }
+
+        async function testLocalNotification() {
+            log('Testing local notification...');
+            
+            if (!('Notification' in window)) {
+                log('Notifications not supported', 'error');
+                return;
+            }
+
+            if (Notification.permission === 'granted') {
+                const notification = new Notification('Local Test', {
+                    body: 'This is a local notification (not push)',
+                    icon: '/icon-192x192.png',
+                    badge: '/badge-72x72.png',
+                    tag: 'local-test',
+                    requireInteraction: false
+                });
+                
+                notification.onclick = () => {
+                    log('Local notification clicked', 'success');
+                    window.focus();
+                };
+                
+                log('Local notification created', 'success');
+                document.getElementById('local-status').innerHTML = '<span class="success">✓ Local notification sent</span>';
+            } else {
+                const permission = await Notification.requestPermission();
+                log(`Permission result: ${permission}`);
+                if (permission === 'granted') {
+                    testLocalNotification();
+                }
+            }
+        }
+
+        async function testServiceWorkerNotification() {
+            log('Testing service worker notification...');
+            
+            try {
+                const registration = await navigator.serviceWorker.ready;
+                await registration.showNotification('Service Worker Test', {
+                    body: 'This notification was shown by the service worker',
+                    icon: '/icon-192x192.png',
+                    badge: '/badge-72x72.png',
+                    tag: 'sw-test',
+                    requireInteraction: false,
+                    data: {
+                        url: 'https://yahoo.com'
+                    }
+                });
+                
+                log('Service worker notification sent', 'success');
+                document.getElementById('local-status').innerHTML = '<span class="success">✓ SW notification sent</span>';
+            } catch (error) {
+                log(`SW notification error: ${error.message}`, 'error');
+            }
+        }
+
+        async function getSubscription() {
+            log('Getting current subscription...');
+            
+            try {
+                const registration = await navigator.serviceWorker.ready;
+                const subscription = await registration.pushManager.getSubscription();
+                
+                if (subscription) {
+                    currentSubscription = subscription;
+                    log('Subscription found', 'success');
+                    log(`Endpoint: ${subscription.endpoint.substring(0, 50)}...`);
+                    document.getElementById('push-status').innerHTML = '<span class="success">✓ Subscription found</span>';
+                    
+                    // Log full subscription
+                    const subJson = subscription.toJSON();
+                    log(`Full subscription: ${JSON.stringify(subJson, null, 2)}`);
+                } else {
+                    log('No subscription found', 'warning');
+                    document.getElementById('push-status').innerHTML = '<span class="warning">No subscription</span>';
+                }
+            } catch (error) {
+                log(`Get subscription error: ${error.message}`, 'error');
+            }
+        }
+
+        async function sendTestPush() {
+            log('Sending test push via API...');
+            
+            if (!currentSubscription) {
+                await getSubscription();
+            }
+            
+            if (!currentSubscription) {
+                log('No subscription available', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/test-push', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        subscription: currentSubscription.toJSON()
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    log('Test push sent successfully', 'success');
+                    document.getElementById('push-status').innerHTML = '<span class="success">✓ Push sent - check for notification</span>';
+                } else {
+                    log(`Push failed: ${result.error || result.message}`, 'error');
+                    document.getElementById('push-status').innerHTML = `<span class="error">✗ ${result.error}</span>`;
+                }
+            } catch (error) {
+                log(`API error: ${error.message}`, 'error');
+            }
+        }
+
+        async function sendDirectPush() {
+            log('Attempting direct push (simulated)...');
+            
+            // This simulates what the server does
+            try {
+                const registration = await navigator.serviceWorker.ready;
+                
+                // Dispatch a fake push event to the service worker
+                const channel = new MessageChannel();
+                
+                registration.active.postMessage({
+                    type: 'PUSH_TEST',
+                    data: {
+                        title: 'Direct Push Test',
+                        body: 'This is a simulated push event',
+                        icon: '/icon-192x192.png',
+                        badge: '/badge-72x72.png',
+                        url: 'https://yahoo.com',
+                        tag: 'direct-test-' + Date.now()
+                    }
+                }, [channel.port2]);
+                
+                log('Direct push message sent to SW', 'success');
+            } catch (error) {
+                log(`Direct push error: ${error.message}`, 'error');
+            }
+        }
+
+        function checkChromeSettings() {
+            const info = document.getElementById('chrome-info');
+            
+            // Check various Chrome-specific things
+            const checks = {
+                'Notification Permission': Notification.permission,
+                'Service Worker': 'serviceWorker' in navigator ? 'Supported' : 'Not supported',
+                'Push API': 'PushManager' in window ? 'Supported' : 'Not supported',
+                'User Agent': navigator.userAgent,
+                'Do Not Disturb': 'unknown' // Can't directly check this
+            };
+            
+            let html = '<h3>Chrome Environment:</h3><ul>';
+            for (const [key, value] of Object.entries(checks)) {
+                html += `<li><strong>${key}:</strong> ${value}</li>`;
+            }
+            html += '</ul>';
+            
+            html += `
+                <h3>Troubleshooting Chrome Notifications:</h3>
+                <ol>
+                    <li>Check Chrome Settings → Privacy and security → Site Settings → Notifications</li>
+                    <li>Make sure this site is allowed to send notifications</li>
+                    <li>Check macOS System Preferences → Notifications → Google Chrome</li>
+                    <li>Ensure "Do Not Disturb" is off on macOS</li>
+                    <li>Try: chrome://settings/content/notifications</li>
+                    <li>Check: chrome://gcm-internals/ for push service status</li>
+                </ol>
+            `;
+            
+            info.innerHTML = html;
+            log('Chrome settings checked');
+        }
+
+        // Auto-check on load
+        window.addEventListener('load', async () => {
+            log('Page loaded, checking environment...');
+            
+            if ('serviceWorker' in navigator) {
+                try {
+                    const reg = await navigator.serviceWorker.register('/sw.js');
+                    log('Service worker registered', 'success');
+                    
+                    // Listen for messages from SW
+                    navigator.serviceWorker.addEventListener('message', event => {
+                        log(`Message from SW: ${JSON.stringify(event.data)}`);
+                    });
+                } catch (error) {
+                    log(`SW registration error: ${error.message}`, 'error');
+                }
+            }
+            
+            await getSubscription();
+        });
+
+        // Add visibility change listener
+        document.addEventListener('visibilitychange', () => {
+            log(`Page visibility changed: ${document.hidden ? 'hidden' : 'visible'}`);
+        });
+
+        // Listen for notification events
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('message', event => {
+                if (event.data && event.data.type === 'notification-clicked') {
+                    log('Notification clicked!', 'success');
+                }
+            });
+        }
+    </script>
+</body>
+</html>
