@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import './clients.css'
+import './dropdown-fix.css'
 import { 
   MDBCard, 
   MDBCardBody, 
@@ -678,7 +679,7 @@ export default function Clients() {
                           <MDBDropdownToggle tag='a' className='btn btn-link text-dark p-0'>
                             <FiMoreVertical size={20} />
                           </MDBDropdownToggle>
-                          <MDBDropdownMenu>
+                          <MDBDropdownMenu style={{ maxHeight: 'none', overflow: 'visible' }}>
                             <MDBDropdownItem link onClick={() => handleSendNotification(client)}>
                               <FiSend className="me-2" /> Send Notification
                             </MDBDropdownItem>

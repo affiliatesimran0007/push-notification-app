@@ -1,0 +1,36 @@
+/* Aggressive dropdown fix for MDB */
+.dropdown-menu {
+  max-height: fit-content !important;
+  max-height: -moz-fit-content !important;
+  max-height: -webkit-fit-content !important;
+  overflow: visible !important;
+  overflow-y: visible !important;
+}
+
+.dropdown-menu.show {
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+/* Target MDB specific classes */
+div[class*="dropdown-menu"] {
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+/* Remove any height restrictions */
+.dropdown-menu[data-popper-placement] {
+  max-height: unset !important;
+  height: auto !important;
+}
+
+/* Fix for MDB dropdown animation */
+.dropdown-menu[style*="max-height"] {
+  max-height: none !important;
+}
+
+/* Force override inline styles */
+.dropdown-menu.show[style] {
+  max-height: none !important;
+  overflow: visible !important;
+}
