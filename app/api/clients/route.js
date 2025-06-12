@@ -77,6 +77,50 @@ export async function POST(request) {
   try {
     const body = await request.json()
     const { subscription, browserInfo, location, landingId, domain, url, accessStatus } = body
+    
+    // Validate subscription
+    if (!subscription || !subscription.endpoint || !subscription.keys) {
+      return NextResponse.json(
+        { error: 'Invalid subscription data' },
+        { status: 400 }
+      )
+    }
+    
+    // Validate p256dh and auth keys
+    if (!subscription.keys.p256dh || !subscription.keys.auth) {
+      return NextResponse.json(
+        { error: 'Missing subscription keys (p256dh or auth)' },
+        { status: 400 }
+      )
+    }
+    
+    // Validate p256dh length (should be 65 bytes when base64 decoded)
+    try {
+      const p256dhDecoded = Buffer.from(subscription.keys.p256dh, 'base64')
+      const authDecoded = Buffer.from(subscription.keys.auth, 'base64')
+      
+      if (p256dhDecoded.length !== 65) {
+        console.error('Invalid p256dh length:', p256dhDecoded.length, 'expected 65')
+        return NextResponse.json(
+          { error: `Invalid p256dh key length: ${p256dhDecoded.length} bytes (expected 65)` },
+          { status: 400 }
+        )
+      }
+      
+      if (authDecoded.length !== 16) {
+        console.error('Invalid auth length:', authDecoded.length, 'expected 16')
+        return NextResponse.json(
+          { error: `Invalid auth key length: ${authDecoded.length} bytes (expected 16)` },
+          { status: 400 }
+        )
+      }
+    } catch (error) {
+      console.error('Error decoding subscription keys:', error)
+      return NextResponse.json(
+        { error: 'Invalid base64 encoding in subscription keys' },
+        { status: 400 }
+      )
+    }
 
     // Get real IP address
     const forwardedFor = request.headers.get('x-forwarded-for')
