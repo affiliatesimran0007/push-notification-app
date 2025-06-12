@@ -96,8 +96,12 @@ export async function POST(request) {
     
     // Validate p256dh length (should be 65 bytes when base64 decoded)
     try {
-      const p256dhDecoded = Buffer.from(subscription.keys.p256dh, 'base64')
-      const authDecoded = Buffer.from(subscription.keys.auth, 'base64')
+      // Handle URL-safe base64 (convert - to + and _ to /)
+      const p256dhFixed = subscription.keys.p256dh.replace(/-/g, '+').replace(/_/g, '/')
+      const authFixed = subscription.keys.auth.replace(/-/g, '+').replace(/_/g, '/')
+      
+      const p256dhDecoded = Buffer.from(p256dhFixed, 'base64')
+      const authDecoded = Buffer.from(authFixed, 'base64')
       
       if (p256dhDecoded.length !== 65) {
         console.error('Invalid p256dh length:', p256dhDecoded.length, 'expected 65')

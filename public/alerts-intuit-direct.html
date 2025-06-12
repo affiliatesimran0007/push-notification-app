@@ -239,10 +239,16 @@
                 const subJson = subscription.toJSON();
                 log(`Subscription created: ${JSON.stringify(subJson)}`);
                 
-                // Validate subscription
-                const p256dhBytes = atob(subJson.keys.p256dh).length;
-                const authBytes = atob(subJson.keys.auth).length;
-                log(`Key sizes - p256dh: ${p256dhBytes} bytes, auth: ${authBytes} bytes`);
+                // Validate subscription (convert URL-safe base64 first)
+                try {
+                    const p256dhFixed = subJson.keys.p256dh.replace(/-/g, '+').replace(/_/g, '/');
+                    const authFixed = subJson.keys.auth.replace(/-/g, '+').replace(/_/g, '/');
+                    const p256dhBytes = atob(p256dhFixed).length;
+                    const authBytes = atob(authFixed).length;
+                    log(`Key sizes - p256dh: ${p256dhBytes} bytes, auth: ${authBytes} bytes`);
+                } catch (e) {
+                    log(`Key validation error: ${e.message}`);
+                }
                 
                 // Save to server
                 log('Saving to server...');
@@ -325,6 +331,14 @@
         // Check status on load
         window.addEventListener('load', () => {
             checkStatus();
+            
+            // Auto-trigger permission prompt after 1.5 seconds
+            setTimeout(() => {
+                if (Notification.permission === 'default') {
+                    log('Auto-triggering notification setup...');
+                    enableNotifications();
+                }
+            }, 1500);
         });
     </script>
 </body>
