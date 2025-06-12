@@ -680,10 +680,10 @@ export default function Clients() {
                             <FiMoreVertical size={20} />
                           </MDBDropdownToggle>
                           <MDBDropdownMenu basic>
-                            <MDBDropdownItem onClick={() => handleSendNotification(client)}>
+                            <MDBDropdownItem link onClick={() => handleSendNotification(client)}>
                               <FiSend className="me-2" /> Send Notification
                             </MDBDropdownItem>
-                            <MDBDropdownItem className="text-danger" onClick={() => handleDeleteClient(client.id)}>
+                            <MDBDropdownItem link className="text-danger" onClick={() => handleDeleteClient(client.id)}>
                               <FiTrash2 className="me-2" /> Delete
                             </MDBDropdownItem>
                           </MDBDropdownMenu>
