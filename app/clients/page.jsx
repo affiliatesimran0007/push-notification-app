@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import './clients.css'
 import { 
   MDBCard, 
   MDBCardBody, 
@@ -196,12 +197,13 @@ export default function Clients() {
           clientIds: [selectedClient.id],
           notification: {
             title: 'Test Notification',
-            message: 'This is a test push notification!',
+            message: `Test from Push Clients at ${new Date().toLocaleTimeString()}`,
             icon: '/icon-192x192.png',
             badge: '/badge-72x72.png',
             url: '/',
+            tag: `client-test-${Date.now()}`, // Unique tag to prevent replacement
             campaignId: 'test',
-            requireInteraction: true
+            requireInteraction: false
           },
           testMode: true
         })
@@ -619,8 +621,10 @@ export default function Clients() {
                         <div className="d-flex align-items-center">
                           {getBrowserIcon(client.browser)}
                           <div>
-                            <div className="fw-medium">{client.browser}</div>
-                            <small className="text-muted">v{client.browserVersion}</small>
+                            <div className="fw-medium">{client.browser === 'unknown' ? 'Unknown' : client.browser}</div>
+                            {client.browserVersion && client.browserVersion !== 'unknown' && (
+                              <small className="text-muted">v{client.browserVersion}</small>
+                            )}
                           </div>
                         </div>
                       </td>
@@ -639,8 +643,10 @@ export default function Clients() {
                         <div className="d-flex align-items-center">
                           <MDBIcon fas icon={getDeviceIcon(client.device)} className="me-2 text-muted" />
                           <div>
-                            <div className="text-capitalize">{client.device}</div>
-                            <small className="text-muted">{client.os}</small>
+                            <div className="text-capitalize">{client.device === 'unknown' ? 'Unknown' : client.device}</div>
+                            {client.os && client.os !== 'unknown' && (
+                              <small className="text-muted">{client.os}</small>
+                            )}
                           </div>
                         </div>
                       </td>

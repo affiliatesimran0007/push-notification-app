@@ -1,0 +1,26 @@
+/* Fix dropdown menu scrollbar issue */
+.dropdown-menu {
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+/* Ensure dropdown items don't cause overflow */
+.dropdown-item {
+  white-space: nowrap;
+  padding: 0.5rem 1rem;
+}
+
+/* Fix dropdown positioning */
+.dropdown {
+  position: relative;
+}
+
+/* Hide unknown version text */
+td:has(> unknown) {
+  font-size: 0;
+}
+
+td:has(> unknown)::after {
+  content: '-';
+  font-size: 1rem;
+}
