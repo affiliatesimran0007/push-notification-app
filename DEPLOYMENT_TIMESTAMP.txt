@@ -1,0 +1,5 @@
+Deployment triggered at: 2024-12-06 19:45:00 UTC
+Reason: Updated VAPID keys in Vercel environment variables
+- NEXT_PUBLIC_VAPID_PUBLIC_KEY updated
+- VAPID_PRIVATE_KEY updated
+This will fix push notifications from the Clients page.
