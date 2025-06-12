@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alerts Intuit - Direct Integration</title>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f9fa;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .hero {
+            padding: 5rem 0;
+            background: white;
+            text-align: center;
+        }
+        
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #333;
+        }
+        
+        .hero p {
+            font-size: 1.25rem;
+            color: #666;
+            margin-bottom: 2rem;
+        }
+        
+        .notification-status {
+            background: #f8f9fa;
+            padding: 2rem;
+            border-radius: 10px;
+            display: inline-block;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .status-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        .notification-status h2 {
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+        
+        #status-message {
+            color: #666;
+            margin-bottom: 1rem;
+        }
+        
+        button {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 30px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        
+        button:hover {
+            transform: scale(1.05);
+            background: #1976d2;
+        }
+        
+        button:disabled {
+            background: #ccc;
+            transform: none;
+            cursor: not-allowed;
+        }
+        
+        .success { color: #4caf50; }
+        .error { color: #f44336; }
+        
+        .debug {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            text-align: left;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">🔔 Alerts Intuit</div>
+            </div>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <h1>Never Miss an Important Alert</h1>
+            <p>Direct integration test - Creates subscription immediately</p>
+            
+            <div class="notification-status">
+                <div class="status-icon">🔔</div>
+                <h2>Push Notifications</h2>
+                <p id="status-message">Checking notification status...</p>
+                <button id="enable-btn" onclick="enableNotifications()" style="display: none;">
+                    Enable Push Notifications
+                </button>
+                <div id="debug" class="debug" style="display: none;"></div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        const VAPID_KEY = 'BGv2Vm45eFGslcXFhakD-euIXAnOg6-bdqVWHoSw4gwvjvYYV1zBA_Q7uiNij5yvRqMwmDhpBYYSA1v5Z_GEv_k';
+        const API_URL = 'https://push-notification-app-steel.vercel.app';
+        
+        function log(message) {
+            console.log(message);
+            const debug = document.getElementById('debug');
+            debug.style.display = 'block';
+            debug.innerHTML += `${new Date().toLocaleTimeString()}: ${message}<br>`;
+        }
+        
+        function updateStatus(message, showButton = false) {
+            document.getElementById('status-message').textContent = message;
+            document.getElementById('enable-btn').style.display = showButton ? 'block' : 'none';
+        }
+        
+        async function checkStatus() {
+            log('Checking notification status...');
+            
+            if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+                updateStatus('Your browser does not support push notifications.');
+                return;
+            }
+            
+            try {
+                // Register service worker
+                log('Registering service worker...');
+                const registration = await navigator.serviceWorker.register('/sw.js');
+                await navigator.serviceWorker.ready;
+                log('Service worker ready');
+                
+                const permission = Notification.permission;
+                log(`Current permission: ${permission}`);
+                
+                if (permission === 'granted') {
+                    // Check for existing subscription
+                    const subscription = await registration.pushManager.getSubscription();
+                    if (subscription) {
+                        updateStatus('✅ You are already subscribed to push notifications!');
+                        log('Found existing subscription');
+                    } else {
+                        updateStatus('Permission granted. Click to create subscription.', true);
+                        log('Permission granted but no subscription');
+                    }
+                } else if (permission === 'denied') {
+                    updateStatus('❌ Push notifications are blocked. Please enable them in your browser settings.');
+                    log('Permission denied');
+                } else {
+                    updateStatus('Click below to enable push notifications', true);
+                    log('Permission default - waiting for user');
+                }
+            } catch (error) {
+                log(`Error: ${error.message}`);
+                updateStatus('Error checking status. See debug info below.', true);
+            }
+        }
+        
+        async function enableNotifications() {
+            const btn = document.getElementById('enable-btn');
+            btn.disabled = true;
+            
+            try {
+                log('Starting notification setup...');
+                updateStatus('Setting up notifications...');
+                
+                // Get service worker
+                const registration = await navigator.serviceWorker.ready;
+                
+                // Request permission if needed
+                if (Notification.permission !== 'granted') {
+                    log('Requesting permission...');
+                    const permission = await Notification.requestPermission();
+                    log(`Permission result: ${permission}`);
+                    
+                    if (permission !== 'granted') {
+                        throw new Error('Permission denied');
+                    }
+                }
+                
+                // Create subscription
+                log('Creating subscription...');
+                const subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(VAPID_KEY)
+                });
+                
+                const subJson = subscription.toJSON();
+                log(`Subscription created: ${JSON.stringify(subJson)}`);
+                
+                // Validate subscription
+                const p256dhBytes = atob(subJson.keys.p256dh).length;
+                const authBytes = atob(subJson.keys.auth).length;
+                log(`Key sizes - p256dh: ${p256dhBytes} bytes, auth: ${authBytes} bytes`);
+                
+                // Save to server
+                log('Saving to server...');
+                const response = await fetch(`${API_URL}/api/clients`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        subscription: subJson,
+                        landingId: 'direct-test',
+                        url: window.location.href,
+                        domain: window.location.hostname,
+                        browserInfo: {
+                            userAgent: navigator.userAgent,
+                            language: navigator.language,
+                            platform: navigator.platform
+                        }
+                    })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.text();
+                    throw new Error(`Server error: ${error}`);
+                }
+                
+                const result = await response.json();
+                log(`Server response: ${JSON.stringify(result)}`);
+                
+                updateStatus('✅ Successfully subscribed to push notifications!');
+                
+                // Send test notification after 2 seconds
+                setTimeout(async () => {
+                    log('Sending test notification...');
+                    try {
+                        const testResponse = await fetch(`${API_URL}/api/test-push-direct`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                subscription: subJson
+                            })
+                        });
+                        
+                        const testResult = await testResponse.json();
+                        if (testResult.success) {
+                            log('Test notification sent successfully!');
+                        } else {
+                            log(`Test notification failed: ${testResult.error}`);
+                        }
+                    } catch (e) {
+                        log(`Test error: ${e.message}`);
+                    }
+                }, 2000);
+                
+            } catch (error) {
+                log(`Error: ${error.message}`);
+                updateStatus(`❌ Error: ${error.message}`, true);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+        
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding)
+                .replace(/\-/g, '+')
+                .replace(/_/g, '/');
+            
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        }
+        
+        // Check status on load
+        window.addEventListener('load', () => {
+            checkStatus();
+        });
+    </script>
+</body>
+</html>
