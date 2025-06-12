@@ -210,7 +210,10 @@ export default function BotCheckPage() {
                 os: clientData.operatingSystem,
                 device: clientData.deviceType,
                 language: clientData.language,
-                platform: clientData.platform
+                platform: clientData.platform,
+                userAgent: navigator.userAgent,
+                timezone: clientData.timezone,
+                timezoneOffset: clientData.timezoneOffset
               },
               location: {
                 country: clientData.country,

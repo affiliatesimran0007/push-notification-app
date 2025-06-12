@@ -156,6 +156,9 @@ export async function POST(request) {
       // Parse browser info from user agent
       const parsedInfo = parseBrowserInfo(browserInfo?.userAgent)
       
+      // Extract timezone from browserInfo
+      const timezone = browserInfo?.timezone || null
+      
       // Update existing client with latest info
       const updatedClient = await prisma.client.update({
         where: { id: existingClient.id },
@@ -165,7 +168,7 @@ export async function POST(request) {
           browser: parsedInfo.browser !== 'unknown' ? parsedInfo.browser : existingClient.browser,
           browserVersion: parsedInfo.version !== 'unknown' ? parsedInfo.version : existingClient.browserVersion,
           country: location?.country || existingClient.country,
-          city: location?.city || existingClient.city,
+          city: timezone && existingClient.city === 'Unknown' ? `Unknown (${timezone})` : (location?.city || existingClient.city),
           os: parsedInfo.os !== 'unknown' ? parsedInfo.os : existingClient.os,
           device: parsedInfo.device || existingClient.device,
           subscribedUrl: body.url || existingClient.subscribedUrl,
@@ -186,6 +189,10 @@ export async function POST(request) {
     // Parse browser info from user agent
     const parsedInfo = parseBrowserInfo(browserInfo?.userAgent)
     
+    // Extract timezone from browserInfo
+    const timezone = browserInfo?.timezone || null
+    const timezoneOffset = browserInfo?.timezoneOffset || null
+    
     // Create new client
     const newClient = await prisma.client.create({
       data: {
@@ -196,7 +203,7 @@ export async function POST(request) {
         browserVersion: parsedInfo.version,
         ip: clientIp,
         country: location?.country || 'Unknown',
-        city: location?.city || 'Unknown',
+        city: location?.city || (timezone ? `Unknown (${timezone})` : 'Unknown'),
         os: parsedInfo.os,
         device: parsedInfo.device,
         subscribedUrl: url || body.url || '',

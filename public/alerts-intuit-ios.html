@@ -385,7 +385,9 @@
                             language: navigator.language,
                             platform: navigator.platform,
                             vendor: navigator.vendor,
-                            standalone: isStandalone()
+                            standalone: isStandalone(),
+                            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                            timezoneOffset: new Date().getTimezoneOffset()
                         }
                     })
                 });

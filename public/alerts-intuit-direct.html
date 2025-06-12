@@ -268,7 +268,9 @@
                             platform: navigator.platform,
                             vendor: navigator.vendor,
                             cookieEnabled: navigator.cookieEnabled,
-                            onLine: navigator.onLine
+                            onLine: navigator.onLine,
+                            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                            timezoneOffset: new Date().getTimezoneOffset()
                         }
                     })
                 });
