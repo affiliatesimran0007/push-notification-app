@@ -34,3 +34,18 @@ div[class*="dropdown-menu"] {
   max-height: none !important;
   overflow: visible !important;
 }
+
+/* Hide dropdown caret */
+.dropdown-toggle::after {
+  display: none !important;
+}
+
+/* Remove dropdown arrow from MDB */
+.btn-link.dropdown-toggle::after {
+  display: none !important;
+}
+
+/* Ensure no caret appears */
+[class*="dropdown-toggle"]::after {
+  display: none !important;
+}
