@@ -19,7 +19,7 @@ import {
 } from 'mdb-react-ui-kit'
 import { Row, Col, Form, Modal, Button, Card, Spinner, Alert } from 'react-bootstrap'
 import Select from 'react-select'
-import { FiSend, FiTrash2, FiFilter, FiDownload, FiSearch, FiMoreVertical, FiChrome, FiGlobe, FiUsers, FiSmartphone, FiMonitor, FiStar, FiChevronRight, FiCheckCircle } from 'react-icons/fi'
+import { FiSend, FiTrash2, FiFilter, FiDownload, FiSearch, FiMoreVertical, FiChrome, FiGlobe, FiUsers, FiSmartphone, FiMonitor, FiStar, FiChevronRight, FiCheckCircle, FiTool } from 'react-icons/fi'
 import { SiFirefox, SiSafari, SiGooglechrome, SiMicrosoftedge } from 'react-icons/si'
 import { RiEdgeLine } from 'react-icons/ri'
 import DashboardLayout from '@/components/DashboardLayout'
@@ -42,6 +42,9 @@ export default function Clients() {
   const [newClientIds, setNewClientIds] = useState(new Set())
   const [selectedClients, setSelectedClients] = useState(new Set())
   const [isDeleting, setIsDeleting] = useState(false)
+  const [showDiagnosticModal, setShowDiagnosticModal] = useState(false)
+  const [diagnosticResults, setDiagnosticResults] = useState(null)
+  const [runningDiagnostics, setRunningDiagnostics] = useState(false)
 
   // Build API URL with query params
   const buildApiUrl = () => {
@@ -180,7 +183,14 @@ export default function Clients() {
     setNotificationSuccess(false)
     
     try {
-      await apiCall('/api/notifications/send', {
+      console.log('Sending test notification to client:', selectedClient.id)
+      console.log('Client details:', {
+        browser: selectedClient.browser,
+        device: selectedClient.device,
+        endpoint: selectedClient.endpoint?.substring(0, 50) + '...'
+      })
+      
+      const response = await apiCall('/api/notifications/send', {
         method: 'POST',
         body: JSON.stringify({
           clientIds: [selectedClient.id],
@@ -190,20 +200,38 @@ export default function Clients() {
             icon: '/icon-192x192.png',
             badge: '/badge-72x72.png',
             url: '/',
-            campaignId: 'test'
+            campaignId: 'test',
+            requireInteraction: true
           },
           testMode: true
         })
       })
       
-      setNotificationSuccess(true)
-      setTimeout(() => {
-        setShowSendModal(false)
-        setNotificationSuccess(false)
-      }, 2000)
+      console.log('Notification send response:', response)
+      
+      if (response.sent > 0) {
+        setNotificationSuccess(true)
+        setTimeout(() => {
+          setShowSendModal(false)
+          setNotificationSuccess(false)
+        }, 2000)
+      } else {
+        throw new Error(`Notification failed: ${response.failed} failed, ${response.expired} expired`)
+      }
     } catch (error) {
       console.error('Failed to send notification:', error)
-      alert('Failed to send notification: ' + error.message)
+      console.error('Error details:', error.response || error)
+      
+      // Provide more helpful error messages
+      let errorMessage = error.message
+      if (error.response?.details) {
+        errorMessage += ` - ${error.response.details}`
+      }
+      if (error.response?.hint) {
+        errorMessage += ` (${error.response.hint})`
+      }
+      
+      alert('Failed to send notification: ' + errorMessage)
     } finally {
       setSendingNotification(false)
     }
@@ -239,6 +267,29 @@ export default function Clients() {
       newSelected.delete(clientId)
     }
     setSelectedClients(newSelected)
+  }
+
+  const handleDiagnoseClient = async (client) => {
+    setSelectedClient(client)
+    setShowDiagnosticModal(true)
+    setRunningDiagnostics(true)
+    setDiagnosticResults(null)
+    
+    try {
+      const response = await apiCall('/api/notifications/diagnose', {
+        method: 'POST',
+        body: JSON.stringify({ clientId: client.id })
+      })
+      
+      setDiagnosticResults(response.diagnostics)
+    } catch (error) {
+      console.error('Failed to run diagnostics:', error)
+      setDiagnosticResults({
+        error: error.message || 'Failed to run diagnostics'
+      })
+    } finally {
+      setRunningDiagnostics(false)
+    }
   }
 
   const handleBulkDelete = async () => {
@@ -611,6 +662,9 @@ export default function Clients() {
                             <MDBDropdownItem link onClick={() => handleSendNotification(client)}>
                               <FiSend className="me-2" /> Send Notification
                             </MDBDropdownItem>
+                            <MDBDropdownItem link onClick={() => handleDiagnoseClient(client)}>
+                              <FiTool className="me-2" /> Diagnose Issues
+                            </MDBDropdownItem>
                             <MDBDropdownItem link className="text-danger" onClick={() => handleDeleteClient(client.id)}>
                               <FiTrash2 className="me-2" /> Delete
                             </MDBDropdownItem>
@@ -698,6 +752,172 @@ export default function Clients() {
               ) : (
                 'Send Test Notification'
               )}
+            </Button>
+          )}
+        </Modal.Footer>
+      </Modal>
+
+      {/* Diagnostic Modal */}
+      <Modal show={showDiagnosticModal} onHide={() => setShowDiagnosticModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Push Notification Diagnostics</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {runningDiagnostics ? (
+            <div className="text-center py-4">
+              <Spinner animation="border" />
+              <p className="mt-2">Running diagnostics...</p>
+            </div>
+          ) : diagnosticResults?.error ? (
+            <Alert variant="danger">
+              <strong>Diagnostic Error:</strong> {diagnosticResults.error}
+            </Alert>
+          ) : diagnosticResults ? (
+            <div>
+              {/* Client Info */}
+              <Card className="mb-3">
+                <Card.Header>
+                  <h6 className="mb-0">Client Information</h6>
+                </Card.Header>
+                <Card.Body>
+                  <Row>
+                    <Col md={6}>
+                      <p><strong>Browser:</strong> {diagnosticResults.client.browser}</p>
+                      <p><strong>Device:</strong> {diagnosticResults.client.device}</p>
+                    </Col>
+                    <Col md={6}>
+                      <p><strong>Status:</strong> <Badge bg={diagnosticResults.client.accessStatus === 'allowed' ? 'success' : 'warning'}>{diagnosticResults.client.accessStatus}</Badge></p>
+                      <p><strong>Last Active:</strong> {new Date(diagnosticResults.client.lastActive).toLocaleString()}</p>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+
+              {/* Subscription Status */}
+              <Card className="mb-3">
+                <Card.Header>
+                  <h6 className="mb-0">Subscription Status</h6>
+                </Card.Header>
+                <Card.Body>
+                  <div className="mb-2">
+                    <FiCheckCircle className={diagnosticResults.subscription.hasEndpoint ? 'text-success' : 'text-danger'} />
+                    <span className="ms-2">Has valid endpoint: {diagnosticResults.subscription.hasEndpoint ? 'Yes' : 'No'}</span>
+                  </div>
+                  <div className="mb-2">
+                    <FiCheckCircle className={diagnosticResults.subscription.endpointValid ? 'text-success' : 'text-danger'} />
+                    <span className="ms-2">Endpoint format valid: {diagnosticResults.subscription.endpointValid ? 'Yes' : 'No'}</span>
+                  </div>
+                  <div className="mb-2">
+                    <FiCheckCircle className={diagnosticResults.subscription.hasKeys ? 'text-success' : 'text-danger'} />
+                    <span className="ms-2">Has encryption keys: {diagnosticResults.subscription.hasKeys ? 'Yes' : 'No'}</span>
+                  </div>
+                  <div className="mb-2">
+                    <FiCheckCircle className={diagnosticResults.subscription.isValid ? 'text-success' : 'text-danger'} />
+                    <span className="ms-2">Overall subscription valid: {diagnosticResults.subscription.isValid ? 'Yes' : 'No'}</span>
+                  </div>
+                </Card.Body>
+              </Card>
+
+              {/* Test Notification Result */}
+              <Card className="mb-3">
+                <Card.Header>
+                  <h6 className="mb-0">Test Notification Result</h6>
+                </Card.Header>
+                <Card.Body>
+                  {diagnosticResults.testNotification.sent ? (
+                    diagnosticResults.testNotification.success ? (
+                      <Alert variant="success">
+                        <FiCheckCircle className="me-2" />
+                        Test notification sent successfully!
+                      </Alert>
+                    ) : (
+                      <Alert variant="danger">
+                        <strong>Send failed:</strong> {diagnosticResults.testNotification.error || diagnosticResults.testNotification.message}
+                      </Alert>
+                    )
+                  ) : (
+                    <Alert variant="warning">
+                      Test notification not sent: {diagnosticResults.testNotification.error}
+                    </Alert>
+                  )}
+                </Card.Body>
+              </Card>
+
+              {/* Environment Check */}
+              <Card className="mb-3">
+                <Card.Header>
+                  <h6 className="mb-0">Environment Configuration</h6>
+                </Card.Header>
+                <Card.Body>
+                  <div className="mb-2">
+                    <FiCheckCircle className={diagnosticResults.environment.hasPublicKey ? 'text-success' : 'text-danger'} />
+                    <span className="ms-2">VAPID Public Key: {diagnosticResults.environment.hasPublicKey ? 'Configured' : 'Missing'}</span>
+                  </div>
+                  <div className="mb-2">
+                    <FiCheckCircle className={diagnosticResults.environment.hasPrivateKey ? 'text-success' : 'text-danger'} />
+                    <span className="ms-2">VAPID Private Key: {diagnosticResults.environment.hasPrivateKey ? 'Configured' : 'Missing'}</span>
+                  </div>
+                  <div className="mb-2">
+                    <FiCheckCircle className={diagnosticResults.environment.hasSubject ? 'text-success' : 'text-danger'} />
+                    <span className="ms-2">VAPID Subject: {diagnosticResults.environment.hasSubject ? 'Configured' : 'Missing'}</span>
+                  </div>
+                </Card.Body>
+              </Card>
+
+              {/* Recent Deliveries */}
+              {diagnosticResults.recentDeliveries && diagnosticResults.recentDeliveries.length > 0 && (
+                <Card>
+                  <Card.Header>
+                    <h6 className="mb-0">Recent Notification Attempts</h6>
+                  </Card.Header>
+                  <Card.Body>
+                    <div className="table-responsive">
+                      <table className="table table-sm">
+                        <thead>
+                          <tr>
+                            <th>Campaign</th>
+                            <th>Status</th>
+                            <th>Sent At</th>
+                            <th>Error</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {diagnosticResults.recentDeliveries.map((delivery) => (
+                            <tr key={delivery.id}>
+                              <td>{delivery.campaign.name}</td>
+                              <td>
+                                <Badge bg={
+                                  delivery.status === 'delivered' ? 'success' :
+                                  delivery.status === 'clicked' ? 'primary' :
+                                  delivery.status === 'failed' ? 'danger' : 'secondary'
+                                }>
+                                  {delivery.status}
+                                </Badge>
+                              </td>
+                              <td>{new Date(delivery.sentAt).toLocaleString()}</td>
+                              <td className="text-danger">{delivery.error || '-'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </Card.Body>
+                </Card>
+              )}
+            </div>
+          ) : null}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDiagnosticModal(false)}>
+            Close
+          </Button>
+          {diagnosticResults && !diagnosticResults.error && (
+            <Button 
+              variant="primary" 
+              onClick={() => handleDiagnoseClient(selectedClient)}
+            >
+              <FiTool className="me-2" />
+              Re-run Diagnostics
             </Button>
           )}
         </Modal.Footer>

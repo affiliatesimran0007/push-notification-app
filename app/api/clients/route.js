@@ -31,26 +31,26 @@ export async function GET(request) {
       ]
     }
 
-    // Get total count
-    const total = await prisma.client.count({ where })
-
-    // Get paginated clients
-    const clients = await prisma.client.findMany({
-      where,
-      skip,
-      take: limit,
-      orderBy: { subscribedAt: 'desc' },
-      include: {
-        landingPage: {
-          select: {
-            id: true,
-            name: true,
-            domain: true,
-            landingId: true
+    // Execute count and data fetch in parallel for better performance
+    const [total, clients] = await Promise.all([
+      prisma.client.count({ where }),
+      prisma.client.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { subscribedAt: 'desc' },
+        include: {
+          landingPage: {
+            select: {
+              id: true,
+              name: true,
+              domain: true,
+              landingId: true
+            }
           }
         }
-      }
-    })
+      })
+    ])
 
     return NextResponse.json({
       clients,

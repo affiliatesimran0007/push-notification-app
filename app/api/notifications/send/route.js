@@ -116,8 +116,20 @@ export async function POST(request) {
       message: testMode ? 'Test notification sent' : 'Notifications sent successfully'
     })
   } catch (error) {
+    console.error('Failed to send notifications:', error)
+    console.error('Error stack:', error.stack)
+    console.error('Error details:', {
+      message: error.message,
+      body: error.body,
+      statusCode: error.statusCode
+    })
+    
     return NextResponse.json(
-      { error: 'Failed to send notifications' },
+      { 
+        error: 'Failed to send notifications',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        hint: 'Check server logs for more details'
+      },
       { status: 500 }
     )
   }
