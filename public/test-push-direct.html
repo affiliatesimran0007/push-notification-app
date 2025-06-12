@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Direct Push Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .container {
+            background: #f5f5f5;
+            padding: 30px;
+            border-radius: 10px;
+        }
+        button {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 0;
+            display: block;
+            width: 100%;
+        }
+        button:hover { background: #1976d2; }
+        button:disabled { background: #ccc; }
+        .status {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        pre {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Direct Push Test</h1>
+        <p>This bypasses all service layers and tests web-push directly.</p>
+        
+        <div id="status" class="status info">Ready to test</div>
+        
+        <button onclick="testDirectPush()">Test Direct Push</button>
+        <button onclick="createNewSubscription()">Create New Subscription First</button>
+        
+        <h3>Current Subscription:</h3>
+        <pre id="subscription">No subscription yet</pre>
+        
+        <h3>Test Result:</h3>
+        <pre id="result">No test run yet</pre>
+    </div>
+
+    <script>
+        const VAPID_KEY = 'BNV70f-uHInqVEOT9r2d6pVfK5WViCXdtoYjB87Nf8WUQZ6mDMSXEXGFQmJXl6bvGpvzL2jVSuPZUk-S9YS8rYc';
+        let currentSubscription = null;
+        
+        async function checkSubscription() {
+            try {
+                const reg = await navigator.serviceWorker.ready;
+                const sub = await reg.pushManager.getSubscription();
+                
+                if (sub) {
+                    currentSubscription = sub;
+                    document.getElementById('subscription').textContent = 
+                        JSON.stringify(sub.toJSON(), null, 2);
+                    updateStatus('Subscription found', 'success');
+                } else {
+                    updateStatus('No subscription found', 'error');
+                }
+            } catch (error) {
+                updateStatus('Error: ' + error.message, 'error');
+            }
+        }
+        
+        async function createNewSubscription() {
+            try {
+                updateStatus('Creating subscription...', 'info');
+                
+                // Register service worker
+                await navigator.serviceWorker.register('/sw.js');
+                const reg = await navigator.serviceWorker.ready;
+                
+                // Request permission
+                const permission = await Notification.requestPermission();
+                if (permission !== 'granted') {
+                    throw new Error('Permission denied');
+                }
+                
+                // Create subscription
+                const subscription = await reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(VAPID_KEY)
+                });
+                
+                currentSubscription = subscription;
+                document.getElementById('subscription').textContent = 
+                    JSON.stringify(subscription.toJSON(), null, 2);
+                
+                updateStatus('Subscription created!', 'success');
+                
+            } catch (error) {
+                updateStatus('Error: ' + error.message, 'error');
+            }
+        }
+        
+        async function testDirectPush() {
+            if (!currentSubscription) {
+                updateStatus('No subscription! Create one first.', 'error');
+                return;
+            }
+            
+            try {
+                updateStatus('Sending direct push test...', 'info');
+                
+                const response = await fetch('/api/test-push-direct', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        subscription: currentSubscription.toJSON()
+                    })
+                });
+                
+                const result = await response.json();
+                document.getElementById('result').textContent = 
+                    JSON.stringify(result, null, 2);
+                
+                if (result.success) {
+                    updateStatus('✅ Push sent! Check your notifications.', 'success');
+                } else {
+                    updateStatus(`❌ Failed: ${result.error}`, 'error');
+                    console.error('Full error:', result);
+                }
+                
+            } catch (error) {
+                updateStatus('Error: ' + error.message, 'error');
+                document.getElementById('result').textContent = error.toString();
+            }
+        }
+        
+        function updateStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+        }
+        
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding)
+                .replace(/\-/g, '+')
+                .replace(/_/g, '/');
+            
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        }
+        
+        // Check on load
+        window.addEventListener('load', () => {
+            checkSubscription();
+        });
+    </script>
+</body>
+</html>
