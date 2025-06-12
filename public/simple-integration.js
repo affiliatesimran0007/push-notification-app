@@ -42,8 +42,11 @@
       return;
     }
 
-    // If bot check is done, request permission
-    requestNotificationPermission();
+    // If bot check is done, request permission immediately
+    console.log('Bot check completed, requesting permission...');
+    setTimeout(() => {
+      requestNotificationPermission();
+    }, 500); // Small delay to ensure page is ready
   }
 
   // Request notification permission

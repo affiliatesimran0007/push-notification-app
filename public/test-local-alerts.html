@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alerts Intuit - Local Test</title>
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .panel {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 16px;
+        }
+        button:hover { background: #1976d2; }
+        .status {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success { background: #c8e6c9; color: #2e7d32; }
+        .error { background: #ffcdd2; color: #c62828; }
+        .info { background: #e1f5fe; color: #01579b; }
+        .warning { background: #fff3cd; color: #856404; }
+        code {
+            background: #f5f5f5;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔔 Alerts Intuit - Local Test</h1>
+    
+    <div class="panel">
+        <h2>Test Push Notifications Locally</h2>
+        <p>Since we're testing locally, we'll simulate the flow:</p>
+        
+        <button onclick="simulateBotCheck()">1. Simulate Bot Check</button>
+        <button onclick="requestPermission()">2. Request Permission</button>
+        <button onclick="checkStatus()">3. Check Status</button>
+        <button onclick="resetEverything()">Reset Everything</button>
+    </div>
+
+    <div class="panel">
+        <h2>Current Status</h2>
+        <div id="status"></div>
+    </div>
+
+    <div class="panel">
+        <h2>Instructions for Production</h2>
+        <p>When you deploy to alerts-intuit.com, add this to your <code>&lt;head&gt;</code>:</p>
+        <pre style="background: #f5f5f5; padding: 15px; border-radius: 5px; overflow-x: auto;">
+&lt;script&gt;
+(function() {
+  const PUSH_CONFIG = {
+    appUrl: 'https://push-notification-app-steel.vercel.app',
+    landingId: 'tester',
+    vapidKey: 'BNV70f-uHInqVEOT9r2d6pVfK5WViCXdtoYjB87Nf8WUQZ6mDMSXEXGFQmJXl6bvGpvzL2jVSuPZUk-S9YS8rYc',
+    redirects: {
+      onAllow: 'https://alerts-intuit.com/thank-you',
+      onBlock: 'https://alerts-intuit.com/notifications-info'
+    }
+  };
+  
+  const script = document.createElement('script');
+  script.src = PUSH_CONFIG.appUrl + '/simple-integration.js';
+  script.async = true;
+  document.head.appendChild(script);
+})();
+&lt;/script&gt;</pre>
+    </div>
+
+    <div class="panel">
+        <h2>Test the Real Flow</h2>
+        <p>To test the actual bot check and integration:</p>
+        <ol>
+            <li>Open a new incognito/private window</li>
+            <li>Visit: <a href="https://push-notification-app-steel.vercel.app/alerts-intuit-index.html" target="_blank">Test Page on Vercel</a></li>
+            <li>You should see the bot check redirect</li>
+        </ol>
+        
+        <div class="status warning">
+            <strong>Note:</strong> The bot check only appears once per session. Clear your browser data or use incognito mode to see it again.
+        </div>
+    </div>
+
+    <script>
+        function updateStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.className = `status ${type}`;
+            status.innerHTML = message;
+        }
+
+        function simulateBotCheck() {
+            updateStatus('🤖 Simulating bot check...<br>In production, users would be redirected to:<br><code>https://push-notification-app-steel.vercel.app/landing/bot-check</code>', 'info');
+            
+            // Simulate the delay
+            setTimeout(() => {
+                sessionStorage.setItem('push_bot_check_done', 'true');
+                updateStatus('✅ Bot check completed (simulated)<br>Session flag set: push_bot_check_done = true', 'success');
+            }, 1500);
+        }
+
+        function requestPermission() {
+            if (!('Notification' in window)) {
+                updateStatus('❌ This browser does not support notifications', 'error');
+                return;
+            }
+
+            updateStatus('📢 Requesting notification permission...', 'info');
+            
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    updateStatus('✅ Permission granted!<br>In production, user would be subscribed to push notifications', 'success');
+                    
+                    // Show test notification
+                    new Notification('Alerts Intuit', {
+                        body: 'Push notifications are working!',
+                        icon: 'https://push-notification-app-steel.vercel.app/icon-192x192.png'
+                    });
+                } else if (permission === 'denied') {
+                    updateStatus('❌ Permission denied<br>User would be redirected to: https://alerts-intuit.com/notifications-info', 'error');
+                } else {
+                    updateStatus('⏸️ Permission dismissed', 'warning');
+                }
+            });
+        }
+
+        function checkStatus() {
+            let status = '<h3>Current Status:</h3>';
+            
+            // Check notification support
+            if ('Notification' in window) {
+                status += `<p>✅ Notifications supported</p>`;
+                status += `<p>Permission: <code>${Notification.permission}</code></p>`;
+            } else {
+                status += `<p>❌ Notifications not supported</p>`;
+            }
+            
+            // Check service worker support
+            if ('serviceWorker' in navigator) {
+                status += `<p>✅ Service Workers supported</p>`;
+            } else {
+                status += `<p>❌ Service Workers not supported</p>`;
+            }
+            
+            // Check session storage
+            const botCheck = sessionStorage.getItem('push_bot_check_done');
+            status += `<p>Bot check done: <code>${botCheck || 'false'}</code></p>`;
+            
+            updateStatus(status, 'info');
+        }
+
+        function resetEverything() {
+            sessionStorage.clear();
+            updateStatus('🔄 Session storage cleared<br>Ready to test again', 'success');
+        }
+
+        // Check status on load
+        window.addEventListener('load', checkStatus);
+    </script>
+</body>
+</html>
