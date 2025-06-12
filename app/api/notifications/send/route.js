@@ -108,12 +108,29 @@ export async function POST(request) {
       })
     }
 
+    // Add detailed error information
+    const errorDetails = results.results
+      ?.filter(r => !r.success)
+      ?.map(r => ({
+        error: r.error,
+        message: r.message,
+        statusCode: r.statusCode
+      }))
+    
+    console.log('Send notification results:', {
+      sent: results.sent,
+      failed: results.failed,
+      results: results.results
+    })
+    
     return NextResponse.json({
       success: true,
       sent: results.sent,
       failed: results.failed,
       expired: results.expired,
-      message: testMode ? 'Test notification sent' : 'Notifications sent successfully'
+      message: testMode ? 'Test notification sent' : 'Notifications sent successfully',
+      results: results.results, // Include detailed results
+      errorDetails: errorDetails // Include error details
     })
   } catch (error) {
     console.error('Failed to send notifications:', error)

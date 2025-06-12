@@ -216,6 +216,20 @@ export default function Clients() {
           setNotificationSuccess(false)
         }, 2000)
       } else {
+        // Debug: Show full response
+        console.error('Notification failed. Full response:', response)
+        
+        let debugInfo = {
+          sent: response.sent,
+          failed: response.failed,
+          expired: response.expired,
+          results: response.results || [],
+          error: response.error || 'Unknown error'
+        }
+        
+        // Show detailed error in alert
+        alert(`Notification Error Debug:\n\n${JSON.stringify(debugInfo, null, 2)}`)
+        
         throw new Error(`Notification failed: ${response.failed} failed, ${response.expired} expired`)
       }
     } catch (error) {
