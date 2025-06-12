@@ -2,6 +2,13 @@
 .dropdown-menu {
   max-height: none !important;
   overflow: visible !important;
+  min-width: 180px;
+}
+
+/* MDB specific dropdown fix */
+.dropdown-menu.show {
+  max-height: none !important;
+  overflow: visible !important;
 }
 
 /* Ensure dropdown items don't cause overflow */
@@ -13,6 +20,18 @@
 /* Fix dropdown positioning */
 .dropdown {
   position: relative;
+}
+
+/* Override MDB dropdown styles */
+.btn-link {
+  box-shadow: none !important;
+}
+
+/* Force no scrollbar on dropdown */
+div[class*="dropdown-menu"] {
+  max-height: none !important;
+  overflow: visible !important;
+  overflow-y: visible !important;
 }
 
 /* Hide unknown version text */

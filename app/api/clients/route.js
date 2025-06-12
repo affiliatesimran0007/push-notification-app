@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/db'
 import { clientEvents } from '@/lib/clientEvents'
+import { parseBrowserInfo } from '@/lib/browserParser'
 
 // GET /api/clients - Get all clients with filtering
 export async function GET(request) {
@@ -152,18 +153,21 @@ export async function POST(request) {
     }
 
     if (existingClient) {
+      // Parse browser info from user agent
+      const parsedInfo = parseBrowserInfo(browserInfo?.userAgent)
+      
       // Update existing client with latest info
       const updatedClient = await prisma.client.update({
         where: { id: existingClient.id },
         data: { 
           lastActive: new Date(),
           ip: clientIp !== 'unknown' ? clientIp : existingClient.ip,
-          browser: browserInfo.browser || existingClient.browser,
-          browserVersion: browserInfo.version || existingClient.browserVersion,
+          browser: parsedInfo.browser !== 'unknown' ? parsedInfo.browser : existingClient.browser,
+          browserVersion: parsedInfo.version !== 'unknown' ? parsedInfo.version : existingClient.browserVersion,
           country: location?.country || existingClient.country,
           city: location?.city || existingClient.city,
-          os: browserInfo.os || existingClient.os,
-          device: browserInfo.device || existingClient.device,
+          os: parsedInfo.os !== 'unknown' ? parsedInfo.os : existingClient.os,
+          device: parsedInfo.device || existingClient.device,
           subscribedUrl: body.url || existingClient.subscribedUrl,
           landingPageId: landingPageId || existingClient.landingPageId
         }
@@ -179,19 +183,22 @@ export async function POST(request) {
       })
     }
 
+    // Parse browser info from user agent
+    const parsedInfo = parseBrowserInfo(browserInfo?.userAgent)
+    
     // Create new client
     const newClient = await prisma.client.create({
       data: {
         endpoint: subscription.endpoint,
         p256dh: subscription.keys.p256dh,
         auth: subscription.keys.auth,
-        browser: browserInfo.browser || 'unknown',
-        browserVersion: browserInfo.version || 'unknown',
+        browser: parsedInfo.browser,
+        browserVersion: parsedInfo.version,
         ip: clientIp,
         country: location?.country || 'Unknown',
         city: location?.city || 'Unknown',
-        os: browserInfo.os || 'unknown',
-        device: browserInfo.device || 'desktop',
+        os: parsedInfo.os,
+        device: parsedInfo.device,
         subscribedUrl: url || body.url || '',
         tags: [],
         accessStatus: accessStatus || 'allowed',
