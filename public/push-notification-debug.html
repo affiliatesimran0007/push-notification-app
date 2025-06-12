@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Push Notification Debugger</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; }
+        .section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .status { 
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        .warning { background: #fff3cd; color: #856404; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        pre {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        .log-entry {
+            padding: 5px;
+            margin: 2px 0;
+            border-left: 3px solid #007bff;
+            background: #f8f9fa;
+        }
+        #logs {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Push Notification Debugger</h1>
+        
+        <div class="section">
+            <h2>Environment Check</h2>
+            <div id="envCheck"></div>
+        </div>
+        
+        <div class="section">
+            <h2>Quick Tests</h2>
+            <button onclick="testLocalNotification()">Test Local Notification</button>
+            <button onclick="testServiceWorker()">Test Service Worker</button>
+            <button onclick="createAndTestSubscription()">Create & Test Push</button>
+            <button onclick="checkWindowsSettings()">Check Windows Settings</button>
+        </div>
+        
+        <div class="section">
+            <h2>Current Status</h2>
+            <div id="currentStatus"></div>
+        </div>
+        
+        <div class="section">
+            <h2>Debug Log</h2>
+            <button onclick="clearLogs()">Clear Logs</button>
+            <div id="logs"></div>
+        </div>
+        
+        <div class="section">
+            <h2>Subscription Details</h2>
+            <pre id="subscriptionDetails">No subscription yet</pre>
+        </div>
+    </div>
+
+    <script>
+        const VAPID_KEY = 'BNV70f-uHInqVEOT9r2d6pVfK5WViCXdtoYjB87Nf8WUQZ6mDMSXEXGFQmJXl6bvGpvzL2jVSuPZUk-S9YS8rYc';
+        let currentSubscription = null;
+        
+        function log(message, type = 'info') {
+            const time = new Date().toLocaleTimeString();
+            const logDiv = document.getElementById('logs');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `<strong>[${time}]</strong> ${message}`;
+            entry.style.borderColor = type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : '#007bff';
+            logDiv.insertBefore(entry, logDiv.firstChild);
+        }
+        
+        async function checkEnvironment() {
+            const checks = {
+                'Browser': navigator.userAgent.includes('Chrome') ? 'Chrome' : 
+                           navigator.userAgent.includes('Edg') ? 'Edge' : 'Other',
+                'Platform': navigator.platform,
+                'Notification API': 'Notification' in window,
+                'Service Worker API': 'serviceWorker' in navigator,
+                'Push API': 'PushManager' in window,
+                'Permission': 'Notification' in window ? Notification.permission : 'N/A',
+                'Secure Context': window.isSecureContext,
+                'Focus State': document.hasFocus() ? 'Focused' : 'Not Focused',
+                'Visibility': document.visibilityState
+            };
+            
+            let html = '';
+            for (const [key, value] of Object.entries(checks)) {
+                const status = value === false ? 'error' : 'success';
+                html += `<div class="status ${status}">${key}: ${value}</div>`;
+            }
+            
+            document.getElementById('envCheck').innerHTML = html;
+            
+            // Check if notification is actually shown
+            if ('Notification' in window && Notification.permission === 'granted') {
+                log('Testing if notifications appear in Action Center...', 'info');
+            }
+        }
+        
+        async function testLocalNotification() {
+            log('Testing local notification...', 'info');
+            
+            if (!('Notification' in window)) {
+                log('Notifications not supported', 'error');
+                return;
+            }
+            
+            if (Notification.permission !== 'granted') {
+                const permission = await Notification.requestPermission();
+                log(`Permission result: ${permission}`, permission === 'granted' ? 'success' : 'error');
+            }
+            
+            if (Notification.permission === 'granted') {
+                const notification = new Notification('Test Local Notification', {
+                    body: 'If you see this, local notifications work!',
+                    icon: '/icon-192x192.png',
+                    requireInteraction: true,
+                    tag: 'local-test-' + Date.now()
+                });
+                
+                notification.addEventListener('show', () => {
+                    log('Local notification shown!', 'success');
+                });
+                
+                notification.addEventListener('error', (e) => {
+                    log(`Local notification error: ${e}`, 'error');
+                });
+                
+                log('Local notification created. Check your notification area!', 'info');
+            }
+        }
+        
+        async function testServiceWorker() {
+            log('Testing service worker notification...', 'info');
+            
+            try {
+                const reg = await navigator.serviceWorker.register('/sw.js');
+                await navigator.serviceWorker.ready;
+                
+                log('Service worker ready', 'success');
+                
+                // Send test message to SW
+                const messageChannel = new MessageChannel();
+                messageChannel.port1.onmessage = (event) => {
+                    log(`SW Response: ${event.data}`, 'success');
+                };
+                
+                navigator.serviceWorker.controller?.postMessage({
+                    type: 'TEST_NOTIFICATION'
+                }, [messageChannel.port2]);
+                
+                // Direct SW notification
+                await reg.showNotification('Service Worker Test', {
+                    body: 'This came from the service worker directly!',
+                    icon: '/icon-192x192.png',
+                    badge: '/badge-72x72.png',
+                    requireInteraction: true,
+                    tag: 'sw-test-' + Date.now(),
+                    actions: [
+                        { action: 'open', title: 'Open' },
+                        { action: 'close', title: 'Close' }
+                    ]
+                });
+                
+                log('Service worker notification triggered', 'success');
+                
+            } catch (error) {
+                log(`Service worker error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function createAndTestSubscription() {
+            log('Creating push subscription...', 'info');
+            
+            try {
+                const reg = await navigator.serviceWorker.ready;
+                
+                // Check existing
+                let subscription = await reg.pushManager.getSubscription();
+                if (subscription) {
+                    log('Found existing subscription', 'info');
+                } else {
+                    subscription = await reg.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: urlBase64ToUint8Array(VAPID_KEY)
+                    });
+                    log('Created new subscription', 'success');
+                }
+                
+                currentSubscription = subscription;
+                document.getElementById('subscriptionDetails').textContent = 
+                    JSON.stringify(subscription.toJSON(), null, 2);
+                
+                // Save to server
+                log('Saving to server...', 'info');
+                const saveResponse = await fetch('/api/clients', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        subscription: subscription.toJSON(),
+                        landingId: 'debugger',
+                        url: window.location.href,
+                        browserInfo: {
+                            userAgent: navigator.userAgent,
+                            language: navigator.language,
+                            platform: navigator.platform
+                        }
+                    })
+                });
+                
+                if (!saveResponse.ok) {
+                    throw new Error('Failed to save to server');
+                }
+                
+                log('Saved to server successfully', 'success');
+                
+                // Test push
+                log('Sending test push...', 'info');
+                const testResponse = await fetch('/api/test-push', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        subscription: subscription.toJSON()
+                    })
+                });
+                
+                const result = await testResponse.json();
+                
+                if (result.success) {
+                    log('Push sent! Check Windows Action Center (Win+A)', 'success');
+                    log('If no notification appears, check Windows notification settings', 'warning');
+                } else {
+                    log(`Push error: ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`Error: ${error.message}`, 'error');
+            }
+        }
+        
+        function checkWindowsSettings() {
+            const info = `
+Windows Notification Settings to Check:
+
+1. Windows Settings > System > Notifications
+   - Ensure notifications are ON
+   - Check Chrome/Edge is allowed
+
+2. Windows Settings > System > Focus Assist
+   - Turn OFF or set to "Priority only"
+   - Add Chrome/Edge to priority list
+
+3. Chrome Settings:
+   - chrome://settings/content/notifications
+   - Ensure site is allowed
+
+4. Windows Action Center (Win+A):
+   - Check if notifications appear there
+   - Clear old notifications
+
+5. Check system tray:
+   - Look for notification icon
+   - Right-click > "Show notification icons"
+            `;
+            
+            alert(info);
+            log('Displayed Windows settings guide', 'info');
+        }
+        
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+            log('Logs cleared', 'info');
+        }
+        
+        async function updateStatus() {
+            try {
+                const reg = await navigator.serviceWorker.ready;
+                const sub = await reg.pushManager.getSubscription();
+                
+                let html = '<div class="status info">';
+                html += `Permission: ${Notification.permission}<br>`;
+                html += `Service Worker: ${reg.active ? 'Active' : 'Not Active'}<br>`;
+                html += `Push Subscription: ${sub ? 'Yes' : 'No'}<br>`;
+                html += `Document State: ${document.visibilityState}<br>`;
+                html += `Focus: ${document.hasFocus() ? 'Yes' : 'No'}`;
+                html += '</div>';
+                
+                document.getElementById('currentStatus').innerHTML = html;
+                
+                if (sub) {
+                    currentSubscription = sub;
+                    document.getElementById('subscriptionDetails').textContent = 
+                        JSON.stringify(sub.toJSON(), null, 2);
+                }
+                
+            } catch (error) {
+                document.getElementById('currentStatus').innerHTML = 
+                    `<div class="status error">Error: ${error.message}</div>`;
+            }
+        }
+        
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding)
+                .replace(/\-/g, '+')
+                .replace(/_/g, '/');
+            
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        }
+        
+        // Listen for messages from SW
+        navigator.serviceWorker.addEventListener('message', (event) => {
+            log(`SW Message: ${JSON.stringify(event.data)}`, 'info');
+        });
+        
+        // Initialize
+        window.addEventListener('load', () => {
+            checkEnvironment();
+            updateStatus();
+            log('Debug page loaded', 'info');
+            
+            // Update status periodically
+            setInterval(updateStatus, 5000);
+        });
+        
+        // Listen for focus changes
+        document.addEventListener('visibilitychange', () => {
+            log(`Visibility changed to: ${document.visibilityState}`, 'info');
+        });
+        
+        window.addEventListener('focus', () => {
+            log('Window gained focus', 'info');
+        });
+        
+        window.addEventListener('blur', () => {
+            log('Window lost focus', 'info');
+        });
+    </script>
+</body>
+</html>
