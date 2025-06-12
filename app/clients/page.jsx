@@ -675,22 +675,28 @@ export default function Clients() {
                         </div>
                       </td>
                       <td className="align-middle text-center">
-                        <MDBDropdown>
-                          <MDBDropdownToggle tag='a' className='btn btn-link text-dark p-0'>
+                        <div className="dropdown">
+                          <button 
+                            className="btn btn-link text-dark p-0" 
+                            type="button" 
+                            data-bs-toggle="dropdown" 
+                            aria-expanded="false"
+                          >
                             <FiMoreVertical size={20} />
-                          </MDBDropdownToggle>
-                          <MDBDropdownMenu style={{ maxHeight: 'none', overflow: 'visible' }}>
-                            <MDBDropdownItem link onClick={() => handleSendNotification(client)}>
-                              <FiSend className="me-2" /> Send Notification
-                            </MDBDropdownItem>
-                            <MDBDropdownItem link onClick={() => handleDiagnoseClient(client)}>
-                              <FiTool className="me-2" /> Diagnose Issues
-                            </MDBDropdownItem>
-                            <MDBDropdownItem link className="text-danger" onClick={() => handleDeleteClient(client.id)}>
-                              <FiTrash2 className="me-2" /> Delete
-                            </MDBDropdownItem>
-                          </MDBDropdownMenu>
-                        </MDBDropdown>
+                          </button>
+                          <ul className="dropdown-menu">
+                            <li>
+                              <button className="dropdown-item" onClick={() => handleSendNotification(client)}>
+                                <FiSend className="me-2" /> Send Notification
+                              </button>
+                            </li>
+                            <li>
+                              <button className="dropdown-item text-danger" onClick={() => handleDeleteClient(client.id)}>
+                                <FiTrash2 className="me-2" /> Delete
+                              </button>
+                            </li>
+                          </ul>
+                        </div>
                       </td>
                     </tr>
                   ))}
