@@ -23,12 +23,15 @@ export async function POST(request) {
     // Set VAPID details
     webpush.setVapidDetails(subject, publicKey, privateKey)
     
-    // Create payload
+    // Create payload with unique tag
+    const timestamp = Date.now()
     const payload = JSON.stringify({
       title: 'Direct Test Notification',
-      body: 'This is a direct test bypassing the service layer',
+      body: `Test at ${new Date().toLocaleTimeString()}`,
       icon: '/icon-192x192.png',
       badge: '/badge-72x72.png',
+      tag: `test-${timestamp}`, // Unique tag prevents replacement
+      requireInteraction: false,
       timestamp: new Date().toISOString()
     })
     
