@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Push Notification Integration Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+        .error {
+            background: #ffcdd2;
+            color: #c62828;
+        }
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        code {
+            background: #f5f5f5;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        .button {
+            background: #2196f3;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background: #1976d2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Push Notification Integration Test</h1>
+        
+        <div class="info">
+            <h3>Test Configuration</h3>
+            <p><strong>Landing ID:</strong> <code>testing</code></p>
+            <p><strong>Domain:</strong> <code>alerts-intuit.com</code></p>
+            <p><strong>Bot Protection:</strong> Enabled</p>
+            <p><strong>Redirect on Allow:</strong> https://yahoo.com</p>
+            <p><strong>Redirect on Block:</strong> https://yahoo.com</p>
+        </div>
+
+        <div id="status-container">
+            <h3>Status</h3>
+            <div id="status" class="status warning">Loading push notification widget...</div>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <h3>Manual Actions</h3>
+            <button class="button" onclick="checkPermission()">Check Permission Status</button>
+            <button class="button" onclick="requestPermission()">Request Permission</button>
+            <button class="button" onclick="checkSubscription()">Check Subscription</button>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <h3>Console Logs</h3>
+            <div id="logs" style="background: #f5f5f5; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto;">
+                <div>Waiting for logs...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Push Notification Integration Code -->
+    <script>
+    (function() {
+      // Configuration
+      window.PUSH_CONFIG = {
+        appUrl: 'https://push-notification-app-steel.vercel.app',
+        landingId: 'testing',
+        vapidKey: 'BGv2Vm45eFGslcXFhakD-euIXAnOg6-bdqVWHoSw4gwvjvYYV1zBA_Q7uiNij5yvRqMwmDhpBYYSA1v5Z_GEv_k',
+        domain: 'alerts-intuit.com',
+        botProtection: true,
+        redirects: {
+          enabled: true,
+          onAllow: 'https://yahoo.com',
+          onBlock: 'https://yahoo.com'
+        }
+      };
+      
+      // Override console.log to show in UI
+      const originalLog = console.log;
+      console.log = function(...args) {
+        originalLog.apply(console, args);
+        const logDiv = document.getElementById('logs');
+        const logEntry = document.createElement('div');
+        logEntry.textContent = new Date().toLocaleTimeString() + ' - ' + args.join(' ');
+        logDiv.appendChild(logEntry);
+        logDiv.scrollTop = logDiv.scrollHeight;
+      };
+      
+      // Load push notification widget
+      console.log('Loading push widget...');
+      const script = document.createElement('script');
+      script.src = window.PUSH_CONFIG.appUrl + '/js/push-widget.js';
+      script.async = true;
+      script.onload = function() {
+        console.log('Push notification widget loaded successfully');
+        document.getElementById('status').className = 'status success';
+        document.getElementById('status').textContent = 'Widget loaded! Check if you will be redirected for bot verification...';
+      };
+      script.onerror = function() {
+        console.log('Failed to load push notification widget');
+        document.getElementById('status').className = 'status error';
+        document.getElementById('status').textContent = 'Failed to load widget. Check console for errors.';
+      };
+      document.head.appendChild(script);
+    })();
+    
+    // Helper functions for manual testing
+    function checkPermission() {
+      if ('Notification' in window) {
+        const permission = Notification.permission;
+        console.log('Notification permission:', permission);
+        alert('Notification permission: ' + permission);
+      } else {
+        console.log('Notifications not supported');
+        alert('Notifications not supported in this browser');
+      }
+    }
+    
+    function requestPermission() {
+      if ('Notification' in window) {
+        Notification.requestPermission().then(permission => {
+          console.log('Permission result:', permission);
+          alert('Permission result: ' + permission);
+        });
+      } else {
+        console.log('Notifications not supported');
+        alert('Notifications not supported in this browser');
+      }
+    }
+    
+    async function checkSubscription() {
+      if ('serviceWorker' in navigator) {
+        try {
+          const registration = await navigator.serviceWorker.getRegistration();
+          if (registration) {
+            const subscription = await registration.pushManager.getSubscription();
+            if (subscription) {
+              console.log('Active subscription found:', subscription.endpoint);
+              alert('You have an active push subscription!');
+            } else {
+              console.log('No active subscription');
+              alert('No active push subscription found');
+            }
+          } else {
+            console.log('No service worker registration');
+            alert('No service worker registered');
+          }
+        } catch (error) {
+          console.log('Error checking subscription:', error);
+          alert('Error checking subscription: ' + error.message);
+        }
+      } else {
+        console.log('Service workers not supported');
+        alert('Service workers not supported in this browser');
+      }
+    }
+    </script>
+</body>
+</html>
