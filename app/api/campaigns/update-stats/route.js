@@ -23,9 +23,7 @@ export async function POST(request) {
     if (stats.deliveredCount !== undefined) {
       updateData.deliveredCount = stats.deliveredCount
     }
-    if (stats.dismissedCount !== undefined) {
-      updateData.dismissedCount = stats.dismissedCount
-    }
+    // dismissedCount not implemented yet
     if (stats.failedCount !== undefined) {
       updateData.failedCount = stats.failedCount
     }

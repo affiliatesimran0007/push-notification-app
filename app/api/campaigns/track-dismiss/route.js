@@ -14,13 +14,9 @@ export async function POST(request) {
       )
     }
 
-    // Increment dismissed count
-    await prisma.campaign.update({
-      where: { id: campaignId },
-      data: {
-        dismissedCount: { increment: 1 }
-      }
-    })
+    // dismissedCount not implemented yet
+    // For now, just return success
+    console.log('Dismiss tracked for campaign:', campaignId)
 
     return NextResponse.json({ success: true })
   } catch (error) {

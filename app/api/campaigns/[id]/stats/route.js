@@ -36,9 +36,9 @@ export async function GET(request, { params }) {
       sentCount: campaign.sentCount,
       deliveredCount: campaign.deliveredCount,
       clickedCount: campaign.clickedCount,
-      dismissedCount: campaign.dismissedCount || 0,
+      dismissedCount: 0, // Not implemented yet
       failedCount: campaign.failedCount,
-      pendingCount: campaign.pendingCount || 0,
+      pendingCount: 0,   // Not implemented yet
       ctr: campaign.sentCount > 0 
         ? ((campaign.clickedCount / campaign.sentCount) * 100).toFixed(1)
         : 0,
