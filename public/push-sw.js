@@ -2,7 +2,7 @@
 // Customers download and host this file on their domain
 // Version: 2.0.0 - Added click tracking
 
-const SW_VERSION = 'v2.0.0';
+const SW_VERSION = 'v2.1.0';
 
 self.addEventListener('install', (event) => {
   console.log('[Service Worker] Installing...', SW_VERSION);
@@ -44,7 +44,20 @@ self.addEventListener('push', (event) => {
   
   event.waitUntil(
     self.registration.showNotification(data.title || 'Notification', options)
-      .then(() => console.log('[Service Worker] Notification shown'))
+      .then(() => {
+        console.log('[Service Worker] Notification shown');
+        // Track notification display
+        if (data.data?.campaignId) {
+          return fetch(self.location.origin + '/api/notifications/track-display', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              campaignId: data.data.campaignId,
+              clientId: data.data.clientId
+            })
+          }).catch(err => console.error('Failed to track display:', err));
+        }
+      })
       .catch(err => console.error('[Service Worker] Error showing notification:', err))
   );
 });
