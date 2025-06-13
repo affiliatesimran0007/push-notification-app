@@ -95,17 +95,47 @@ export async function POST(request) {
       )
     }
     
-    // Log subscription details for debugging
-    console.log('Received subscription registration:', {
+    // Enhanced debugging for subscription registration
+    console.log('\n=== CLIENT REGISTRATION DEBUG ===')
+    console.log('Timestamp:', new Date().toISOString())
+    console.log('Registration details:', {
       endpoint: subscription.endpoint,
-      hasP256dh: !!subscription.keys.p256dh,
-      hasAuth: !!subscription.keys.auth,
+      endpointType: 
+        subscription.endpoint.includes('fcm.googleapis.com') ? 'FCM (Chrome/Edge/Opera)' :
+        subscription.endpoint.includes('mozilla.com') ? 'Mozilla (Firefox)' :
+        subscription.endpoint.includes('windows.com') ? 'WNS (Edge Legacy)' :
+        subscription.endpoint.includes('apple.com') ? 'Apple (Safari)' :
+        subscription.endpoint.includes('push.example.com') ? '⚠️ FAKE ENDPOINT - WILL NOT WORK' :
+        subscription.endpoint.includes('granted-') ? '⚠️ FAKE SUBSCRIPTION - WILL NOT WORK' :
+        'Unknown',
+      hasValidKeys: !!subscription.keys.p256dh && !!subscription.keys.auth,
+      p256dh: subscription.keys.p256dh?.substring(0, 20) + '...',
       p256dhLength: subscription.keys.p256dh?.length,
+      auth: subscription.keys.auth?.substring(0, 10) + '...',
       authLength: subscription.keys.auth?.length,
+      isFakeSubscription: 
+        subscription.endpoint.includes('push.example.com') ||
+        subscription.endpoint.includes('granted-') ||
+        subscription.keys.p256dh?.includes('demo') ||
+        subscription.keys.p256dh?.includes('no-service-worker'),
+      browserInfo,
       landingId,
       domain,
+      url,
       accessStatus
     })
+    
+    // CRITICAL: Reject fake subscriptions
+    if (subscription.endpoint.includes('push.example.com') || 
+        subscription.endpoint.includes('granted-') ||
+        subscription.keys.p256dh?.includes('demo') ||
+        subscription.keys.p256dh?.includes('no-service-worker')) {
+      console.error('⚠️ REJECTED: Fake subscription detected!')
+      return NextResponse.json(
+        { error: 'Invalid subscription - service worker not properly registered' },
+        { status: 400 }
+      )
+    }
 
     // Get real IP address
     const forwardedFor = request.headers.get('x-forwarded-for')

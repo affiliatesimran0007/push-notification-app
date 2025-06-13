@@ -286,6 +286,45 @@ export default function Clients() {
     setSelectedClients(newSelected)
   }
 
+  const handleDebugClient = async (client) => {
+    console.log('\n=== CLIENT DEBUG INFO ===')
+    console.log('Client:', client)
+    
+    try {
+      // Call debug endpoint
+      const response = await apiCall('/api/notifications/debug', {
+        method: 'POST',
+        body: JSON.stringify({ clientId: client.id })
+      })
+      
+      console.log('Debug response:', response)
+      
+      // Show debug info in alert
+      const debugInfo = `
+DEBUG INFORMATION FOR CLIENT ${client.id}
+${'='.repeat(50)}
+
+Browser: ${response.client.browser}
+OS: ${response.client.os}
+Access Status: ${response.client.accessStatus}
+Created: ${new Date(response.client.createdAt).toLocaleString()}
+
+Endpoint Type: ${response.debug.endpointType}
+Is Fake: ${response.debug.isFakeSubscription ? 'YES - THIS WILL NOT WORK!' : 'No'}
+Subscription Age: ${Math.round(response.debug.subscriptionAge / 1000 / 60)} minutes
+
+Notification Test: ${response.success ? 'SUCCESS' : 'FAILED'}
+${!response.success ? `Error: ${response.result?.error || response.error}\nMessage: ${response.result?.message || response.message}` : ''}
+
+Full Debug Info in Console`;
+      
+      alert(debugInfo)
+    } catch (error) {
+      console.error('Debug failed:', error)
+      alert(`Debug failed: ${error.message}\n\nCheck console for details`)
+    }
+  }
+  
   const handleDiagnoseClient = async (client) => {
     setSelectedClient(client)
     setShowDiagnosticModal(true)
@@ -719,6 +758,9 @@ export default function Clients() {
                           <MDBDropdownMenu>
                             <MDBDropdownItem link onClick={() => handleSendNotification(client)}>
                               <FiSend className="me-2" /> Send Notification
+                            </MDBDropdownItem>
+                            <MDBDropdownItem link onClick={() => handleDebugClient(client)}>
+                              <FiInfo className="me-2" /> Debug Info
                             </MDBDropdownItem>
                             <MDBDropdownItem link className="text-danger" onClick={() => handleDeleteClient(client.id)}>
                               <FiTrash2 className="me-2" /> Delete

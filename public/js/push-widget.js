@@ -381,16 +381,28 @@
         console.log('Attempting service worker registration...');
         
         // Register service worker on customer's domain
-        console.log('Registering service worker...');
+        console.log('\n=== PUSH WIDGET REGISTRATION DEBUG ===');
+        console.log('Browser:', navigator.userAgent);
+        console.log('Domain:', window.location.hostname);
+        console.log('Protocol:', window.location.protocol);
+        console.log('Service Worker support:', 'serviceWorker' in navigator);
+        console.log('Push API support:', 'PushManager' in window);
+        console.log('Notification API support:', 'Notification' in window);
+        console.log('Notification permission:', Notification.permission);
+        
+        console.log('Registering service worker at /push-sw.js...');
         const registration = await navigator.serviceWorker.register('/push-sw.js', {
           updateViaCache: 'none' // Ensure fresh service worker in all Chrome versions
         });
         
         // Wait for service worker to be ready
+        console.log('Waiting for service worker to be ready...');
         await navigator.serviceWorker.ready;
-        console.log('Service worker is ready');
+        console.log('Service worker state:', registration.active ? 'active' : 'not active');
+        console.log('Service worker scope:', registration.scope);
         
         // Wait a bit more to ensure it's fully activated
+        console.log('Additional wait for activation...');
         await new Promise(resolve => setTimeout(resolve, 1000)); // Increased delay for older Chrome
         
         // Check for existing subscription first
@@ -426,8 +438,23 @@
           console.log('Subscribe options:', subscribeOptions);
           
           try {
+            console.log('Attempting to subscribe with options:', {
+              userVisibleOnly: subscribeOptions.userVisibleOnly,
+              hasApplicationServerKey: !!subscribeOptions.applicationServerKey,
+              vapidKeyLength: this.config.vapidKey?.length
+            });
+            
             subscription = await registration.pushManager.subscribe(subscribeOptions);
+            
+            console.log('Subscription successful!');
+            console.log('Subscription endpoint:', subscription.endpoint);
+            console.log('Subscription keys present:', {
+              p256dh: !!subscription.toJSON().keys?.p256dh,
+              auth: !!subscription.toJSON().keys?.auth
+            });
           } catch (subscribeError) {
+            console.error('Subscribe error:', subscribeError.name, subscribeError.message);
+            
             // Fallback for browsers that don't support applicationServerKey
             if (subscribeError.name === 'NotSupportedError' && subscribeOptions.applicationServerKey) {
               console.warn('Retrying without applicationServerKey');
@@ -439,7 +466,10 @@
           }
         } else {
           console.log('Using existing subscription');
+          console.log('Existing endpoint:', subscription.endpoint);
         }
+        
+        console.log('=== END REGISTRATION DEBUG ===\n');
         
         // Ensure service worker is controlling the page
         if (registration.active) {

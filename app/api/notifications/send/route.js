@@ -167,11 +167,25 @@ export async function POST(request) {
         statusCode: r.statusCode
       }))
     
-    console.log('Send notification results:', {
+    // Add detailed debug information
+    const debugInfo = {
+      totalClients: validSubscriptions.length,
       sent: results.sent,
       failed: results.failed,
-      results: results.results
-    })
+      expired: results.expired,
+      results: results.results?.map((r, i) => ({
+        clientId: validSubscriptions[i]?.id,
+        endpoint: validSubscriptions[i]?.endpoint?.substring(0, 50) + '...',
+        browser: validSubscriptions[i]?.browser,
+        os: validSubscriptions[i]?.os,
+        success: r.success,
+        error: r.error,
+        message: r.message,
+        statusCode: r.statusCode
+      }))
+    }
+    
+    console.log('DETAILED DEBUG - Send notification results:', JSON.stringify(debugInfo, null, 2))
     
     return NextResponse.json({
       success: true,
