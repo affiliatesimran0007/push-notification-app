@@ -70,11 +70,11 @@
         
         <div class="info">
             <h3>Test Configuration</h3>
-            <p><strong>Landing ID:</strong> <code>testing</code></p>
-            <p><strong>Domain:</strong> <code>alerts-intuit.com</code></p>
-            <p><strong>Bot Protection:</strong> Enabled</p>
-            <p><strong>Redirect on Allow:</strong> https://yahoo.com</p>
-            <p><strong>Redirect on Block:</strong> https://yahoo.com</p>
+            <p><strong>Landing ID:</strong> <code id="landing-id">loading...</code></p>
+            <p><strong>Domain:</strong> <code id="domain">loading...</code></p>
+            <p><strong>Bot Protection:</strong> <span id="bot-protection">Enabled</span></p>
+            <p><strong>Current Page:</strong> <code id="current-url">loading...</code></p>
+            <p><strong>Integration Status:</strong> <span id="integration-status">Checking...</span></p>
         </div>
 
         <div id="status-container">
@@ -100,17 +100,27 @@
     <!-- Push Notification Integration Code -->
     <script>
     (function() {
+      // Get parameters from URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const landingId = urlParams.get('landingId') || 'testing';
+      const domain = urlParams.get('domain') || 'test-domain.com';
+      
+      // Update UI with parameters
+      document.getElementById('landing-id').textContent = landingId;
+      document.getElementById('domain').textContent = domain;
+      document.getElementById('current-url').textContent = window.location.href;
+      
       // Configuration
       window.PUSH_CONFIG = {
-        appUrl: 'https://push-notification-app-steel.vercel.app',
-        landingId: 'testing',
+        appUrl: window.location.origin,
+        landingId: landingId,
         vapidKey: 'BGv2Vm45eFGslcXFhakD-euIXAnOg6-bdqVWHoSw4gwvjvYYV1zBA_Q7uiNij5yvRqMwmDhpBYYSA1v5Z_GEv_k',
-        domain: 'alerts-intuit.com',
+        domain: domain,
         botProtection: true,
         redirects: {
-          enabled: true,
-          onAllow: 'https://yahoo.com',
-          onBlock: 'https://yahoo.com'
+          enabled: false,
+          onAllow: null,
+          onBlock: null
         }
       };
       

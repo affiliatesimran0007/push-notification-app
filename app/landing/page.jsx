@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Container, Row, Col, Card, Button, Table, Modal, Form, Alert, Spinner } from 'react-bootstrap'
+import { Container, Row, Col, Card, Button, Table, Modal, Form, Alert, Spinner, OverlayTrigger, Tooltip } from 'react-bootstrap'
 import { FiGlobe, FiPlus, FiEdit2, FiTrash2, FiExternalLink, FiCode, FiInfo, FiCopy, FiPlayCircle } from 'react-icons/fi'
 import Link from 'next/link'
 import DashboardLayout from '@/components/DashboardLayout'
@@ -332,13 +332,23 @@ export default function LandingPage() {
                             size="sm" 
                             variant="outline-primary"
                             onClick={() => handleShowCode(landing)}
+                            title="View Code"
                           >
                             <FiCode />
                           </Button>
                           <Button 
                             size="sm" 
+                            variant="outline-info"
+                            onClick={() => window.open(`/test-integration.html?landingId=${landing.landingId}&domain=${landing.domain}`, '_blank')}
+                            title="Test Integration"
+                          >
+                            <FiPlayCircle />
+                          </Button>
+                          <Button 
+                            size="sm" 
                             variant="outline-secondary"
                             onClick={() => handleOpenEditModal(landing)}
+                            title="Edit"
                           >
                             <FiEdit2 />
                           </Button>
@@ -346,6 +356,7 @@ export default function LandingPage() {
                             size="sm" 
                             variant="outline-danger"
                             onClick={() => handleDeleteLanding(landing.id)}
+                            title="Delete"
                           >
                             <FiTrash2 />
                           </Button>
@@ -665,6 +676,16 @@ export default function LandingPage() {
             >
               <FiPlayCircle className="me-2" />
               Test Bot Check Page
+            </Button>
+            
+            <Button 
+              variant="info"
+              onClick={() => {
+                window.open(`/test-integration.html?landingId=${selectedLanding?.landingId}&domain=${selectedLanding?.domain}`, '_blank')
+              }}
+            >
+              <FiPlayCircle className="me-2" />
+              Test Full Integration
             </Button>
           </div>
           
