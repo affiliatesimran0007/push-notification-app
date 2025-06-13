@@ -19,9 +19,9 @@ import {
   MDBDropdownMenu,
   MDBDropdownItem
 } from 'mdb-react-ui-kit'
-import { Row, Col, Form, Modal, Button, Card, Spinner, Alert } from 'react-bootstrap'
+import { Row, Col, Form, Modal, Button, Card, Spinner, Alert, Badge } from 'react-bootstrap'
 import Select from 'react-select'
-import { FiSend, FiTrash2, FiFilter, FiDownload, FiSearch, FiMoreVertical, FiGlobe, FiUsers, FiSmartphone, FiMonitor, FiStar, FiChevronRight, FiCheckCircle } from 'react-icons/fi'
+import { FiSend, FiTrash2, FiFilter, FiDownload, FiSearch, FiMoreVertical, FiGlobe, FiUsers, FiSmartphone, FiMonitor, FiStar, FiChevronRight, FiCheckCircle, FiInfo, FiTool } from 'react-icons/fi'
 import { SiFirefox, SiSafari, SiGooglechrome } from 'react-icons/si'
 import { RiEdgeLine } from 'react-icons/ri'
 import { FaWindows, FaApple, FaLinux, FaAndroid } from 'react-icons/fa'
