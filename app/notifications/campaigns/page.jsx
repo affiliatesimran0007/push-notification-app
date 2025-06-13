@@ -48,6 +48,19 @@ export default function PushCampaigns() {
     setMounted(true)
   }, [])
   
+  // Auto-refresh active campaigns every 10 seconds
+  useEffect(() => {
+    const activeCampaigns = localCampaigns.filter(c => c.status === 'active')
+    if (activeCampaigns.length === 0) return
+    
+    const interval = setInterval(() => {
+      console.log('Auto-refreshing active campaigns...')
+      refetch()
+    }, 10000) // 10 seconds
+    
+    return () => clearInterval(interval)
+  }, [localCampaigns, refetch])
+  
   useEffect(() => {
     if (data?.campaigns) {
       setLocalCampaigns(sortCampaigns(data.campaigns))
@@ -189,14 +202,16 @@ export default function PushCampaigns() {
   }
 
   const handleRefreshStats = async (campaignId) => {
-    // In a real app, this would fetch fresh stats from the server
     try {
-      const response = await apiCall(`/api/campaigns?id=${campaignId}`)
+      const response = await apiCall(`/api/campaigns/${campaignId}`)
       if (response && response.campaign) {
         // Update the specific campaign in local state
         setLocalCampaigns(prev => prev.map(campaign => 
           campaign.id === campaignId ? { ...campaign, ...response.campaign } : campaign
         ))
+        
+        // Also trigger a full refetch to ensure consistency
+        refetch()
       }
     } catch (error) {
       console.error('Failed to refresh stats:', error)

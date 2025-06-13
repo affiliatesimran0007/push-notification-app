@@ -1,53 +1,23 @@
 import { NextResponse } from 'next/server'
-
-// This would be imported from a shared data store or database
-const getCampaignById = (id) => {
-  // Mock implementation - replace with database query
-  return {
-    id,
-    name: 'New Year Sale 2024',
-    type: 'promotional',
-    status: 'completed',
-    title: '🎉 New Year Sale - 50% Off!',
-    message: 'Start 2024 with amazing deals. Shop now and save big!',
-    url: 'https://example.com/sale',
-    icon: '/icon-192x192.png',
-    badge: '/badge-72x72.png',
-    sentCount: 15234,
-    deliveredCount: 14876,
-    clickedCount: 3567,
-    ctr: 23.4,
-    targetAudience: 'all',
-    scheduledFor: null,
-    sentAt: '2024-01-01T00:00:00Z',
-    createdAt: '2023-12-28T10:00:00Z',
-    abTest: {
-      enabled: true,
-      variantA: {
-        title: '🎉 New Year Sale - 50% Off!',
-        message: 'Start 2024 with amazing deals. Shop now and save big!',
-        sentCount: 7617,
-        clickedCount: 1890,
-        ctr: 24.8
-      },
-      variantB: {
-        title: '💥 Biggest Sale of the Year!',
-        message: 'Unbelievable discounts await. Limited time only!',
-        sentCount: 7617,
-        clickedCount: 1677,
-        ctr: 22.0
-      },
-      trafficSplit: 50
-    }
-  }
-}
+import prisma from '@/lib/db'
 
 // GET /api/campaigns/[id]
 export async function GET(request, { params }) {
   try {
     const { id } = params
-    const campaign = getCampaignById(id)
-    
+
+    const campaign = await prisma.campaign.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: {
+            name: true,
+            email: true
+          }
+        }
+      }
+    })
+
     if (!campaign) {
       return NextResponse.json(
         { error: 'Campaign not found' },
@@ -55,8 +25,28 @@ export async function GET(request, { params }) {
       )
     }
 
-    return NextResponse.json(campaign)
+    // Add calculated CTR
+    const campaignWithCtr = {
+      ...campaign,
+      dismissedCount: 0,
+      pendingCount: 0,
+      ctr: campaign.sentCount > 0 
+        ? ((campaign.clickedCount / campaign.sentCount) * 100).toFixed(1)
+        : 0,
+      abTest: {
+        enabled: campaign.abTestEnabled,
+        variantA: campaign.variantA,
+        variantB: campaign.variantB,
+        trafficSplit: campaign.trafficSplit
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      campaign: campaignWithCtr
+    })
   } catch (error) {
+    console.error('Error fetching campaign:', error)
     return NextResponse.json(
       { error: 'Failed to fetch campaign' },
       { status: 500 }
