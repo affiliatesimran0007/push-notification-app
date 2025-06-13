@@ -570,7 +570,7 @@ export default function PushCampaigns() {
                               <FiUsers size={20} className="text-primary" />
                             </div>
                             <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary" style={{ transform: 'translate(-50%, -50%) !important' }}>
-                              {(campaign.sentCount + (campaign.pendingCount || 0)).toLocaleString()}
+                              {(campaign.sentCount + (campaign.pendingCount ?? 0)).toLocaleString()}
                             </span>
                           </div>
                           <div className="mt-2">
@@ -585,7 +585,7 @@ export default function PushCampaigns() {
                               <FiClock size={20} className="text-warning" />
                             </div>
                             <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning" style={{ transform: 'translate(-50%, -50%) !important' }}>
-                              {(campaign.pendingCount || 0).toLocaleString()}
+                              {(campaign.pendingCount ?? 0).toLocaleString()}
                             </span>
                           </div>
                           <div className="mt-2">
@@ -645,7 +645,7 @@ export default function PushCampaigns() {
                               <FiXCircle size={20} className="text-secondary" />
                             </div>
                             <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-secondary" style={{ transform: 'translate(-50%, -50%) !important' }}>
-                              {(campaign.dismissedCount || 0).toLocaleString()}
+                              {(campaign.dismissedCount ?? 0).toLocaleString()}
                             </span>
                           </div>
                           <div className="mt-2">
