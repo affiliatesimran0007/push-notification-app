@@ -23,6 +23,15 @@ npm run start
 
 # Run linting
 npm run lint
+
+# Run Prisma migrations
+npm run prisma:migrate
+
+# Generate Prisma client
+npm run prisma:generate
+
+# Seed database
+npm run prisma:seed
 ```
 
 ## Architecture Overview
@@ -110,3 +119,85 @@ This is a Next.js 15.3.3 push notification platform MVP built with the App Route
    - Browser timezone automatically detected using `Intl.DateTimeFormat()`
    - Displayed in Push Clients location field as "Unknown (timezone)"
    - No external IP geolocation APIs used
+   - Campaign scheduling uses IST (India Standard Time) timezone
+
+14. **Campaign Management**:
+   - 2-column responsive layout (2 campaigns per row on desktop)
+   - Campaign cards show comprehensive information:
+     - Campaign icon with status badge below
+     - Title, message, reference number, and date/time
+     - Target audience, browsers, and operating systems with icons
+     - Landing page URL
+     - Detailed delivery statistics with notification-style badges
+     - Control buttons: Pause/Resume, Refresh, Delete
+   - Optimistic UI updates (no page refresh on actions)
+   - Duplicate functionality to copy campaign settings
+   - Status-based actions:
+     - Active: Can pause
+     - Paused: Can resume
+     - Scheduled: Can cancel (converts to draft)
+     - Draft: Can edit or delete
+     - Completed: Can delete
+
+15. **Push Templates**:
+   - 3-column grid layout
+   - Create custom templates with categories
+   - Icon upload (file or URL) with base64 conversion
+   - Direct navigation to campaign builder on selection
+   - Database persistence with Prisma
+   - No personalization variables - full dummy text only
+
+16. **Campaign Builder**:
+   - Pre-fills data from selected templates or duplicated campaigns
+   - Browser and OS targeting with checkboxes and icons
+   - Optional action buttons (up to 2)
+   - IST timezone for scheduling
+   - Landing page selection with subscriber counts
+   - Save as draft functionality
+   - Image URL field for hero images
+
+## Recent Progress & Implementation Status
+
+### ✅ Completed Features:
+1. **Push Clients Page**:
+   - Added Operating System column with icons
+   - OS detection and icon mapping
+
+2. **Push Templates**:
+   - Complete redesign with 3-column grid
+   - Removed usage counts and popular badges
+   - Create Custom Template with category creation
+   - Icon upload (file or URL)
+   - Database persistence
+   - Direct navigation to campaign builder
+
+3. **Campaign Builder**:
+   - Removed A/B testing feature
+   - Added browser/OS targeting with icons
+   - IST timezone implementation
+   - Landing pages in target audience dropdown
+   - Button fields for CTAs
+   - Draft saving and editing
+
+4. **Campaigns Page**:
+   - Comprehensive redesign with 2-column layout
+   - Detailed delivery stats with notification badges
+   - Browser/OS targeting display
+   - Campaign controls (Pause/Resume, Refresh, Delete)
+   - Optimistic UI updates
+   - Duplicate functionality
+   - Proper date/time display with AM/PM
+   - Reference numbers for easy identification
+
+### 🔧 Technical Improvements:
+- Fixed hydration errors with conditional rendering
+- Implemented proper error handling and rollback
+- Added loading states and user feedback
+- Consistent icon usage across the app
+- Responsive design considerations
+
+### 📝 Database Updates:
+- Templates stored in PostgreSQL
+- Campaign targeting data in variantA field
+- Support for all campaign statuses
+- Proper relationships and constraints

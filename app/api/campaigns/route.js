@@ -27,7 +27,11 @@ export async function GET(request) {
       where,
       skip,
       take: limit,
-      orderBy: { createdAt: 'desc' },
+      orderBy: [
+        { sentAt: { sort: 'desc', nulls: 'last' } },
+        { scheduledFor: { sort: 'desc', nulls: 'last' } },
+        { createdAt: 'desc' }
+      ],
       include: {
         user: {
           select: {
@@ -88,23 +92,45 @@ export async function POST(request) {
       )
     }
 
+    // Build actions array from button data
+    const actions = []
+    if (body.button1Text && body.button1Url) {
+      actions.push({
+        action: 'button1',
+        title: body.button1Text,
+        url: body.button1Url
+      })
+    }
+    if (body.button2Text && body.button2Url) {
+      actions.push({
+        action: 'button2',
+        title: body.button2Text,
+        url: body.button2Url
+      })
+    }
+
     const campaignData = {
       name: body.name,
       type: body.type || 'promotional',
-      status: body.scheduledFor ? 'scheduled' : 'active',
-      title: body.title,
-      message: body.message,
+      status: body.status || (body.scheduledFor ? 'scheduled' : 'active'),
+      title: body.title || '',
+      message: body.message || '',
       url: body.url || '',
-      icon: body.icon || '/icon-192x192.png',
+      icon: body.icon || '',
       badge: body.badge || '/badge-72x72.png',
+      image: body.image || '',
       targetAudience: body.targetAudience || 'all',
       scheduledFor: body.scheduledFor ? new Date(body.scheduledFor) : null,
-      sentAt: body.scheduledFor ? null : new Date(),
+      sentAt: body.status === 'draft' ? null : (body.scheduledFor ? null : new Date()),
       userId: adminUser.id,
-      abTestEnabled: body.abTest?.enabled || false,
-      variantA: body.abTest?.enabled ? body.abTest.variantA : null,
-      variantB: body.abTest?.enabled ? body.abTest.variantB : null,
-      trafficSplit: body.abTest?.trafficSplit || 50
+      abTestEnabled: false,
+      variantA: actions.length > 0 || body.targetBrowsers || body.targetSystems ? { 
+        actions: actions.length > 0 ? actions : undefined,
+        targetBrowsers: body.targetBrowsers || undefined,
+        targetSystems: body.targetSystems || undefined
+      } : null,
+      variantB: null,
+      trafficSplit: 50
     }
 
     const newCampaign = await prisma.campaign.create({
@@ -119,8 +145,8 @@ export async function POST(request) {
       }
     })
 
-    // If immediate send, trigger notification delivery
-    if (!body.scheduledFor) {
+    // If immediate send and not a draft, trigger notification delivery
+    if (!body.scheduledFor && body.status !== 'draft') {
       // Get all clients or specific segment
       const clients = await prisma.client.findMany({
         where: body.targetAudience === 'all' ? {} : {
@@ -194,27 +220,118 @@ export async function PUT(request) {
       )
     }
 
-    const campaignIndex = campaigns.findIndex(c => c.id === campaignId)
-    if (campaignIndex === -1) {
+    // Check if campaign exists
+    const existingCampaign = await prisma.campaign.findUnique({
+      where: { id: campaignId }
+    })
+
+    if (!existingCampaign) {
       return NextResponse.json(
         { error: 'Campaign not found' },
         { status: 404 }
       )
     }
 
-    campaigns[campaignIndex] = {
-      ...campaigns[campaignIndex],
-      ...body,
-      updatedAt: new Date().toISOString()
+    // Build actions array from button data if provided
+    let actions = null
+    if (body.button1Text || body.button2Text) {
+      actions = []
+      if (body.button1Text && body.button1Url) {
+        actions.push({
+          action: 'button1',
+          title: body.button1Text,
+          url: body.button1Url
+        })
+      }
+      if (body.button2Text && body.button2Url) {
+        actions.push({
+          action: 'button2',
+          title: body.button2Text,
+          url: body.button2Url
+        })
+      }
     }
+
+    const updatedCampaign = await prisma.campaign.update({
+      where: { id: campaignId },
+      data: {
+        name: body.name || undefined,
+        title: body.title || undefined,
+        message: body.message || undefined,
+        url: body.url !== undefined ? body.url : undefined,
+        icon: body.icon || undefined,
+        image: body.image || undefined,
+        targetAudience: body.targetAudience || undefined,
+        status: body.status || undefined,
+        scheduledFor: body.scheduledFor !== undefined ? (body.scheduledFor ? new Date(body.scheduledFor) : null) : undefined,
+        variantA: actions || body.targetBrowsers || body.targetSystems ? { 
+          actions: actions || undefined,
+          targetBrowsers: body.targetBrowsers || undefined,
+          targetSystems: body.targetSystems || undefined
+        } : undefined
+      },
+      include: {
+        user: {
+          select: {
+            name: true,
+            email: true
+          }
+        }
+      }
+    })
 
     return NextResponse.json({
       success: true,
-      campaign: campaigns[campaignIndex]
+      campaign: updatedCampaign
     })
   } catch (error) {
+    console.error('Failed to update campaign:', error)
     return NextResponse.json(
       { error: 'Failed to update campaign' },
+      { status: 500 }
+    )
+  }
+}
+
+// DELETE /api/campaigns/[id] - Delete campaign
+export async function DELETE(request) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const campaignId = searchParams.get('id')
+
+    if (!campaignId) {
+      return NextResponse.json(
+        { error: 'Campaign ID required' },
+        { status: 400 }
+      )
+    }
+
+    // Check if campaign exists and is a draft
+    const campaign = await prisma.campaign.findUnique({
+      where: { id: campaignId }
+    })
+
+    if (!campaign) {
+      return NextResponse.json(
+        { error: 'Campaign not found' },
+        { status: 404 }
+      )
+    }
+
+    // Allow deletion of any campaign with appropriate warnings on frontend
+
+    await prisma.campaign.delete({
+      where: { id: campaignId }
+    })
+
+    return NextResponse.json({
+      success: true,
+      message: 'Campaign deleted successfully'
+    })
+  } catch (error) {
+    console.error('Failed to delete campaign:', error)
+    return NextResponse.json(
+      { error: 'Failed to delete campaign' },
       { status: 500 }
     )
   }

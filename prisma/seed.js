@@ -39,41 +39,46 @@ async function main() {
     {
       name: 'Welcome Message',
       category: 'engagement',
-      title: 'Welcome to {{app_name}}! 👋',
-      message: 'Thanks for subscribing, {{user_name}}. Stay tuned for updates!',
-      variables: ['app_name', 'user_name'],
+      title: 'Welcome to Our Community! 👋',
+      message: 'Thanks for subscribing! We\'re excited to have you here. Stay tuned for exclusive updates and special offers.',
+      variables: [],
+      icon: 'https://cdn-icons-png.flaticon.com/512/2645/2645890.png', // Welcome celebration icon
       userId: adminUser.id
     },
     {
       name: 'Cart Abandonment',
       category: 'ecommerce',
       title: 'You left items in your cart 🛒',
-      message: 'Complete your purchase and get {{discount}}% off!',
-      variables: ['discount'],
+      message: 'Complete your purchase and get 20% off! Your favorite items are waiting for you. This offer expires soon.',
+      variables: [],
+      icon: 'https://cdn-icons-png.flaticon.com/512/2838/2838895.png', // Shopping cart icon
       userId: adminUser.id
     },
     {
       name: 'New Article',
       category: 'content',
-      title: 'New post: {{article_title}}',
-      message: 'Check out our latest article on {{topic}}',
-      variables: ['article_title', 'topic'],
+      title: 'New post: Ultimate Guide to Web Push Notifications',
+      message: 'Check out our latest article on maximizing engagement with push notifications. Learn tips and best practices!',
+      variables: [],
+      icon: 'https://cdn-icons-png.flaticon.com/512/2965/2965879.png', // News icon
       userId: adminUser.id
     },
     {
       name: 'Order Shipped',
       category: 'transactional',
       title: 'Your order has been shipped! 📦',
-      message: 'Order #{{order_id}} is on its way. Track it here.',
-      variables: ['order_id'],
+      message: 'Order #12345 is on its way. Track it here. Expected delivery: Tomorrow by 5 PM.',
+      variables: [],
+      icon: 'https://cdn-icons-png.flaticon.com/512/2927/2927347.png', // Delivery truck icon
       userId: adminUser.id
     },
     {
       name: 'Weekly Newsletter',
       category: 'engagement',
       title: 'Your Weekly Update 📰',
-      message: 'Here\'s what you missed this week...',
+      message: 'Here\'s what you missed this week: New features, trending articles, and exclusive member benefits!',
       variables: [],
+      icon: 'https://cdn-icons-png.flaticon.com/512/2965/2965879.png', // News icon
       userId: adminUser.id
     }
   ]

@@ -1,41 +1,5 @@
 import { NextResponse } from 'next/server'
-
-// Temporary in-memory storage
-let templates = [
-  {
-    id: '1',
-    name: 'Welcome Message',
-    category: 'engagement',
-    title: 'Welcome to {{app_name}}! 👋',
-    message: 'Thanks for subscribing, {{user_name}}. Stay tuned for updates!',
-    icon: '/icon-192x192.png',
-    badge: '/badge-72x72.png',
-    url: '{{welcome_url}}',
-    actions: [],
-    sound: 'default',
-    variables: ['app_name', 'user_name', 'welcome_url'],
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z'
-  },
-  {
-    id: '2',
-    name: 'Cart Abandonment',
-    category: 'ecommerce',
-    title: 'You left items in your cart 🛒',
-    message: 'Complete your purchase and get {{discount}}% off!',
-    icon: '/icon-192x192.png',
-    badge: '/badge-72x72.png',
-    url: '{{cart_url}}',
-    actions: [
-      { action: 'view-cart', title: 'View Cart' },
-      { action: 'dismiss', title: 'Not Now' }
-    ],
-    sound: 'default',
-    variables: ['discount', 'cart_url'],
-    createdAt: '2024-01-02T00:00:00Z',
-    updatedAt: '2024-01-02T00:00:00Z'
-  }
-]
+import prisma from '@/lib/db'
 
 // GET /api/templates
 export async function GET(request) {
@@ -43,16 +7,22 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url)
     const category = searchParams.get('category')
 
-    let filteredTemplates = templates
-    if (category && category !== 'all') {
-      filteredTemplates = filteredTemplates.filter(t => t.category === category)
-    }
+    // Build where clause
+    const where = category && category !== 'all' 
+      ? { category: category.toLowerCase() }
+      : {}
+
+    const templates = await prisma.template.findMany({
+      where,
+      orderBy: { createdAt: 'desc' }
+    })
 
     return NextResponse.json({
-      templates: filteredTemplates,
-      total: filteredTemplates.length
+      templates,
+      total: templates.length
     })
   } catch (error) {
+    console.error('Failed to fetch templates:', error)
     return NextResponse.json(
       { error: 'Failed to fetch templates' },
       { status: 500 }
@@ -65,9 +35,9 @@ export async function POST(request) {
   try {
     const body = await request.json()
 
-    if (!body.name || !body.title || !body.message) {
+    if (!body.name || !body.title || !body.message || !body.category) {
       return NextResponse.json(
-        { error: 'Name, title, and message are required' },
+        { error: 'Name, category, title, and message are required' },
         { status: 400 }
       )
     }
@@ -79,31 +49,46 @@ export async function POST(request) {
     const urlVars = body.url ? [...(body.url.matchAll(variablePattern) || [])].map(m => m[1]) : []
     const allVars = [...new Set([...titleVars, ...messageVars, ...urlVars])]
 
-    const newTemplate = {
-      id: Date.now().toString(),
-      name: body.name,
-      category: body.category || 'general',
-      title: body.title,
-      message: body.message,
-      icon: body.icon || '/icon-192x192.png',
-      badge: body.badge || '/badge-72x72.png',
-      url: body.url || '/',
-      actions: body.actions || [],
-      sound: body.sound || 'default',
-      variables: allVars,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+    // For now, using the admin user since we don't have authentication yet
+    // In production, this should come from the authenticated user
+    const adminUser = await prisma.user.findFirst({
+      where: { email: 'admin@example.com' }
+    })
+    
+    if (!adminUser) {
+      return NextResponse.json(
+        { error: 'Admin user not found. Please run database seed.' },
+        { status: 500 }
+      )
     }
+    
+    const userId = adminUser.id
 
-    templates.push(newTemplate)
+    const newTemplate = await prisma.template.create({
+      data: {
+        name: body.name,
+        category: body.category.toLowerCase(),
+        title: body.title,
+        message: body.message,
+        icon: body.icon || '/icon-192x192.png',
+        badge: body.badge || '/badge-72x72.png',
+        url: body.url || '/',
+        actions: body.actions || [],
+        sound: body.sound || 'default',
+        variables: allVars,
+        requireInteraction: body.requireInteraction || false,
+        userId: userId
+      }
+    })
 
     return NextResponse.json({
       success: true,
       template: newTemplate
     })
   } catch (error) {
+    console.error('Failed to create template:', error)
     return NextResponse.json(
-      { error: 'Failed to create template' },
+      { error: 'Failed to create template', details: error.message },
       { status: 500 }
     )
   }
@@ -122,13 +107,16 @@ export async function DELETE(request) {
       )
     }
 
-    templates = templates.filter(t => t.id !== templateId)
+    await prisma.template.delete({
+      where: { id: templateId }
+    })
 
     return NextResponse.json({
       success: true,
       message: 'Template deleted successfully'
     })
   } catch (error) {
+    console.error('Failed to delete template:', error)
     return NextResponse.json(
       { error: 'Failed to delete template' },
       { status: 500 }
