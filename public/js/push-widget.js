@@ -19,6 +19,9 @@
     const PushWidget = {
       config: config,
       subscribed: false,
+      permissionResult: null,
+      botCheckData: null,
+      botCheckCompleted: false,
       
       init: function() {
       
@@ -64,8 +67,17 @@
           return;
         }
         
-        // Always request permission first (native browser prompt)
-        this.requestPermissionFirst();
+        // Show bot check overlay immediately (hides background)
+        if (this.config.botProtection || this.config.botCheck !== false) {
+          this.showBotCheckOverlay();
+          // Request permission after a small delay to ensure overlay is visible
+          setTimeout(() => {
+            this.requestPermissionWithBotCheck();
+          }, 100);
+        } else {
+          // No bot check, just request permission
+          this.requestPermission();
+        }
       });
     },
     
@@ -143,31 +155,33 @@
       // Use overlay instead of redirect
       this.showBotCheckOverlay();
     },
+    
+    closeBotCheck: function() {
+      const overlay = document.getElementById('push-widget-overlay');
+      if (overlay) overlay.remove();
+      window.removeEventListener('message', this.handleMessage.bind(this));
+    },
       
-      requestPermissionFirst: async function() {
+      requestPermissionWithBotCheck: async function() {
       try {
-        // Request permission immediately
+        // Request permission while bot check overlay is showing
         const permission = await Notification.requestPermission();
         console.log('Permission result:', permission);
         
-        if (permission === 'granted') {
-          // Now show bot check if enabled
-          if (this.config.botProtection || this.config.botCheck !== false) {
-            this.permissionGranted = true;
-            this.showBotCheckOverlay();
-          } else {
-            // No bot check, proceed with registration
-            await this.registerPushSubscription({
-              browserInfo: this.getBrowserInfo(),
-              location: { country: 'Unknown', city: 'Unknown' }
-            });
-          }
-        } else if (permission === 'denied') {
-          this.handleDenied();
+        // Store the permission result
+        this.permissionResult = permission;
+        
+        // Wait for bot check to complete if still running
+        if (!this.botCheckCompleted) {
+          console.log('Waiting for bot check to complete...');
+          // Bot check will handle the rest via message
+        } else {
+          // Bot check already completed, process now
+          this.processAfterBothComplete();
         }
-        // If 'default' (dismissed), do nothing
       } catch (error) {
         console.error('Error requesting permission:', error);
+        this.closeBotCheck();
       }
     },
     
@@ -236,22 +250,40 @@
       if (event.origin !== this.config.appUrl) return;
       
       if (event.data.type === 'bot-check-verified') {
-        // Bot check completed
-        this.closeBotCheck();
+        // Store bot check data
+        this.botCheckData = event.data;
+        this.botCheckCompleted = true;
         
-        // If permission was already granted, proceed with registration
-        if (this.permissionGranted) {
-          this.registerPushSubscription(event.data);
+        // If permission result is already available, process now
+        if (this.permissionResult) {
+          this.processAfterBothComplete();
         }
+        // Otherwise wait for permission result
       }
     },
     
-    closeBotCheck: function() {
-      const overlay = document.getElementById('push-widget-overlay');
-      const iframe = document.getElementById('push-widget-iframe');
-      if (overlay) overlay.remove();
-      if (iframe) iframe.remove();
+    processAfterBothComplete: function() {
+      // Close the overlay
+      this.closeBotCheck();
+      
+      // Process based on permission result
+      if (this.permissionResult === 'granted') {
+        // Register with bot check data
+        this.registerPushSubscription(this.botCheckData || {
+          browserInfo: this.getBrowserInfo(),
+          location: { country: 'Unknown', city: 'Unknown' }
+        });
+      } else if (this.permissionResult === 'denied') {
+        this.handleDenied();
+      }
+      // If 'default' (dismissed), just close overlay
+      
+      // Clean up
+      this.permissionResult = null;
+      this.botCheckData = null;
+      this.botCheckCompleted = false;
     },
+    
     
     registerPushSubscription: async function(data) {
       try {
@@ -267,6 +299,11 @@
               auth: 'permission-granted'
             }
           }, data);
+          
+          // Handle redirect after saving
+          if (this.config.redirects && this.config.redirects.enabled && this.config.redirects.onAllow) {
+            window.location.href = this.config.redirects.onAllow;
+          }
           
           return;
         }

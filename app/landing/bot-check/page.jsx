@@ -422,12 +422,16 @@ export default function BotCheckPage() {
                   <FiCheckCircle size={60} className="text-success" />
                 </div>
                 <h2 className="mb-4">Verification successful</h2>
-                <p className="text-muted mb-4">
-                  Completing verification...
-                </p>
+                <div className="alert alert-info mb-4">
+                  <h5 className="mb-2">Action Required</h5>
+                  <p className="mb-0">
+                    Please respond to the browser notification prompt to continue.
+                  </p>
+                </div>
                 
                 <div className="mb-4">
                   <Spinner animation="border" variant="primary" size="sm" />
+                  <p className="mt-2 text-muted">Waiting for your response...</p>
                 </div>
                 
                 <div className="mt-4 text-muted" style={{ fontSize: '0.85rem' }}>
