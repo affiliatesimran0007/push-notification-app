@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/db'
+import bcryptjs from 'bcryptjs'
 
 // GET /api/create-admin - Create admin user
 export async function GET(request) {
@@ -20,11 +21,14 @@ export async function GET(request) {
       })
     }
 
-    // Create admin user
+    // Create admin user with hashed password
+    const hashedPassword = await bcryptjs.hash('admin123', 10)
+    
     const adminUser = await prisma.user.create({
       data: {
         name: 'Admin User',
         email: 'admin@pushnotify.com',
+        password: hashedPassword,
         role: 'admin'
       }
     })

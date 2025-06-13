@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/db'
+import bcryptjs from 'bcryptjs'
 
 // GET /api/seed-database - Seed complete database with admin user and templates
 export async function GET(request) {
@@ -28,10 +29,13 @@ export async function GET(request) {
     })
 
     if (!adminUser) {
+      const hashedPassword = await bcryptjs.hash('admin123', 10)
+      
       adminUser = await prisma.user.create({
         data: {
           name: 'Admin User',
           email: 'admin@example.com',
+          password: hashedPassword,
           role: 'admin'
         }
       })
