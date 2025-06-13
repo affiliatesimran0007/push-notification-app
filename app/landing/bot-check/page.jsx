@@ -15,6 +15,13 @@ export default function BotCheckPage() {
 
   // Initialize client-side only values
   useEffect(() => {
+    // Check if embedded in iframe
+    const urlParams = new URLSearchParams(window.location.search)
+    const embedded = urlParams.get('embedded') === 'true'
+    
+    // Store embedded state for later use
+    window.isEmbedded = embedded
+    
     // Generate Ray ID on client side only
     const chars = '0123456789abcdef'
     let result = ''
@@ -104,6 +111,29 @@ export default function BotCheckPage() {
       console.log('Requesting notification permission...')
       const permission = await Notification.requestPermission()
       console.log('Permission result:', permission)
+      
+      // If embedded in iframe, send message to parent
+      if (window.isEmbedded && window.parent !== window) {
+        window.parent.postMessage({
+          type: 'bot-check-completed',
+          permission: permission,
+          browserInfo: clientInfo,
+          location: {
+            country: 'United States',
+            city: 'New York',
+            ip: ipAddress
+          }
+        }, '*') // Using '*' for now, should be restricted to specific origin in production
+        
+        // Don't proceed with redirect if embedded
+        if (permission === 'granted') {
+          console.log('Permission granted in iframe mode')
+        } else if (permission === 'denied') {
+          console.log('Permission denied in iframe mode')
+        }
+        return
+      }
+      
       if (permission === 'granted') {
         // In a real app, this would register the service worker and save the subscription
         // For now, we'll show the collected client information
@@ -234,11 +264,13 @@ export default function BotCheckPage() {
           console.error('Failed to save subscription:', error)
         }
         
-        // Redirect back to customer site with subscription status
-        const redirectUrl = new URL(allowRedirect || subscribedUrl || '/')
-        redirectUrl.searchParams.set('push-subscribed', 'true')
-        redirectUrl.searchParams.set('push-landing-id', landingId)
-        window.location.href = redirectUrl.toString()
+        // Only redirect if not embedded
+        if (!window.isEmbedded) {
+          const redirectUrl = new URL(allowRedirect || subscribedUrl || '/')
+          redirectUrl.searchParams.set('push-subscribed', 'true')
+          redirectUrl.searchParams.set('push-landing-id', landingId)
+          window.location.href = redirectUrl.toString()
+        }
       } else if (permission === 'denied') {
         // Don't show alert, just update the UI
         console.log('Notifications blocked by user')
@@ -274,6 +306,21 @@ export default function BotCheckPage() {
   }
 
   const handleBlock = async () => {
+    // If embedded, send message to parent
+    if (window.isEmbedded && window.parent !== window) {
+      window.parent.postMessage({
+        type: 'bot-check-completed',
+        permission: 'denied',
+        browserInfo: clientInfo,
+        location: {
+          country: 'United States',
+          city: 'New York',
+          ip: ipAddress
+        }
+      }, '*')
+      return
+    }
+    
     // Save blocked status to database
     const urlParams = new URLSearchParams(window.location.search)
     const landingId = urlParams.get('landingId')
@@ -317,8 +364,10 @@ export default function BotCheckPage() {
       console.error('Failed to save blocked status:', error)
     }
     
-    // Redirect back to customer site
-    window.location.href = blockRedirect || subscribedUrl || '/'
+    // Only redirect if not embedded
+    if (!window.isEmbedded) {
+      window.location.href = blockRedirect || subscribedUrl || '/'
+    }
   }
 
   return (

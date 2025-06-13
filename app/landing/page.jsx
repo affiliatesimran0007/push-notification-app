@@ -590,7 +590,31 @@ export default function LandingPage() {
             <strong>Domain:</strong> {selectedLanding?.domain} | <strong>Landing ID:</strong> {selectedLanding?.landingId}
           </Alert>
           
-          <h5 className="mb-3">1. Add Integration Code</h5>
+          <h5 className="mb-3">1. Add Service Worker File</h5>
+          <p className="mb-3">
+            First, you need to host a service worker file on your domain. This file handles push notifications.
+          </p>
+          <div className="mb-4">
+            <Button 
+              variant="primary" 
+              onClick={() => {
+                const link = document.createElement('a')
+                link.href = '/push-sw-template.js'
+                link.download = 'push-sw.js'
+                link.click()
+              }}
+            >
+              <FiCopy className="me-2" />
+              Download push-sw.js
+            </Button>
+            <p className="text-muted mt-2">
+              Upload this file to: <code>https://{selectedLanding?.domain}/push-sw.js</code>
+            </p>
+          </div>
+          
+          <hr className="my-4" />
+          
+          <h5 className="mb-3">2. Add Integration Code</h5>
           <p className="mb-3">
             Copy this code and add it to your website's HTML, preferably in the &lt;head&gt; section:
           </p>
@@ -616,8 +640,8 @@ export default function LandingPage() {
           
           <hr className="my-4" />
           
-          <h5 className="mb-3">2. Test Integration</h5>
-          <p>After adding the code to your website, test the integration:</p>
+          <h5 className="mb-3">3. Test Integration</h5>
+          <p>After adding both the service worker and integration code to your website, test the integration:</p>
           
           <div className="d-flex gap-3 mb-3">
             <Button 
@@ -647,10 +671,11 @@ export default function LandingPage() {
           <Alert variant="warning">
             <h6>Important Notes:</h6>
             <ul className="mb-0">
-              <li>Make sure your domain is properly configured with HTTPS</li>
-              <li>The push notification prompt will only appear on HTTPS domains</li>
-              <li>Bot protection (if enabled) will show a verification page before the notification prompt</li>
+              <li>Your domain MUST be HTTPS-enabled (required for service workers)</li>
+              <li>The <code>push-sw.js</code> file MUST be accessible at the root of your domain</li>
+              <li>Bot protection (if enabled) will show verification in an overlay - visitors stay on your domain</li>
               <li>Users who have already subscribed won't see the prompt again</li>
+              <li>Test the service worker by visiting: <code>https://{selectedLanding?.domain}/push-sw.js</code></li>
             </ul>
           </Alert>
         </Modal.Body>

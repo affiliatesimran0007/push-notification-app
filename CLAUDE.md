@@ -195,11 +195,13 @@ This is a Next.js 15.3.3 push notification platform MVP built with the App Route
 5. **Landing Pages & Integration**:
    - Complete integration system for customer domains
    - JavaScript code generator with domain configuration
-   - Bot protection support
+   - Bot protection via iframe overlay (visitors stay on customer domain)
    - Custom redirect URLs for allow/block
+   - Service worker template download (`push-sw-template.js`)
    - Test integration buttons
    - Copy-to-clipboard functionality
    - Integration documentation at `/docs/INTEGRATION_FLOW.md`
+   - PostMessage communication for cross-origin permission handling
 
 6. **Real-time Updates**:
    - SSE implementation for campaigns and clients

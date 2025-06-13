@@ -66,7 +66,16 @@ graph LR
 - Configures their domain settings
 - Receives a unique `landingId`
 
-### 2. Customer Gets Integration Code
+### 2. Customer Prepares Their Website
+
+#### Step 2a: Add Service Worker File
+Customer must host a service worker file at the root of their domain:
+- Download our template: `push-sw-template.js`
+- Rename it to: `push-sw.js`
+- Upload to: `https://example.com/push-sw.js`
+- This file handles push notifications on their domain
+
+#### Step 2b: Add Integration Code
 
 ```javascript
 <!-- Push Notification Integration Code -->
@@ -103,9 +112,11 @@ Customer's Website (example.com)
 ├── index.html
 │   └── <head>
 │       └── [Integration Code Here]
-├── push-sw.js (created by our widget)
+├── push-sw.js (MUST be added by customer)
 └── Other website files...
 ```
+
+**Important:** The `push-sw.js` file must be accessible at the root of the domain.
 
 ### 4. Visitor Subscription Flow
 
@@ -122,10 +133,12 @@ sequenceDiagram
     PW->>PW: Check if already subscribed
     
     alt Bot Protection Enabled
-        PW->>P: Redirect to bot check
-        P->>V: Show verification
+        PW->>PW: Show iframe overlay
+        PW->>P: Load bot check in iframe
+        P->>V: Show verification (in overlay)
         V->>P: Complete verification
-        P->>W: Redirect back
+        P->>PW: Send result via postMessage
+        PW->>PW: Close overlay
     end
     
     PW->>B: Request notification permission

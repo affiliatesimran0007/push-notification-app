@@ -90,28 +90,89 @@
       }
     },
     
-    redirectToBotCheck: function() {
-      // Store the current page URL to return to
-      sessionStorage.setItem('push-widget-return-url', window.location.href);
+    showBotCheckOverlay: function() {
+      // Create overlay
+      const overlay = document.createElement('div');
+      overlay.id = 'push-widget-overlay';
+      overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 999998;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      `;
       
-      // Build bot check URL with parameters
+      // Create iframe container
+      const container = document.createElement('div');
+      container.style.cssText = `
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        width: 90%;
+        max-width: 500px;
+        height: 600px;
+        position: relative;
+        z-index: 999999;
+      `;
+      
+      // Create close button
+      const closeBtn = document.createElement('button');
+      closeBtn.innerHTML = '×';
+      closeBtn.style.cssText = `
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: none;
+        border: none;
+        font-size: 30px;
+        cursor: pointer;
+        color: #666;
+        z-index: 1000000;
+      `;
+      closeBtn.onclick = () => {
+        overlay.remove();
+        this.handleDenied();
+      };
+      
+      // Create iframe
+      const iframe = document.createElement('iframe');
+      iframe.id = 'push-widget-iframe';
+      
+      // Build bot check URL
       const params = new URLSearchParams({
         landingId: this.config.landingId,
         domain: window.location.hostname,
         url: window.location.href,
-        allowRedirect: this.config.redirects?.allow || window.location.href,
-        blockRedirect: this.config.redirects?.block || window.location.href,
+        embedded: 'true',
         vapidKey: this.config.vapidKey
       });
       
-      // Redirect to bot check page
-      // Add ngrok header for free accounts if needed
-      const redirectUrl = this.config.appUrl + '/landing/bot-check?' + params.toString();
-      if (this.config.appUrl.includes('ngrok')) {
-        window.location.href = redirectUrl + '&ngrok-skip-browser-warning=true';
-      } else {
-        window.location.href = redirectUrl;
-      }
+      iframe.src = this.config.appUrl + '/landing/bot-check?' + params.toString();
+      iframe.style.cssText = `
+        width: 100%;
+        height: 100%;
+        border: none;
+        border-radius: 10px;
+      `;
+      
+      // Append elements
+      container.appendChild(closeBtn);
+      container.appendChild(iframe);
+      overlay.appendChild(container);
+      document.body.appendChild(overlay);
+      
+      // Listen for messages from iframe
+      window.addEventListener('message', this.handleMessage.bind(this));
+    },
+    
+    redirectToBotCheck: function() {
+      // Use overlay instead of redirect
+      this.showBotCheckOverlay();
     },
       
       requestPermission: async function() {
@@ -179,12 +240,16 @@
       if (event.origin !== this.config.appUrl) return;
       
       if (event.data.type === 'bot-check-completed') {
+        // Close the overlay first
+        this.closeBotCheck();
+        
         if (event.data.permission === 'granted') {
+          // Register on customer's domain
           this.registerPushSubscription(event.data);
-        } else {
+        } else if (event.data.permission === 'denied') {
           this.handleDenied();
         }
-        this.closeBotCheck();
+        // If permission is 'default' (dismissed), do nothing
       }
     },
     
@@ -197,8 +262,46 @@
     
     registerPushSubscription: async function(data) {
       try {
+        // First check if service worker is available on this domain
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+          console.warn('Push notifications not supported on this domain');
+          
+          // Still save the permission grant to our server
+          await this.saveSubscriptionToServer({
+            endpoint: `granted-${Date.now()}-${Math.random()}`,
+            keys: {
+              p256dh: 'permission-granted',
+              auth: 'permission-granted'
+            }
+          }, data);
+          
+          return;
+        }
+        
+        // Check if push-sw.js exists on customer's domain
+        try {
+          const swCheck = await fetch('/push-sw.js', { method: 'HEAD' });
+          if (!swCheck.ok) {
+            console.warn('Service worker not found on this domain');
+            
+            // Save permission grant without actual subscription
+            await this.saveSubscriptionToServer({
+              endpoint: `granted-no-sw-${Date.now()}-${Math.random()}`,
+              keys: {
+                p256dh: 'no-service-worker',
+                auth: 'no-service-worker'
+              }
+            }, data);
+            
+            return;
+          }
+        } catch (e) {
+          console.warn('Could not check for service worker:', e);
+        }
+        
         // Register service worker on customer's domain
         const registration = await navigator.serviceWorker.register('/push-sw.js');
+        await navigator.serviceWorker.ready;
         
         // Subscribe to push
         const subscription = await registration.pushManager.subscribe({
@@ -206,7 +309,25 @@
           applicationServerKey: this.urlBase64ToUint8Array(this.config.vapidKey)
         });
         
-        // Send to your server
+        // Save to server
+        await this.saveSubscriptionToServer(subscription.toJSON(), data);
+        
+      } catch (error) {
+        console.error('Failed to subscribe:', error);
+        
+        // Even if subscription fails, save that permission was granted
+        await this.saveSubscriptionToServer({
+          endpoint: `granted-error-${Date.now()}-${Math.random()}`,
+          keys: {
+            p256dh: 'subscription-error',
+            auth: error.message
+          }
+        }, data);
+      }
+    },
+    
+    saveSubscriptionToServer: async function(subscription, data) {
+      try {
         const headers = {
           'Content-Type': 'application/json'
         };
@@ -220,12 +341,13 @@
           method: 'POST',
           headers: headers,
           body: JSON.stringify({
-            subscription: subscription.toJSON(),
+            subscription: subscription,
             landingId: this.config.landingId,
             domain: window.location.hostname,
             url: window.location.href,
-            browserInfo: data.browserInfo,
-            location: data.location
+            accessStatus: 'allowed',
+            browserInfo: data.browserInfo || this.getBrowserInfo(),
+            location: data.location || { country: 'Unknown', city: 'Unknown' }
           })
         });
         
@@ -235,19 +357,56 @@
           this.subscribed = true;
           
           // Redirect if configured
-          if (this.config.redirects && this.config.redirects.allow) {
-            window.location.href = this.config.redirects.allow;
+          if (this.config.redirects && this.config.redirects.enabled && this.config.redirects.onAllow) {
+            window.location.href = this.config.redirects.onAllow;
           }
         }
       } catch (error) {
-        console.error('Failed to subscribe:', error);
+        console.error('Failed to save subscription:', error);
       }
     },
     
     handleDenied: function() {
+      // Save denied status to server
+      this.saveDeniedStatus();
+      
       // Redirect if configured
-      if (this.config.redirects && this.config.redirects.block) {
-        window.location.href = this.config.redirects.block;
+      if (this.config.redirects && this.config.redirects.enabled && this.config.redirects.onBlock) {
+        window.location.href = this.config.redirects.onBlock;
+      }
+    },
+    
+    saveDeniedStatus: async function() {
+      try {
+        const headers = {
+          'Content-Type': 'application/json'
+        };
+        
+        if (this.config.appUrl.includes('ngrok')) {
+          headers['ngrok-skip-browser-warning'] = 'true';
+        }
+        
+        await fetch(this.config.appUrl + '/api/clients', {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify({
+            subscription: {
+              endpoint: `blocked-${Date.now()}-${Math.random()}`,
+              keys: {
+                p256dh: 'blocked',
+                auth: 'blocked'
+              }
+            },
+            landingId: this.config.landingId,
+            domain: window.location.hostname,
+            url: window.location.href,
+            accessStatus: 'blocked',
+            browserInfo: this.getBrowserInfo(),
+            location: { country: 'Unknown', city: 'Unknown' }
+          })
+        });
+      } catch (error) {
+        console.error('Failed to save denied status:', error);
       }
     },
     
