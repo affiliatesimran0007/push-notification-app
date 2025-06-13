@@ -147,11 +147,22 @@ export async function POST(request) {
 
     // If immediate send and not a draft, trigger notification delivery
     if (!body.scheduledFor && body.status !== 'draft') {
-      // Get all clients or specific segment
+      // Get clients based on target audience
+      let whereClause = {}
+      
+      if (body.targetAudience !== 'all') {
+        // Check if it's a landing page selection
+        if (body.targetAudience.startsWith('landing:')) {
+          const landingId = body.targetAudience.replace('landing:', '')
+          whereClause = { landingId }
+        } else {
+          // Handle other segment types in the future
+          whereClause = {}
+        }
+      }
+      
       const clients = await prisma.client.findMany({
-        where: body.targetAudience === 'all' ? {} : {
-          // TODO: Implement segment filtering
-        },
+        where: whereClause,
         select: { id: true }
       })
 
