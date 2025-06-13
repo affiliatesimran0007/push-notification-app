@@ -10,8 +10,10 @@ export default function LandingPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showCodeModal, setShowCodeModal] = useState(false)
+  const [showTestModal, setShowTestModal] = useState(false)
   const [selectedLanding, setSelectedLanding] = useState(null)
   const [editingLanding, setEditingLanding] = useState(null)
+  const [testStatus, setTestStatus] = useState('')
   const [formData, setFormData] = useState({
     name: '',
     domain: '',
@@ -339,7 +341,11 @@ export default function LandingPage() {
                           <Button 
                             size="sm" 
                             variant="outline-info"
-                            onClick={() => window.open(`/test-integration.html?landingId=${landing.landingId}&domain=${landing.domain}`, '_blank')}
+                            onClick={() => {
+                              setSelectedLanding(landing)
+                              setShowTestModal(true)
+                              setTestStatus('')
+                            }}
                             title="Test Integration"
                           >
                             <FiPlayCircle />
@@ -652,7 +658,7 @@ export default function LandingPage() {
           <hr className="my-4" />
           
           <h5 className="mb-3">3. Test Integration</h5>
-          <p>After adding both the service worker and integration code to your website, test the integration:</p>
+          <p>After adding both the service worker and integration code to your website:</p>
           
           <div className="d-flex gap-3 mb-3">
             <Button 
@@ -671,21 +677,13 @@ export default function LandingPage() {
             <Button 
               variant="primary"
               onClick={() => {
-                window.open(`/landing/bot-check?landingId=${selectedLanding?.landingId}&test=true`, '_blank')
+                setShowCodeModal(false)
+                setShowTestModal(true)
+                setTestStatus('')
               }}
             >
               <FiPlayCircle className="me-2" />
-              Test Bot Check Page
-            </Button>
-            
-            <Button 
-              variant="info"
-              onClick={() => {
-                window.open(`/test-integration.html?landingId=${selectedLanding?.landingId}&domain=${selectedLanding?.domain}`, '_blank')
-              }}
-            >
-              <FiPlayCircle className="me-2" />
-              Test Full Integration
+              Test Integration Here
             </Button>
           </div>
           
@@ -702,6 +700,121 @@ export default function LandingPage() {
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowCodeModal(false)}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Test Integration Modal */}
+      <Modal show={showTestModal} onHide={() => setShowTestModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>
+            Test Integration - {selectedLanding?.name}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Alert variant="info">
+            <FiInfo className="me-2" />
+            Testing integration for <strong>{selectedLanding?.domain}</strong> with Landing ID: <strong>{selectedLanding?.landingId}</strong>
+          </Alert>
+          
+          <div className="text-center p-4">
+            <h5 className="mb-4">Click the button below to test the push notification flow</h5>
+            
+            <Button 
+              variant="primary" 
+              size="lg"
+              onClick={() => {
+                setTestStatus('loading')
+                
+                // Create test configuration
+                window.PUSH_TEST_CONFIG = {
+                  appUrl: window.location.origin,
+                  landingId: selectedLanding?.landingId,
+                  vapidKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BGv2Vm45eFGslcXFhakD-euIXAnOg6-bdqVWHoSw4gwvjvYYV1zBA_Q7uiNij5yvRqMwmDhpBYYSA1v5Z_GEv_k',
+                  domain: selectedLanding?.domain,
+                  botProtection: selectedLanding?.botProtection !== false,
+                  redirects: {
+                    enabled: false,
+                    onAllow: null,
+                    onBlock: null
+                  }
+                }
+                
+                // Load and initialize the widget
+                const script = document.createElement('script')
+                script.src = window.PUSH_TEST_CONFIG.appUrl + '/js/push-widget.js'
+                script.async = true
+                script.onload = () => {
+                  setTestStatus('Widget loaded! Bot protection will appear if enabled...')
+                  
+                  // Override PUSH_CONFIG for testing
+                  window.PUSH_CONFIG = window.PUSH_TEST_CONFIG
+                  
+                  // Re-initialize the widget
+                  if (window.PushWidget) {
+                    window.PushWidget.init()
+                  }
+                }
+                script.onerror = () => {
+                  setTestStatus('Error loading widget')
+                }
+                
+                // Clean up any existing script
+                const existingScript = document.querySelector('script[src*="push-widget.js"]')
+                if (existingScript) {
+                  existingScript.remove()
+                }
+                
+                document.head.appendChild(script)
+              }}
+              disabled={testStatus === 'loading'}
+            >
+              {testStatus === 'loading' ? (
+                <>
+                  <Spinner animation="border" size="sm" className="me-2" />
+                  Loading...
+                </>
+              ) : (
+                <>
+                  <FiPlayCircle className="me-2" />
+                  Start Integration Test
+                </>
+              )}
+            </Button>
+            
+            {testStatus && testStatus !== 'loading' && (
+              <Alert variant="success" className="mt-4">
+                {testStatus}
+              </Alert>
+            )}
+          </div>
+          
+          <hr className="my-4" />
+          
+          <div className="bg-light p-3 rounded">
+            <h6>What will happen:</h6>
+            <ol className="mb-0">
+              <li>Push widget will load on this page</li>
+              <li>If bot protection is enabled, you'll see the verification overlay</li>
+              <li>Browser will ask for notification permission</li>
+              <li>Your choice will be recorded in the Push Clients</li>
+              <li>You stay on this page throughout the process</li>
+            </ol>
+          </div>
+          
+          <Alert variant="warning" className="mt-3">
+            <strong>Note:</strong> This is a test environment. In production, the widget loads automatically when visitors land on your website.
+          </Alert>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => {
+            setShowTestModal(false)
+            setTestStatus('')
+            // Clean up test config
+            delete window.PUSH_TEST_CONFIG
+            delete window.PUSH_CONFIG
+          }}>
             Close
           </Button>
         </Modal.Footer>

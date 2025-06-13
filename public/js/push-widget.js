@@ -10,6 +10,12 @@
   }
   
   function initWidget(config) {
+    // If widget already exists, reinitialize with new config
+    if (window.PushWidget) {
+      window.PushWidget.config = config;
+      window.PushWidget.init();
+      return;
+    }
     const PushWidget = {
       config: config,
       subscribed: false,
