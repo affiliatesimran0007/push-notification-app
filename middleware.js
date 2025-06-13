@@ -37,7 +37,7 @@ export async function middleware(request) {
       botCheckUrl.searchParams.set('url', `https://${hostname}`)
       botCheckUrl.searchParams.set('allowRedirect', landing.allowRedirectUrl || `https://${hostname}/thank-you`)
       botCheckUrl.searchParams.set('blockRedirect', landing.blockRedirectUrl || `https://${hostname}/blocked`)
-      botCheckUrl.searchParams.set('vapidKey', process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BGv2Vm45eFGslcXFhakD-euIXAnOg6-bdqVWHoSw4gwvjvYYV1zBA_Q7uiNij5yvRqMwmDhpBYYSA1v5Z_GEv_k')
+      botCheckUrl.searchParams.set('vapidKey', process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY)
       
       return NextResponse.redirect(botCheckUrl)
     }

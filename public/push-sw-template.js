@@ -3,7 +3,14 @@
 // It handles push notifications sent from the push notification platform
 
 self.addEventListener('push', function(event) {
-  console.log('[Service Worker] Push received');
+  console.log('[Service Worker] Push received at:', new Date().toISOString());
+  console.log('[Service Worker] User visible only:', event.data ? 'has data' : 'no data');
+  
+  // Log system notification state
+  if ('Notification' in self) {
+    console.log('[Service Worker] Notification API available');
+    console.log('[Service Worker] Permission:', Notification.permission);
+  }
   
   let data = {};
   
@@ -62,6 +69,22 @@ self.addEventListener('push', function(event) {
   // Show the notification
   event.waitUntil(
     self.registration.showNotification(data.title || 'Notification', options)
+      .then(() => {
+        console.log('[Service Worker] Notification displayed successfully');
+        console.log('[Service Worker] Notification options:', options);
+        
+        // Check notification permission state
+        console.log('[Service Worker] Permission state:', Notification.permission);
+        
+        // Log any notification-related info
+        self.registration.getNotifications().then(notifications => {
+          console.log('[Service Worker] Active notifications:', notifications.length);
+        });
+      })
+      .catch(error => {
+        console.error('[Service Worker] Failed to show notification:', error);
+        console.error('[Service Worker] Error details:', error.message, error.stack);
+      })
   );
 });
 

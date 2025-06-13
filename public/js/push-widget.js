@@ -455,14 +455,8 @@
           } catch (subscribeError) {
             console.error('Subscribe error:', subscribeError.name, subscribeError.message);
             
-            // Fallback for browsers that don't support applicationServerKey
-            if (subscribeError.name === 'NotSupportedError' && subscribeOptions.applicationServerKey) {
-              console.warn('Retrying without applicationServerKey');
-              delete subscribeOptions.applicationServerKey;
-              subscription = await registration.pushManager.subscribe(subscribeOptions);
-            } else {
-              throw subscribeError;
-            }
+            // VAPID keys are required - do not fallback to non-VAPID subscriptions
+            throw subscribeError;
           }
         } else {
           console.log('Using existing subscription');
@@ -528,14 +522,10 @@
           localStorage.setItem('push-subscribed-' + this.config.landingId, 'true');
           this.subscribed = true;
           
-          // Redirect if configured - TEMPORARILY DISABLED FOR DEBUGGING
-          console.log('==== REDIRECT DISABLED FOR DEBUGGING ====');
-          console.log('Would redirect to:', this.config.redirects?.onAllow);
-          console.log('Debug complete. Check console and Push Clients page.');
-          alert('Registration complete! Check browser console for debug logs.');
-          // if (this.config.redirects && this.config.redirects.enabled && this.config.redirects.onAllow) {
-          //   window.location.href = this.config.redirects.onAllow;
-          // }
+          // Redirect if configured
+          if (this.config.redirects && this.config.redirects.enabled && this.config.redirects.onAllow) {
+            window.location.href = this.config.redirects.onAllow;
+          }
         }
       } catch (error) {
         console.error('Failed to save subscription:', error);
@@ -548,13 +538,10 @@
       // Save denied status to server
       this.saveDeniedStatus();
       
-      // Redirect if configured - TEMPORARILY DISABLED FOR DEBUGGING
-      console.log('==== REDIRECT DISABLED FOR DEBUGGING (DENIED) ====');
-      console.log('Would redirect to:', this.config.redirects?.onBlock);
-      alert('Permission denied. Check console for debug logs.');
-      // if (this.config.redirects && this.config.redirects.enabled && this.config.redirects.onBlock) {
-      //   window.location.href = this.config.redirects.onBlock;
-      // }
+      // Redirect if configured
+      if (this.config.redirects && this.config.redirects.enabled && this.config.redirects.onBlock) {
+        window.location.href = this.config.redirects.onBlock;
+      }
     },
     
     saveDeniedStatus: async function() {

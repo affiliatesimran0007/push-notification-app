@@ -21,7 +21,7 @@ export default function LandingRedirect() {
       url: `https://${domain}`,
       allowRedirect: allowRedirect,
       blockRedirect: blockRedirect,
-      vapidKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BGv2Vm45eFGslcXFhakD-euIXAnOg6-bdqVWHoSw4gwvjvYYV1zBA_Q7uiNij5yvRqMwmDhpBYYSA1v5Z_GEv_k'
+      vapidKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
     })
     
     // Add ngrok header if needed
