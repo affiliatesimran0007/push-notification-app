@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/db'
+import { campaignEvents } from '@/lib/campaignEvents'
 
 // POST /api/notifications/track-display - Track when notification is displayed
 export async function POST(request) {
@@ -20,6 +21,11 @@ export async function POST(request) {
       data: {
         deliveredCount: { increment: 1 }
       }
+    })
+    
+    // Emit real-time update
+    campaignEvents.emitStatsUpdate(campaignId, {
+      deliveredCount: campaign.deliveredCount
     })
 
     // Update delivery record if clientId provided

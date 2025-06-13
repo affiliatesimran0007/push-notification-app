@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/db'
+import { campaignEvents } from '@/lib/campaignEvents'
 
 // POST /api/notifications/track-click - Track notification click
 export async function POST(request) {
@@ -15,11 +16,19 @@ export async function POST(request) {
     }
 
     // Update click count for the campaign
-    await prisma.campaign.update({
+    const updatedCampaign = await prisma.campaign.update({
       where: { id: campaignId },
       data: {
         clickedCount: { increment: 1 }
       }
+    })
+    
+    // Emit real-time update
+    campaignEvents.emitStatsUpdate(campaignId, {
+      clickedCount: updatedCampaign.clickedCount,
+      ctr: updatedCampaign.sentCount > 0 
+        ? ((updatedCampaign.clickedCount / updatedCampaign.sentCount) * 100).toFixed(1)
+        : 0
     })
 
     // Update notification delivery record if exists

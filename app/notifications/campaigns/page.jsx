@@ -48,18 +48,81 @@ export default function PushCampaigns() {
     setMounted(true)
   }, [])
   
-  // Auto-refresh active campaigns every 10 seconds
+  // Real-time updates using Server-Sent Events
   useEffect(() => {
-    const activeCampaigns = localCampaigns.filter(c => c.status === 'active')
-    if (activeCampaigns.length === 0) return
+    let eventSource = null
     
-    const interval = setInterval(() => {
-      console.log('Auto-refreshing active campaigns...')
-      refetch()
-    }, 10000) // 10 seconds
+    const connectSSE = () => {
+      eventSource = new EventSource('/api/campaigns/stream')
+      
+      eventSource.onopen = () => {
+        console.log('SSE connection established for campaigns')
+      }
+      
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data)
+        
+        switch (data.type) {
+          case 'stats-updated':
+            console.log('Real-time stats update:', data)
+            // Update the specific campaign's stats
+            setLocalCampaigns(prev => prev.map(campaign => 
+              campaign.id === data.campaignId 
+                ? { ...campaign, ...data.stats }
+                : campaign
+            ))
+            break
+            
+          case 'campaign-created':
+            console.log('New campaign created:', data.campaign)
+            // Add new campaign to the list
+            setLocalCampaigns(prev => sortCampaigns([data.campaign, ...prev]))
+            break
+            
+          case 'status-changed':
+            console.log('Campaign status changed:', data)
+            // Update campaign status
+            setLocalCampaigns(prev => prev.map(campaign => 
+              campaign.id === data.campaignId 
+                ? { ...campaign, status: data.status }
+                : campaign
+            ))
+            break
+            
+          case 'campaign-deleted':
+            console.log('Campaign deleted:', data.campaignId)
+            // Remove campaign from list
+            setLocalCampaigns(prev => prev.filter(campaign => campaign.id !== data.campaignId))
+            break
+            
+          case 'heartbeat':
+            // Keep-alive signal
+            break
+        }
+      }
+      
+      eventSource.onerror = (error) => {
+        console.error('SSE error:', error)
+        eventSource.close()
+        
+        // Reconnect after 5 seconds
+        setTimeout(() => {
+          console.log('Attempting to reconnect SSE...')
+          connectSSE()
+        }, 5000)
+      }
+    }
     
-    return () => clearInterval(interval)
-  }, [localCampaigns, refetch])
+    if (mounted) {
+      connectSSE()
+    }
+    
+    return () => {
+      if (eventSource) {
+        eventSource.close()
+      }
+    }
+  }, [mounted])
   
   useEffect(() => {
     if (data?.campaigns) {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import webPushService from '@/lib/webPushService'
 import prisma from '@/lib/db'
+import { campaignEvents } from '@/lib/campaignEvents'
 
 // POST /api/notifications/send - Send notification to specific clients
 export async function POST(request) {
@@ -125,12 +126,18 @@ export async function POST(request) {
       await Promise.all(deliveryPromises)
 
       // Update campaign stats
-      await prisma.campaign.update({
+      const updatedCampaign = await prisma.campaign.update({
         where: { id: notification.campaignId },
         data: {
           sentCount: { increment: results.sent },
           failedCount: { increment: results.failed }
         }
+      })
+      
+      // Emit real-time update
+      campaignEvents.emitStatsUpdate(notification.campaignId, {
+        sentCount: updatedCampaign.sentCount,
+        failedCount: updatedCampaign.failedCount
       })
     }
 
