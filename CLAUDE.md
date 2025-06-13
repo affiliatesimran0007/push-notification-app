@@ -159,9 +159,12 @@ This is a Next.js 15.3.3 push notification platform MVP built with the App Route
 ## Recent Progress & Implementation Status
 
 ### ✅ Completed Features:
+
 1. **Push Clients Page**:
    - Added Operating System column with icons
    - OS detection and icon mapping
+   - Show landing page domain instead of subscribed URL
+   - Real-time updates via Server-Sent Events (SSE)
 
 2. **Push Templates**:
    - Complete redesign with 3-column grid
@@ -182,12 +185,33 @@ This is a Next.js 15.3.3 push notification platform MVP built with the App Route
 4. **Campaigns Page**:
    - Comprehensive redesign with 2-column layout
    - Detailed delivery stats with notification badges
-   - Browser/OS targeting display
+   - Real-time stats updates via SSE
    - Campaign controls (Pause/Resume, Refresh, Delete)
    - Optimistic UI updates
    - Duplicate functionality
-   - Proper date/time display with AM/PM
    - Reference numbers for easy identification
+   - Fixed all stat tracking (sent, delivered, clicked, CTR)
+
+5. **Landing Pages & Integration**:
+   - Complete integration system for customer domains
+   - JavaScript code generator with domain configuration
+   - Bot protection support
+   - Custom redirect URLs for allow/block
+   - Test integration buttons
+   - Copy-to-clipboard functionality
+   - Integration documentation at `/docs/INTEGRATION_FLOW.md`
+
+6. **Real-time Updates**:
+   - SSE implementation for campaigns and clients
+   - Instant stat updates when notifications are sent/clicked
+   - Auto-reconnection on connection loss
+   - Event emitters for campaign and client events
+
+7. **Campaign Scheduling & Execution**:
+   - Cron job runs every minute to check scheduled campaigns
+   - Automatic campaign execution at scheduled time
+   - Service worker tracks clicks with clientId
+   - Complete flow from registration to campaign delivery
 
 ### 🔧 Technical Improvements:
 - Fixed hydration errors with conditional rendering
@@ -195,9 +219,31 @@ This is a Next.js 15.3.3 push notification platform MVP built with the App Route
 - Added loading states and user feedback
 - Consistent icon usage across the app
 - Responsive design considerations
+- Fixed repeated API calls with useMemo
+- Improved useApi hook with AbortController
+- Removed test/debug endpoints for cleaner codebase
 
 ### 📝 Database Updates:
 - Templates stored in PostgreSQL
 - Campaign targeting data in variantA field
 - Support for all campaign statuses
 - Proper relationships and constraints
+- Landing pages linked to clients
+- Removed unused dismissedCount/pendingCount fields
+
+### 🚀 Platform Architecture:
+- White-label push notification service
+- Customers integrate on their domains
+- Notifications appear from customer domains
+- Centralized management in our platform
+- Similar to OneSignal/PushEngage model
+
+### 📋 Current System Capabilities:
+- Multi-domain support per customer
+- Bot protection for quality subscribers
+- Browser/OS targeting
+- Campaign scheduling with IST timezone
+- Real-time delivery tracking
+- Click-through rate calculation
+- Template management
+- Landing page analytics
