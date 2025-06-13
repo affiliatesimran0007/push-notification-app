@@ -24,10 +24,10 @@ export async function GET() {
     if (missingColumns.length > 0) {
       // Add missing columns
       for (const column of missingColumns) {
-        await prisma.$executeRaw`
+        await prisma.$executeRawUnsafe(`
           ALTER TABLE "Campaign" 
           ADD COLUMN IF NOT EXISTS "${column}" INTEGER DEFAULT 0
-        `
+        `)
       }
       
       return NextResponse.json({
