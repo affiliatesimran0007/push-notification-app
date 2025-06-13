@@ -1,7 +1,10 @@
 // Service Worker for Push Notifications
+// Version: 2.0.0
+
+const SW_VERSION = 'v2.0.0';
 
 self.addEventListener('install', (event) => {
-  console.log('Service Worker installed')
+  console.log('Service Worker installed', SW_VERSION)
   self.skipWaiting()
 })
 

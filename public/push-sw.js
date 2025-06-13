@@ -1,8 +1,11 @@
 // Push Notification Service Worker
 // Customers download and host this file on their domain
+// Version: 2.0.0 - Added click tracking
+
+const SW_VERSION = 'v2.0.0';
 
 self.addEventListener('install', (event) => {
-  console.log('[Service Worker] Installing...');
+  console.log('[Service Worker] Installing...', SW_VERSION);
   self.skipWaiting();
 });
 
@@ -59,7 +62,7 @@ self.addEventListener('notificationclick', (event) => {
       try {
         // Track the click
         if (campaignId && clientId) {
-          await fetch('/api/notifications/track-click', {
+          await fetch(self.location.origin + '/api/notifications/track-click', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -84,7 +87,7 @@ self.addEventListener('notificationclose', (event) => {
   const clientId = event.notification.data.clientId;
   
   if (campaignId) {
-    fetch('/api/campaigns/track-dismiss', {
+    fetch(self.location.origin + '/api/campaigns/track-dismiss', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
