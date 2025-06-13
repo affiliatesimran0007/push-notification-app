@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { MDBCard, MDBCardBody } from 'mdb-react-ui-kit'
 import { Row, Col, Card, Badge, Button, Spinner, Alert } from 'react-bootstrap'
@@ -16,16 +16,16 @@ export default function PushCampaigns() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [localCampaigns, setLocalCampaigns] = useState([])
   
-  // Build API URL with filters
-  const buildApiUrl = () => {
+  // Build API URL with filters - memoized to prevent unnecessary re-renders
+  const apiUrl = useMemo(() => {
     const params = new URLSearchParams()
     params.append('page', currentPage)
     params.append('limit', '6')
     if (statusFilter !== 'all') params.append('status', statusFilter)
     return `/api/campaigns?${params.toString()}`
-  }
+  }, [currentPage, statusFilter])
   
-  const { data, loading, error, refetch } = useApi(buildApiUrl())
+  const { data, loading, error, refetch } = useApi(apiUrl)
   
   // Sort campaigns with drafts first
   const sortCampaigns = (campaigns) => {
