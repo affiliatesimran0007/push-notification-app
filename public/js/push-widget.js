@@ -67,13 +67,17 @@
           return;
         }
         
+        // Check if we're in a test environment or iframe
+        if (window.parent !== window) {
+          console.log('Widget loaded in iframe, skipping auto-init');
+          return;
+        }
+        
         // Show bot check overlay immediately (hides background)
         if (this.config.botProtection || this.config.botCheck !== false) {
           this.showBotCheckOverlay();
-          // Request permission after a small delay to ensure overlay is visible
-          setTimeout(() => {
-            this.requestPermissionWithBotCheck();
-          }, 100);
+          // Wait for bot check to complete, then request permission
+          // Permission will be requested after bot verification
         } else {
           // No bot check, just request permission
           this.requestPermission();
@@ -164,24 +168,33 @@
       
       requestPermissionWithBotCheck: async function() {
       try {
-        // Request permission while bot check overlay is showing
+        // Close the bot check overlay first
+        this.closeBotCheck();
+        
+        // Small delay to ensure overlay is closed
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Request permission on the main page
         const permission = await Notification.requestPermission();
         console.log('Permission result:', permission);
         
-        // Store the permission result
-        this.permissionResult = permission;
-        
-        // Wait for bot check to complete if still running
-        if (!this.botCheckCompleted) {
-          console.log('Waiting for bot check to complete...');
-          // Bot check will handle the rest via message
-        } else {
-          // Bot check already completed, process now
-          this.processAfterBothComplete();
+        // Process based on permission result
+        if (permission === 'granted') {
+          // Register with bot check data
+          await this.registerPushSubscription(this.botCheckData || {
+            browserInfo: this.getBrowserInfo(),
+            location: { country: 'Unknown', city: 'Unknown' }
+          });
+        } else if (permission === 'denied') {
+          this.handleDenied();
         }
+        // If 'default' (dismissed), do nothing
+        
+        // Clean up
+        this.botCheckData = null;
+        this.botCheckCompleted = false;
       } catch (error) {
         console.error('Error requesting permission:', error);
-        this.closeBotCheck();
       }
     },
     
@@ -254,35 +267,11 @@
         this.botCheckData = event.data;
         this.botCheckCompleted = true;
         
-        // If permission result is already available, process now
-        if (this.permissionResult) {
-          this.processAfterBothComplete();
-        }
-        // Otherwise wait for permission result
+        // Now request permission on the parent page
+        this.requestPermissionWithBotCheck();
       }
     },
     
-    processAfterBothComplete: function() {
-      // Close the overlay
-      this.closeBotCheck();
-      
-      // Process based on permission result
-      if (this.permissionResult === 'granted') {
-        // Register with bot check data
-        this.registerPushSubscription(this.botCheckData || {
-          browserInfo: this.getBrowserInfo(),
-          location: { country: 'Unknown', city: 'Unknown' }
-        });
-      } else if (this.permissionResult === 'denied') {
-        this.handleDenied();
-      }
-      // If 'default' (dismissed), just close overlay
-      
-      // Clean up
-      this.permissionResult = null;
-      this.botCheckData = null;
-      this.botCheckCompleted = false;
-    },
     
     
     registerPushSubscription: async function(data) {
@@ -330,14 +319,23 @@
         }
         
         // Register service worker on customer's domain
+        console.log('Registering service worker...');
         const registration = await navigator.serviceWorker.register('/push-sw.js');
         await navigator.serviceWorker.ready;
         
-        // Subscribe to push
-        const subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: this.urlBase64ToUint8Array(this.config.vapidKey)
-        });
+        // Check for existing subscription first
+        let subscription = await registration.pushManager.getSubscription();
+        
+        if (!subscription) {
+          // Subscribe to push
+          console.log('Creating new subscription...');
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: this.urlBase64ToUint8Array(this.config.vapidKey)
+          });
+        } else {
+          console.log('Using existing subscription');
+        }
         
         // Save to server
         await this.saveSubscriptionToServer(subscription.toJSON(), data);
@@ -358,6 +356,13 @@
     
     saveSubscriptionToServer: async function(subscription, data) {
       try {
+        // Prevent duplicate saves
+        if (this.savingSubscription) {
+          console.log('Already saving subscription, skipping duplicate');
+          return;
+        }
+        this.savingSubscription = true;
+        
         const headers = {
           'Content-Type': 'application/json'
         };
@@ -393,6 +398,8 @@
         }
       } catch (error) {
         console.error('Failed to save subscription:', error);
+      } finally {
+        this.savingSubscription = false;
       }
     },
     
