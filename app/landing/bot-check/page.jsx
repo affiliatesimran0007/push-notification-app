@@ -231,28 +231,18 @@ export default function BotCheckPage() {
               console.log('Real subscription obtained:', subscriptionData)
             } catch (swError) {
               console.error('Service worker error:', swError)
-              // Fall back to demo subscription
-              const timestamp = Date.now()
-              const randomId = Math.random().toString(36).substring(7)
-              subscriptionData = {
-                endpoint: `https://push.example.com/${domain}/${timestamp}/${randomId}`,
-                keys: {
-                  p256dh: `demo-key-${timestamp}`,
-                  auth: `demo-auth-${timestamp}`
-                }
-              }
+              // Don't create subscription if service worker fails
+              alert('Failed to register for push notifications. Please ensure the service worker is properly installed on your domain.');
+              return;
             }
           } else {
-            // For cross-domain, we track the permission choice without a real subscription
-            const timestamp = Date.now()
-            const randomId = Math.random().toString(36).substring(7)
-            subscriptionData = {
-              endpoint: `https://push.example.com/${domain}/${timestamp}/${randomId}`,
-              keys: {
-                p256dh: `demo-key-${timestamp}`,
-                auth: `demo-auth-${timestamp}`
-              }
+            // For cross-domain or when push is not supported
+            console.warn('Push notifications not available on this domain');
+            // Just redirect without creating fake subscription
+            if (allowRedirect) {
+              window.location.href = allowRedirect;
             }
+            return;
           }
           
           console.log('Sending subscription to API with data:', {

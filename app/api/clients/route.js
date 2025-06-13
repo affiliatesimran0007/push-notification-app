@@ -95,37 +95,17 @@ export async function POST(request) {
       )
     }
     
-    // Validate p256dh length (should be 65 bytes when base64 decoded)
-    try {
-      // Handle URL-safe base64 (convert - to + and _ to /)
-      const p256dhFixed = subscription.keys.p256dh.replace(/-/g, '+').replace(/_/g, '/')
-      const authFixed = subscription.keys.auth.replace(/-/g, '+').replace(/_/g, '/')
-      
-      const p256dhDecoded = Buffer.from(p256dhFixed, 'base64')
-      const authDecoded = Buffer.from(authFixed, 'base64')
-      
-      if (p256dhDecoded.length !== 65) {
-        console.error('Invalid p256dh length:', p256dhDecoded.length, 'expected 65')
-        return NextResponse.json(
-          { error: `Invalid p256dh key length: ${p256dhDecoded.length} bytes (expected 65)` },
-          { status: 400 }
-        )
-      }
-      
-      if (authDecoded.length !== 16) {
-        console.error('Invalid auth length:', authDecoded.length, 'expected 16')
-        return NextResponse.json(
-          { error: `Invalid auth key length: ${authDecoded.length} bytes (expected 16)` },
-          { status: 400 }
-        )
-      }
-    } catch (error) {
-      console.error('Error decoding subscription keys:', error)
-      return NextResponse.json(
-        { error: 'Invalid base64 encoding in subscription keys' },
-        { status: 400 }
-      )
-    }
+    // Log subscription details for debugging
+    console.log('Received subscription registration:', {
+      endpoint: subscription.endpoint,
+      hasP256dh: !!subscription.keys.p256dh,
+      hasAuth: !!subscription.keys.auth,
+      p256dhLength: subscription.keys.p256dh?.length,
+      authLength: subscription.keys.auth?.length,
+      landingId,
+      domain,
+      accessStatus
+    })
 
     // Get real IP address
     const forwardedFor = request.headers.get('x-forwarded-for')

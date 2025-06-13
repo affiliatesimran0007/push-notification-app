@@ -297,16 +297,10 @@
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
           console.warn('Push notifications not supported on this domain');
           
-          // Still save the permission grant to our server
-          await this.saveSubscriptionToServer({
-            endpoint: `granted-${Date.now()}-${Math.random()}`,
-            keys: {
-              p256dh: 'permission-granted',
-              auth: 'permission-granted'
-            }
-          }, data);
+          // Don't save fake subscriptions - just log and redirect
+          console.warn('Push notifications not supported, skipping registration');
           
-          // Handle redirect after saving
+          // Handle redirect
           if (this.config.redirects && this.config.redirects.enabled && this.config.redirects.onAllow) {
             window.location.href = this.config.redirects.onAllow;
           }
@@ -314,26 +308,8 @@
           return;
         }
         
-        // Check if push-sw.js exists on customer's domain
-        try {
-          const swCheck = await fetch('/push-sw.js', { method: 'HEAD' });
-          if (!swCheck.ok) {
-            console.warn('Service worker not found on this domain');
-            
-            // Save permission grant without actual subscription
-            await this.saveSubscriptionToServer({
-              endpoint: `granted-no-sw-${Date.now()}-${Math.random()}`,
-              keys: {
-                p256dh: 'no-service-worker',
-                auth: 'no-service-worker'
-              }
-            }, data);
-            
-            return;
-          }
-        } catch (e) {
-          console.warn('Could not check for service worker:', e);
-        }
+        // Skip service worker check - let registration fail naturally if not found
+        console.log('Attempting service worker registration...');
         
         // Register service worker on customer's domain
         console.log('Registering service worker...');
