@@ -597,7 +597,7 @@ export default function Clients() {
                       <th className="fw-medium">Operating System</th>
                       <th className="fw-medium">Device</th>
                       <th className="fw-medium">Access</th>
-                      <th className="fw-medium">Subscribed URL</th>
+                      <th className="fw-medium">Domain / Landing Page</th>
                       <th className="fw-medium">Tags</th>
                       <th className="fw-medium text-center">Actions</th>
                     </tr>
@@ -680,10 +680,20 @@ export default function Clients() {
                         </MDBBadge>
                       </td>
                       <td className="align-middle">
-                        <a href={client.subscribedUrl} target="_blank" rel="noopener noreferrer" 
-                           className="text-decoration-none">
-                          {client.subscribedUrl}
-                        </a>
+                        {client.landingPage ? (
+                          <div>
+                            <a href={`https://${client.landingPage.domain}`} target="_blank" rel="noopener noreferrer" 
+                               className="text-decoration-none">
+                              {client.landingPage.domain}
+                            </a>
+                            <small className="text-muted d-block">{client.landingPage.name}</small>
+                          </div>
+                        ) : (
+                          <a href={client.subscribedUrl} target="_blank" rel="noopener noreferrer" 
+                             className="text-decoration-none">
+                            {client.subscribedUrl || 'Direct'}
+                          </a>
+                        )}
                       </td>
                       <td className="align-middle">
                         <div className="d-flex gap-1 flex-wrap">
