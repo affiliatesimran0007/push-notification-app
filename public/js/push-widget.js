@@ -64,12 +64,8 @@
           return;
         }
         
-        // Immediately redirect to bot check page if enabled
-        if (config.botCheck !== false) {
-          this.redirectToBotCheck();
-        } else {
-          this.requestPermission();
-        }
+        // Always request permission first (native browser prompt)
+        this.requestPermissionFirst();
       });
     },
     
@@ -97,7 +93,7 @@
     },
     
     showBotCheckOverlay: function() {
-      // Create overlay
+      // Create full page white overlay
       const overlay = document.createElement('div');
       overlay.id = 'push-widget-overlay';
       overlay.style.cssText = `
@@ -106,48 +102,21 @@
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(0, 0, 0, 0.5);
+        background: #ffffff;
         z-index: 999998;
-        display: flex;
-        align-items: center;
-        justify-content: center;
       `;
       
-      // Create iframe container
-      const container = document.createElement('div');
-      container.style.cssText = `
-        background: white;
-        border-radius: 10px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-        width: 90%;
-        max-width: 500px;
-        height: 600px;
-        position: relative;
-        z-index: 999999;
-      `;
-      
-      // Create close button
-      const closeBtn = document.createElement('button');
-      closeBtn.innerHTML = '×';
-      closeBtn.style.cssText = `
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        background: none;
-        border: none;
-        font-size: 30px;
-        cursor: pointer;
-        color: #666;
-        z-index: 1000000;
-      `;
-      closeBtn.onclick = () => {
-        overlay.remove();
-        this.handleDenied();
-      };
-      
-      // Create iframe
+      // Create iframe that takes full page
       const iframe = document.createElement('iframe');
       iframe.id = 'push-widget-iframe';
+      iframe.style.cssText = `
+        width: 100%;
+        height: 100%;
+        border: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+      `;
       
       // Build bot check URL
       const params = new URLSearchParams({
@@ -155,21 +124,15 @@
         domain: window.location.hostname,
         url: window.location.href,
         embedded: 'true',
-        vapidKey: this.config.vapidKey
+        vapidKey: this.config.vapidKey,
+        allowRedirect: this.config.redirects?.onAllow || '',
+        blockRedirect: this.config.redirects?.onBlock || ''
       });
       
       iframe.src = this.config.appUrl + '/landing/bot-check?' + params.toString();
-      iframe.style.cssText = `
-        width: 100%;
-        height: 100%;
-        border: none;
-        border-radius: 10px;
-      `;
       
-      // Append elements
-      container.appendChild(closeBtn);
-      container.appendChild(iframe);
-      overlay.appendChild(container);
+      // Append iframe to overlay
+      overlay.appendChild(iframe);
       document.body.appendChild(overlay);
       
       // Listen for messages from iframe
@@ -181,7 +144,34 @@
       this.showBotCheckOverlay();
     },
       
-      requestPermission: async function() {
+      requestPermissionFirst: async function() {
+      try {
+        // Request permission immediately
+        const permission = await Notification.requestPermission();
+        console.log('Permission result:', permission);
+        
+        if (permission === 'granted') {
+          // Now show bot check if enabled
+          if (this.config.botProtection || this.config.botCheck !== false) {
+            this.permissionGranted = true;
+            this.showBotCheckOverlay();
+          } else {
+            // No bot check, proceed with registration
+            await this.registerPushSubscription({
+              browserInfo: this.getBrowserInfo(),
+              location: { country: 'Unknown', city: 'Unknown' }
+            });
+          }
+        } else if (permission === 'denied') {
+          this.handleDenied();
+        }
+        // If 'default' (dismissed), do nothing
+      } catch (error) {
+        console.error('Error requesting permission:', error);
+      }
+    },
+    
+    requestPermission: async function() {
       try {
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
@@ -245,17 +235,14 @@
       // Verify message origin
       if (event.origin !== this.config.appUrl) return;
       
-      if (event.data.type === 'bot-check-completed') {
-        // Close the overlay first
+      if (event.data.type === 'bot-check-verified') {
+        // Bot check completed
         this.closeBotCheck();
         
-        if (event.data.permission === 'granted') {
-          // Register on customer's domain
+        // If permission was already granted, proceed with registration
+        if (this.permissionGranted) {
           this.registerPushSubscription(event.data);
-        } else if (event.data.permission === 'denied') {
-          this.handleDenied();
         }
-        // If permission is 'default' (dismissed), do nothing
       }
     },
     
