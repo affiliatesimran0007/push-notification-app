@@ -54,18 +54,30 @@ export default function BotCheckPage() {
         let browser = 'Unknown'
         let browserVersion = 'Unknown'
         
-        if (ua.indexOf('Chrome') > -1 && ua.indexOf('Edg') === -1) {
+        // Detect browsers (order matters for accurate detection)
+        if (ua.indexOf('OPR') > -1 || ua.indexOf('Opera') > -1) {
+          browser = 'Opera'
+          browserVersion = ua.match(/(?:OPR|Opera)[\s\/]([\d.]+)/)?.[1] || 'Unknown'
+        } else if (ua.indexOf('Edg') > -1) {
+          browser = 'Edge'
+          browserVersion = ua.match(/Edg[e]?\/(\d+)/)?.[1] || 'Unknown'
+        } else if (ua.indexOf('SamsungBrowser') > -1) {
+          browser = 'Samsung'
+          browserVersion = ua.match(/SamsungBrowser\/(\d+)/)?.[1] || 'Unknown'
+        } else if (ua.indexOf('Chrome') > -1 && ua.indexOf('Safari') > -1) {
           browser = 'Chrome'
           browserVersion = ua.match(/Chrome\/(\d+)/)?.[1] || 'Unknown'
-        } else if (ua.indexOf('Safari') > -1 && ua.indexOf('Chrome') === -1) {
-          browser = 'Safari'
-          browserVersion = ua.match(/Version\/(\d+)/)?.[1] || 'Unknown'
         } else if (ua.indexOf('Firefox') > -1) {
           browser = 'Firefox'
           browserVersion = ua.match(/Firefox\/(\d+)/)?.[1] || 'Unknown'
-        } else if (ua.indexOf('Edg') > -1) {
-          browser = 'Edge'
-          browserVersion = ua.match(/Edg\/(\d+)/)?.[1] || 'Unknown'
+        } else if (ua.indexOf('Safari') > -1) {
+          browser = 'Safari'
+          browserVersion = ua.match(/Version\/(\d+)/)?.[1] || 'Unknown'
+        }
+        
+        // Check for Brave (it reports as Chrome)
+        if (typeof navigator.brave !== 'undefined') {
+          browser = 'Brave'
         }
 
         const isMobile = /Mobile|Android|iPhone|iPad/i.test(ua)

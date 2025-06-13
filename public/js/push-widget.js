@@ -53,9 +53,8 @@
         return;
       }
       
-      // Check browser support
-      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-        console.warn('Push notifications not supported');
+      // Check browser support with detailed compatibility
+      if (!this.checkBrowserCompatibility()) {
         return;
       }
       
@@ -214,23 +213,93 @@
       }
     },
     
+    checkBrowserCompatibility: function() {
+      const ua = navigator.userAgent;
+      let isCompatible = true;
+      let message = '';
+      
+      // Check basic API support
+      if (!('serviceWorker' in navigator)) {
+        message = 'Service Workers not supported in this browser';
+        isCompatible = false;
+      } else if (!('PushManager' in window)) {
+        message = 'Push API not supported in this browser';
+        isCompatible = false;
+      } else if (!('Notification' in window)) {
+        message = 'Notifications not supported in this browser';
+        isCompatible = false;
+      }
+      
+      // Browser-specific checks
+      if (isCompatible) {
+        // Safari iOS requires special handling
+        if (/iPhone|iPad|iPod/.test(ua) && !window.MSStream) {
+          const iOSVersion = parseFloat(
+            ('' + (/CPU.*OS ([0-9_]{1,5})|(CPU like).*AppleWebKit.*Mobile/i.exec(ua) || [0,''])[1])
+            .replace('undefined', '3_2').replace('_', '.').replace('_', '')
+          ) || false;
+          
+          if (iOSVersion && iOSVersion < 16.4) {
+            message = 'Push notifications require iOS 16.4 or later';
+            isCompatible = false;
+          }
+        }
+        
+        // Firefox for Android has limited support
+        if (ua.indexOf('Firefox') > -1 && ua.indexOf('Android') > -1) {
+          console.warn('Firefox on Android has limited push notification support');
+        }
+      }
+      
+      if (!isCompatible) {
+        console.warn('Browser compatibility issue:', message);
+        // Optionally show user-friendly message
+        if (this.config.showCompatibilityWarnings !== false) {
+          console.info('To enable push notifications, please use a supported browser');
+        }
+      }
+      
+      return isCompatible;
+    },
+    
     getBrowserInfo: function() {
       const ua = navigator.userAgent;
       let browser = 'Unknown';
       let browserVersion = 'Unknown';
       
-      if (ua.indexOf('Chrome') > -1 && ua.indexOf('Edg') === -1) {
+      // Opera detection (must be before Chrome as Opera includes Chrome in UA)
+      if (ua.indexOf('OPR') > -1 || ua.indexOf('Opera') > -1) {
+        browser = 'Opera';
+        browserVersion = ua.match(/(?:OPR|Opera)[\s\/]([\d.]+)/)?.[1] || 'Unknown';
+      }
+      // Edge detection (Chromium-based)
+      else if (ua.indexOf('Edg') > -1) {
+        browser = 'Edge';
+        browserVersion = ua.match(/Edg[e]?\/(\d+)/)?.[1] || 'Unknown';
+      }
+      // Samsung Internet
+      else if (ua.indexOf('SamsungBrowser') > -1) {
+        browser = 'Samsung';
+        browserVersion = ua.match(/SamsungBrowser\/(\d+)/)?.[1] || 'Unknown';
+      }
+      // Chrome detection
+      else if (ua.indexOf('Chrome') > -1 && ua.indexOf('Safari') > -1) {
         browser = 'Chrome';
         browserVersion = ua.match(/Chrome\/(\d+)/)?.[1] || 'Unknown';
-      } else if (ua.indexOf('Safari') > -1 && ua.indexOf('Chrome') === -1) {
-        browser = 'Safari';
-        browserVersion = ua.match(/Version\/(\d+)/)?.[1] || 'Unknown';
-      } else if (ua.indexOf('Firefox') > -1) {
+      }
+      // Firefox detection
+      else if (ua.indexOf('Firefox') > -1) {
         browser = 'Firefox';
         browserVersion = ua.match(/Firefox\/(\d+)/)?.[1] || 'Unknown';
-      } else if (ua.indexOf('Edg') > -1) {
-        browser = 'Edge';
-        browserVersion = ua.match(/Edg\/(\d+)/)?.[1] || 'Unknown';
+      }
+      // Safari detection (must be after Chrome check)
+      else if (ua.indexOf('Safari') > -1) {
+        browser = 'Safari';
+        browserVersion = ua.match(/Version\/(\d+)/)?.[1] || 'Unknown';
+      }
+      // Brave detection (reports as Chrome, check for Brave object)
+      if (window.brave && window.brave.isBrave) {
+        browser = 'Brave';
       }
       
       const isMobile = /Mobile|Android|iPhone|iPad/i.test(ua);
@@ -328,17 +397,46 @@
         let subscription = await registration.pushManager.getSubscription();
         
         if (!subscription) {
-          // Subscribe to push with Chrome-compatible options
+          // Subscribe to push with browser-compatible options
           console.log('Creating new subscription...');
+          const browserInfo = this.getBrowserInfo();
+          console.log('Browser detected:', browserInfo.browser, browserInfo.version);
+          
           const subscribeOptions = {
             userVisibleOnly: true,
             applicationServerKey: this.urlBase64ToUint8Array(this.config.vapidKey)
           };
           
-          // For older Chrome versions, ensure applicationServerKey is properly formatted
+          // Browser-specific adjustments
+          if (browserInfo.browser === 'Firefox') {
+            // Firefox specific handling
+            console.log('Applying Firefox-specific settings');
+          } else if (browserInfo.browser === 'Safari') {
+            // Safari specific handling
+            console.log('Applying Safari-specific settings');
+            // Safari doesn't support applicationServerKey in older versions
+            if (parseInt(browserInfo.version) < 16) {
+              delete subscribeOptions.applicationServerKey;
+            }
+          } else if (browserInfo.browser === 'Edge' || browserInfo.browser === 'Opera') {
+            // Edge and Opera use Chromium engine
+            console.log('Using Chromium-based settings for', browserInfo.browser);
+          }
+          
           console.log('Subscribe options:', subscribeOptions);
           
-          subscription = await registration.pushManager.subscribe(subscribeOptions);
+          try {
+            subscription = await registration.pushManager.subscribe(subscribeOptions);
+          } catch (subscribeError) {
+            // Fallback for browsers that don't support applicationServerKey
+            if (subscribeError.name === 'NotSupportedError' && subscribeOptions.applicationServerKey) {
+              console.warn('Retrying without applicationServerKey');
+              delete subscribeOptions.applicationServerKey;
+              subscription = await registration.pushManager.subscribe(subscribeOptions);
+            } else {
+              throw subscribeError;
+            }
+          }
         } else {
           console.log('Using existing subscription');
         }

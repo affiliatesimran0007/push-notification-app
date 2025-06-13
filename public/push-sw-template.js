@@ -5,28 +5,45 @@
 self.addEventListener('push', function(event) {
   console.log('[Service Worker] Push received');
   
-  if (!event.data) {
-    console.log('[Service Worker] No data in push event');
-    return;
-  }
-
-  try {
-    const data = event.data.json();
-    console.log('[Service Worker] Push data:', data);
-    
-    const options = {
-      body: data.body || 'You have a new notification',
-      icon: data.icon || '/icon-192x192.png',
-      badge: data.badge || '/icon-192x192.png',
-      vibrate: data.vibrate || [200, 100, 200],
-      data: {
-        url: data.url || '/',
-        campaignId: data.campaignId,
-        notificationId: data.notificationId,
-        clientId: data.clientId,
-        trackingUrl: data.trackingUrl
+  let data = {};
+  
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      // Firefox sometimes sends data as text
+      try {
+        data = JSON.parse(event.data.text());
+      } catch (e2) {
+        console.error('[Service Worker] Failed to parse push data');
+        data = { title: 'Notification', body: 'You have a new notification' };
       }
-    };
+    }
+  }
+  
+  console.log('[Service Worker] Push data:', data);
+  
+  // Browser-compatible notification options
+  const options = {
+    body: data.body || data.message || 'You have a new notification',
+    icon: data.icon || '/icon-192x192.png',
+    badge: data.badge || '/icon-192x192.png',
+    tag: data.tag || 'default',
+    renotify: true,
+    requireInteraction: false, // Some browsers don't support this
+    data: {
+      url: data.url || data.data?.url || '/',
+      campaignId: data.campaignId || data.data?.campaignId,
+      notificationId: data.notificationId || data.data?.notificationId,
+      clientId: data.clientId || data.data?.clientId,
+      trackingUrl: data.trackingUrl || data.data?.trackingUrl
+    }
+  };
+  
+  // Add vibrate only if supported
+  if ('vibrate' in navigator) {
+    options.vibrate = data.vibrate || [200, 100, 200];
+  }
     
     // Add image if provided
     if (data.image) {
