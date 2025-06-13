@@ -51,39 +51,45 @@ self.addEventListener('notificationclick', (event) => {
   
   const url = event.notification.data.url || '/';
   const campaignId = event.notification.data.campaignId;
-  const notificationId = event.notification.data.notificationId;
+  const clientId = event.notification.data.clientId;
   
-  // Open URL
+  // Track click and open URL
   event.waitUntil(
-    clients.openWindow(url).then(() => {
-      // Track click analytics
-      return fetch('http://localhost:3000/api/analytics/track', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          event: 'notification_clicked',
-          campaignId: campaignId,
-          notificationId: notificationId,
-          timestamp: new Date().toISOString()
-        })
-      });
-    })
+    (async () => {
+      try {
+        // Track the click
+        if (campaignId && clientId) {
+          await fetch('/api/notifications/track-click', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              campaignId: campaignId,
+              clientId: clientId
+            })
+          });
+        }
+      } catch (error) {
+        console.error('Failed to track click:', error);
+      }
+      
+      // Always open the URL
+      return clients.openWindow(url);
+    })()
   );
 });
 
 self.addEventListener('notificationclose', (event) => {
-  // Track close event
+  // Track close/dismiss event
   const campaignId = event.notification.data.campaignId;
-  const notificationId = event.notification.data.notificationId;
+  const clientId = event.notification.data.clientId;
   
-  fetch('http://localhost:3000/api/analytics/track', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      event: 'notification_closed',
-      campaignId: campaignId,
-      notificationId: notificationId,
-      timestamp: new Date().toISOString()
-    })
-  });
+  if (campaignId) {
+    fetch('/api/campaigns/track-dismiss', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        campaignId: campaignId
+      })
+    }).catch(err => console.error('Failed to track dismiss:', err));
+  }
 });

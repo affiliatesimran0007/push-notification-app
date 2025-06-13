@@ -330,7 +330,13 @@ export async function DELETE(request) {
     }
 
     // Allow deletion of any campaign with appropriate warnings on frontend
-
+    
+    // First delete related notification deliveries
+    await prisma.notificationDelivery.deleteMany({
+      where: { campaignId }
+    })
+    
+    // Then delete the campaign
     await prisma.campaign.delete({
       where: { id: campaignId }
     })

@@ -68,9 +68,35 @@ export async function POST(request) {
       }
     })
 
-    // Send notifications
-    const pushSubscriptions = validSubscriptions.map(sub => sub.subscription)
-    const results = await webPushService.sendNotifications(pushSubscriptions, payload)
+    // Send notifications with clientId
+    const notificationPromises = validSubscriptions.map(async (sub) => {
+      // Create payload with clientId for this specific subscription
+      const clientPayload = webPushService.createNotificationPayload({
+        title: notification.title,
+        body: notification.message,
+        icon: notification.icon,
+        badge: notification.badge,
+        url: notification.url,
+        tag: notification.tag,
+        requireInteraction: notification.requireInteraction,
+        actions: notification.actions,
+        data: {
+          campaignId: notification.campaignId,
+          clientId: sub.id,
+          testMode
+        }
+      })
+      
+      const result = await webPushService.sendNotification(sub.subscription, clientPayload)
+      return { ...result, clientId: sub.id }
+    })
+    
+    const notificationResults = await Promise.all(notificationPromises)
+    const results = {
+      sent: notificationResults.filter(r => r.success).length,
+      failed: notificationResults.filter(r => !r.success).length,
+      results: notificationResults
+    }
 
     // Track delivery in database
     if (notification.campaignId && !testMode) {
