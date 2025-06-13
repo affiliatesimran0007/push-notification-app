@@ -101,10 +101,27 @@ export async function POST(request) {
 
     // Track delivery in database
     if (notification.campaignId && !testMode) {
-      // Create delivery records
+      // Create delivery records and handle expired subscriptions
       const deliveryPromises = validSubscriptions.map(async (sub, index) => {
-        const status = results.results[index]?.success ? 'sent' : 'failed'
-        const error = results.results[index]?.error || null
+        const result = results.results[index]
+        const status = result?.success ? 'sent' : 'failed'
+        const error = result?.error || null
+
+        // If subscription expired, mark client as inactive
+        if (error === 'expired') {
+          try {
+            await prisma.client.update({
+              where: { id: sub.id },
+              data: { 
+                accessStatus: 'expired',
+                lastActive: new Date()
+              }
+            })
+            console.log(`Marked client ${sub.id} as expired`)
+          } catch (err) {
+            console.error('Failed to mark client as expired:', err)
+          }
+        }
 
         try {
           await prisma.notificationDelivery.create({

@@ -213,28 +213,27 @@ export default function Clients() {
       
       console.log('Notification send response:', response)
       
+      // Check if any notifications were actually delivered
       if (response.sent > 0) {
         setNotificationSuccess(true)
         setTimeout(() => {
           setShowSendModal(false)
           setNotificationSuccess(false)
         }, 2000)
-      } else {
+      } else if (response.expired > 0) {
+        // Handle expired subscriptions
+        throw new Error(`Subscription expired. This client's push subscription is no longer valid. They need to re-subscribe.`)
+      } else if (response.failed > 0) {
         // Debug: Show full response
         console.error('Notification failed. Full response:', response)
         
-        let debugInfo = {
-          sent: response.sent,
-          failed: response.failed,
-          expired: response.expired,
-          results: response.results || [],
-          error: response.error || 'Unknown error'
-        }
+        // Get the specific error
+        const firstError = response.results?.find(r => !r.success)
+        const errorMessage = firstError?.message || firstError?.error || 'Unknown error'
         
-        // Show detailed error in alert
-        alert(`Notification Error Debug:\n\n${JSON.stringify(debugInfo, null, 2)}`)
-        
-        throw new Error(`Notification failed: ${response.failed} failed, ${response.expired} expired`)
+        throw new Error(`Notification failed: ${errorMessage}`)
+      } else {
+        throw new Error('No notifications were sent')
       }
     } catch (error) {
       console.error('Failed to send notification:', error)
@@ -673,10 +672,18 @@ export default function Clients() {
                       </td>
                       <td className="align-middle">
                         <MDBBadge 
-                          color={client.accessStatus === 'allowed' ? 'success' : client.accessStatus === 'blocked' ? 'danger' : 'warning'} 
+                          color={
+                            client.accessStatus === 'allowed' ? 'success' : 
+                            client.accessStatus === 'blocked' ? 'danger' : 
+                            client.accessStatus === 'expired' ? 'secondary' : 
+                            'warning'
+                          } 
                           pill
                         >
-                          {client.accessStatus === 'allowed' ? '✓ Allowed' : client.accessStatus === 'blocked' ? '✗ Blocked' : 'Pending'}
+                          {client.accessStatus === 'allowed' ? '✓ Allowed' : 
+                           client.accessStatus === 'blocked' ? '✗ Blocked' : 
+                           client.accessStatus === 'expired' ? '⚠ Expired' : 
+                           'Pending'}
                         </MDBBadge>
                       </td>
                       <td className="align-middle">
