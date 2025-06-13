@@ -350,7 +350,11 @@ export async function DELETE(request) {
   } catch (error) {
     console.error('Failed to delete campaign:', error)
     return NextResponse.json(
-      { error: 'Failed to delete campaign' },
+      { 
+        error: 'Failed to delete campaign',
+        details: error.message,
+        success: false
+      },
       { status: 500 }
     )
   }

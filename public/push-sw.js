@@ -2,7 +2,7 @@
 // Customers download and host this file on their domain
 // Version: 2.0.0 - Added click tracking
 
-const SW_VERSION = 'v2.1.0';
+const SW_VERSION = 'v2.2.0';
 
 self.addEventListener('install', (event) => {
   console.log('[Service Worker] Installing...', SW_VERSION);
@@ -36,6 +36,7 @@ self.addEventListener('push', (event) => {
     data: {
       url: data.data?.url || data.url || '/',
       campaignId: data.data?.campaignId || data.campaignId,
+      clientId: data.data?.clientId || data.clientId,
       notificationId: data.data?.notificationId || data.notificationId
     },
     actions: data.actions || [],

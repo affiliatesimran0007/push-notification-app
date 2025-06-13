@@ -53,5 +53,11 @@
       "source": "/push-sw.js",
       "destination": "/api/service-worker"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/campaigns/run-scheduled",
+      "schedule": "* * * * *"
+    }
   ]
 }
