@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Container, Row, Col, Card, Button, Table, Modal, Form, Alert, Spinner } from 'react-bootstrap'
-import { FiGlobe, FiPlus, FiEdit2, FiTrash2, FiExternalLink, FiCode } from 'react-icons/fi'
+import { FiGlobe, FiPlus, FiEdit2, FiTrash2, FiExternalLink, FiCode, FiInfo, FiCopy, FiPlayCircle } from 'react-icons/fi'
 import Link from 'next/link'
 import DashboardLayout from '@/components/DashboardLayout'
 
@@ -193,31 +193,34 @@ export default function LandingPage() {
     const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BGv2Vm45eFGslcXFhakD-euIXAnOg6-bdqVWHoSw4gwvjvYYV1zBA_Q7uiNij5yvRqMwmDhpBYYSA1v5Z_GEv_k'
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://push-notification-app-steel.vercel.app'
     
-    return `<!-- Push Notification Integration Code for ${landing.name} -->
+    return `<!-- Push Notification Integration Code -->
+<!-- Domain: ${landing.domain} | Landing Page: ${landing.name} -->
 <script>
 (function() {
-  // Push notification configuration
-  const PUSH_CONFIG = {
+  // Configuration
+  window.PUSH_CONFIG = {
     appUrl: '${appUrl}',
     landingId: '${landing.landingId}',
     vapidKey: '${vapidKey}',
+    domain: '${landing.domain}',
+    botProtection: ${landing.botProtection},
     redirects: {
+      enabled: ${landing.enableRedirect || false},
       onAllow: ${landing.allowRedirectUrl ? `'${landing.allowRedirectUrl}'` : 'null'},
       onBlock: ${landing.blockRedirectUrl ? `'${landing.blockRedirectUrl}'` : 'null'}
     }
   };
   
-  // Load simple integration script
+  // Load push notification widget
   const script = document.createElement('script');
-  script.src = PUSH_CONFIG.appUrl + '/simple-integration.js';
+  script.src = window.PUSH_CONFIG.appUrl + '/js/push-widget.js';
   script.async = true;
+  script.onload = function() {
+    console.log('Push notification widget loaded for ${landing.name}');
+  };
   document.head.appendChild(script);
 })();
-</script>
-
-<!-- Alternative: One-line integration -->
-<!-- <script src="${appUrl}/simple-integration.js"></script> -->
-<!-- Note: Update the configuration in the script with your landing ID -->`
+</script>`
   }
 
   return (
@@ -582,24 +585,74 @@ export default function LandingPage() {
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
+          <Alert variant="info">
+            <FiInfo className="me-2" />
+            <strong>Domain:</strong> {selectedLanding?.domain} | <strong>Landing ID:</strong> {selectedLanding?.landingId}
+          </Alert>
+          
+          <h5 className="mb-3">1. Add Integration Code</h5>
           <p className="mb-3">
-            Add this code snippet to your website's HTML, preferably in the &lt;head&gt; section:
+            Copy this code and add it to your website's HTML, preferably in the &lt;head&gt; section:
           </p>
-          <div className="bg-dark text-light p-3 rounded" style={{ fontFamily: 'monospace' }}>
-            <pre className="mb-0" style={{ whiteSpace: 'pre-wrap' }}>
-              {getIntegrationCode(selectedLanding)}
-            </pre>
+          
+          <div className="position-relative">
+            <Button 
+              size="sm" 
+              variant="outline-light" 
+              className="position-absolute top-0 end-0 m-2"
+              onClick={() => {
+                navigator.clipboard.writeText(getIntegrationCode(selectedLanding))
+                alert('Code copied to clipboard!')
+              }}
+            >
+              <FiCopy className="me-1" /> Copy
+            </Button>
+            <div className="bg-dark text-light p-3 rounded" style={{ fontFamily: 'monospace', fontSize: '0.875rem' }}>
+              <pre className="mb-0" style={{ whiteSpace: 'pre-wrap' }}>
+                {getIntegrationCode(selectedLanding)}
+              </pre>
+            </div>
           </div>
-          <div className="mt-3">
-            <h6>Integration Steps:</h6>
-            <ol>
-              <li>Copy the code snippet above</li>
-              <li>Paste it into your website's HTML &lt;head&gt; section</li>
-              <li>Replace YOUR_APP_ID with your actual App ID from Settings</li>
-              <li>The bot check will automatically appear for new visitors</li>
-              <li>Users who pass the check can subscribe to notifications</li>
-            </ol>
+          
+          <hr className="my-4" />
+          
+          <h5 className="mb-3">2. Test Integration</h5>
+          <p>After adding the code to your website, test the integration:</p>
+          
+          <div className="d-flex gap-3 mb-3">
+            <Button 
+              variant="success"
+              onClick={() => {
+                if (selectedLanding?.domain) {
+                  window.open(`https://${selectedLanding.domain}`, '_blank')
+                }
+              }}
+              disabled={!selectedLanding?.domain}
+            >
+              <FiExternalLink className="me-2" />
+              Visit Your Website
+            </Button>
+            
+            <Button 
+              variant="primary"
+              onClick={() => {
+                window.open(`/landing/bot-check?landingId=${selectedLanding?.landingId}&test=true`, '_blank')
+              }}
+            >
+              <FiPlayCircle className="me-2" />
+              Test Bot Check Page
+            </Button>
           </div>
+          
+          <Alert variant="warning">
+            <h6>Important Notes:</h6>
+            <ul className="mb-0">
+              <li>Make sure your domain is properly configured with HTTPS</li>
+              <li>The push notification prompt will only appear on HTTPS domains</li>
+              <li>Bot protection (if enabled) will show a verification page before the notification prompt</li>
+              <li>Users who have already subscribed won't see the prompt again</li>
+            </ul>
+          </Alert>
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowCodeModal(false)}>

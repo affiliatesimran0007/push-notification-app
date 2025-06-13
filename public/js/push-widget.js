@@ -4,12 +4,17 @@
 (function(window) {
   'use strict';
   
-  window.PushWidget = {
-    config: {},
-    subscribed: false,
-    
-    init: function(config) {
-      this.config = config;
+  // Auto-initialize if PUSH_CONFIG exists
+  if (window.PUSH_CONFIG) {
+    initWidget(window.PUSH_CONFIG);
+  }
+  
+  function initWidget(config) {
+    const PushWidget = {
+      config: config,
+      subscribed: false,
+      
+      init: function() {
       
       // Check if we're returning from bot check
       const urlParams = new URLSearchParams(window.location.search);
@@ -108,8 +113,8 @@
         window.location.href = redirectUrl;
       }
     },
-    
-    requestPermission: async function() {
+      
+      requestPermission: async function() {
       try {
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
@@ -261,4 +266,11 @@
       return outputArray;
     }
   };
+  
+  // Initialize the widget
+  PushWidget.init();
+  
+  // Expose for debugging
+  window.PushWidget = PushWidget;
+  }
 })(window);
