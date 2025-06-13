@@ -44,28 +44,25 @@ self.addEventListener('push', function(event) {
   if ('vibrate' in navigator) {
     options.vibrate = data.vibrate || [200, 100, 200];
   }
-    
-    // Add image if provided
-    if (data.image) {
-      options.image = data.image;
-    }
-    
-    // Add actions if provided
-    if (data.actions && Array.isArray(data.actions)) {
-      options.actions = data.actions.map(action => ({
-        action: action.action,
-        title: action.title,
-        icon: action.icon
-      }));
-    }
-    
-    // Show the notification
-    event.waitUntil(
-      self.registration.showNotification(data.title || 'Notification', options)
-    );
-  } catch (error) {
-    console.error('[Service Worker] Error parsing push data:', error);
+  
+  // Add image if provided
+  if (data.image) {
+    options.image = data.image;
   }
+  
+  // Add actions if provided
+  if (data.actions && Array.isArray(data.actions)) {
+    options.actions = data.actions.map(action => ({
+      action: action.action,
+      title: action.title,
+      icon: action.icon
+    }));
+  }
+  
+  // Show the notification
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'Notification', options)
+  );
 });
 
 self.addEventListener('notificationclick', function(event) {
