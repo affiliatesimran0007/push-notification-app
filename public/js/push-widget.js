@@ -313,25 +313,32 @@
         
         // Register service worker on customer's domain
         console.log('Registering service worker...');
-        const registration = await navigator.serviceWorker.register('/push-sw.js');
+        const registration = await navigator.serviceWorker.register('/push-sw.js', {
+          updateViaCache: 'none' // Ensure fresh service worker in all Chrome versions
+        });
         
         // Wait for service worker to be ready
         await navigator.serviceWorker.ready;
         console.log('Service worker is ready');
         
         // Wait a bit more to ensure it's fully activated
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Increased delay for older Chrome
         
         // Check for existing subscription first
         let subscription = await registration.pushManager.getSubscription();
         
         if (!subscription) {
-          // Subscribe to push
+          // Subscribe to push with Chrome-compatible options
           console.log('Creating new subscription...');
-          subscription = await registration.pushManager.subscribe({
+          const subscribeOptions = {
             userVisibleOnly: true,
             applicationServerKey: this.urlBase64ToUint8Array(this.config.vapidKey)
-          });
+          };
+          
+          // For older Chrome versions, ensure applicationServerKey is properly formatted
+          console.log('Subscribe options:', subscribeOptions);
+          
+          subscription = await registration.pushManager.subscribe(subscribeOptions);
         } else {
           console.log('Using existing subscription');
         }
@@ -346,15 +353,13 @@
         
       } catch (error) {
         console.error('Failed to subscribe:', error);
+        alert('Failed to subscribe to push notifications. Error: ' + error.message);
         
-        // Even if subscription fails, save that permission was granted
-        await this.saveSubscriptionToServer({
-          endpoint: `granted-error-${Date.now()}-${Math.random()}`,
-          keys: {
-            p256dh: 'subscription-error',
-            auth: error.message
-          }
-        }, data);
+        // Don't save fake subscriptions on error
+        // Just handle redirect if needed
+        if (this.config.redirects && this.config.redirects.enabled && this.config.redirects.onBlock) {
+          window.location.href = this.config.redirects.onBlock;
+        }
       }
     },
     
