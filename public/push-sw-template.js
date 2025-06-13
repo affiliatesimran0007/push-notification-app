@@ -106,9 +106,15 @@ self.addEventListener('notificationclose', function(event) {
 
 // Update service worker immediately
 self.addEventListener('install', function(event) {
-  self.skipWaiting();
+  console.log('[Service Worker] Installing...');
+  event.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener('activate', function(event) {
-  event.waitUntil(clients.claim());
+  console.log('[Service Worker] Activating...');
+  event.waitUntil(
+    clients.claim().then(() => {
+      console.log('[Service Worker] Active and ready');
+    })
+  );
 });

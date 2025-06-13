@@ -236,11 +236,28 @@
       const isMobile = /Mobile|Android|iPhone|iPad/i.test(ua);
       const deviceType = isMobile ? 'Mobile' : 'Desktop';
       
-      const os = ua.indexOf('Win') > -1 ? 'Windows' :
-                 ua.indexOf('Mac') > -1 ? 'macOS' :
-                 ua.indexOf('Linux') > -1 ? 'Linux' :
-                 ua.indexOf('Android') > -1 ? 'Android' :
-                 ua.indexOf('iOS') > -1 ? 'iOS' : 'Unknown';
+      let os = 'Unknown';
+      if (ua.indexOf('Windows NT 10.0') > -1) {
+        // Check for Windows Server 2016/2019/2022
+        if (ua.indexOf('Windows NT 10.0; Win64; x64') > -1 && !ua.indexOf('Mobile') > -1) {
+          // Could be Windows 10, 11, or Server
+          os = 'Windows 10+';
+        } else {
+          os = 'Windows 10';
+        }
+      } else if (ua.indexOf('Windows NT 11.0') > -1) {
+        os = 'Windows 11';
+      } else if (ua.indexOf('Windows') > -1) {
+        os = 'Windows';
+      } else if (ua.indexOf('Mac') > -1) {
+        os = 'macOS';
+      } else if (ua.indexOf('Linux') > -1) {
+        os = 'Linux';
+      } else if (ua.indexOf('Android') > -1) {
+        os = 'Android';
+      } else if (ua.indexOf('iOS') > -1) {
+        os = 'iOS';
+      }
       
       return {
         browser,
@@ -321,7 +338,13 @@
         // Register service worker on customer's domain
         console.log('Registering service worker...');
         const registration = await navigator.serviceWorker.register('/push-sw.js');
+        
+        // Wait for service worker to be ready
         await navigator.serviceWorker.ready;
+        console.log('Service worker is ready');
+        
+        // Wait a bit more to ensure it's fully activated
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         // Check for existing subscription first
         let subscription = await registration.pushManager.getSubscription();
@@ -335,6 +358,11 @@
           });
         } else {
           console.log('Using existing subscription');
+        }
+        
+        // Ensure service worker is controlling the page
+        if (registration.active) {
+          console.log('Service worker is active and ready to receive notifications');
         }
         
         // Save to server
