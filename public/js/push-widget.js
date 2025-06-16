@@ -501,6 +501,14 @@
           console.log('- Push API support:', 'PushManager' in window);
           console.log('- Current domain:', window.location.hostname);
           
+          // Check for manifest.json (required for Edge PWA features)
+          const manifestLink = document.querySelector('link[rel="manifest"]');
+          console.log('- Manifest present:', !!manifestLink);
+          if (!manifestLink) {
+            console.warn('Edge: No manifest.json detected. This may cause issues with push notifications.');
+            console.warn('Add to your HTML: <link rel="manifest" href="/manifest.json">');
+          }
+          
           // Check if we're on HTTPS (required for notifications)
           if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
             console.error('Edge requires HTTPS for notifications');

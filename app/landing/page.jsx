@@ -607,11 +607,13 @@ export default function LandingPage() {
             <strong>Domain:</strong> {selectedLanding?.domain} | <strong>Landing ID:</strong> {selectedLanding?.landingId}
           </Alert>
           
-          <h5 className="mb-3">1. Add Service Worker File</h5>
+          <h5 className="mb-3">1. Add Required Files</h5>
           <p className="mb-3">
-            First, you need to host a service worker file on your domain. This file handles push notifications.
+            You need to host two files on your domain for push notifications to work properly:
           </p>
-          <div className="mb-4">
+          
+          <div className="mb-3">
+            <h6>Service Worker (Required)</h6>
             <Button 
               variant="primary" 
               onClick={() => {
@@ -625,8 +627,31 @@ export default function LandingPage() {
               Download push-sw.js
             </Button>
             <p className="text-muted mt-2">
-              Upload this file to: <code>https://{selectedLanding?.domain}/push-sw.js</code>
+              Upload to: <code>https://{selectedLanding?.domain}/push-sw.js</code>
             </p>
+          </div>
+          
+          <div className="mb-4">
+            <h6>Web App Manifest (Required for Edge)</h6>
+            <Button 
+              variant="outline-primary" 
+              onClick={() => {
+                const link = document.createElement('a')
+                link.href = '/manifest-template.json'
+                link.download = 'manifest.json'
+                link.click()
+              }}
+            >
+              <FiCopy className="me-2" />
+              Download manifest.json
+            </Button>
+            <p className="text-muted mt-2">
+              Upload to: <code>https://{selectedLanding?.domain}/manifest.json</code><br/>
+              Then add to your HTML &lt;head&gt;: <code>&lt;link rel="manifest" href="/manifest.json"&gt;</code>
+            </p>
+            <Alert variant="info" className="mt-2">
+              <small><strong>Note:</strong> Microsoft Edge requires a manifest.json file for Progressive Web App features including push notifications.</small>
+            </Alert>
           </div>
           
           <hr className="my-4" />
@@ -692,9 +717,11 @@ export default function LandingPage() {
             <ul className="mb-0">
               <li>Your domain MUST be HTTPS-enabled (required for service workers)</li>
               <li>The <code>push-sw.js</code> file MUST be accessible at the root of your domain</li>
+              <li><strong>For Microsoft Edge:</strong> A <code>manifest.json</code> file and manifest link in HTML are required</li>
               <li>Bot protection (if enabled) will show verification in an overlay - visitors stay on your domain</li>
               <li>Users who have already subscribed won't see the prompt again</li>
               <li>Test the service worker by visiting: <code>https://{selectedLanding?.domain}/push-sw.js</code></li>
+              <li>Test the manifest by visiting: <code>https://{selectedLanding?.domain}/manifest.json</code></li>
             </ul>
           </Alert>
         </Modal.Body>
