@@ -147,6 +147,7 @@ export async function POST(request) {
         where: { id: notification.campaignId },
         data: {
           sentCount: { increment: results.sent },
+          deliveredCount: { increment: results.sent }, // Initially assume all sent are delivered
           failedCount: { increment: results.failed }
         }
       })
@@ -154,6 +155,7 @@ export async function POST(request) {
       // Emit real-time update
       campaignEvents.emitStatsUpdate(notification.campaignId, {
         sentCount: updatedCampaign.sentCount,
+        deliveredCount: updatedCampaign.deliveredCount,
         failedCount: updatedCampaign.failedCount
       })
     }

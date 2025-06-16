@@ -51,6 +51,20 @@ self.addEventListener('push', (event) => {
     event.waitUntil(
       self.registration.showNotification(title, options).then(() => {
         console.log('Notification shown successfully')
+        
+        // Track delivery
+        if (customData?.campaignId) {
+          fetch('/api/analytics/track', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              event: 'notification_delivered',
+              campaignId: customData.campaignId,
+              clientId: customData.clientId,
+              timestamp: new Date().toISOString()
+            })
+          }).catch(err => console.error('Failed to track delivery:', err))
+        }
       }).catch(error => {
         console.error('Failed to show notification:', error)
       })
@@ -108,6 +122,7 @@ self.addEventListener('notificationclick', (event) => {
       body: JSON.stringify({
         event: 'notification_clicked',
         campaignId: event.notification.data.campaignId,
+        clientId: event.notification.data.clientId,
         timestamp: new Date().toISOString()
       })
     }).catch(err => console.error('Failed to track click:', err))

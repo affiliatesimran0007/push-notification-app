@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+import prisma from '@/lib/db'
+import campaignEvents from '@/lib/events/campaignEvents'
 
 // Temporary in-memory storage for analytics events
 let analyticsEvents = []
@@ -29,11 +31,45 @@ export async function POST(request) {
 
     analyticsEvents.push(analyticsEvent)
 
-    // In production, this would:
-    // 1. Store in database
-    // 2. Update campaign metrics
-    // 3. Update real-time dashboards
-    // 4. Trigger webhooks if configured
+    // Update campaign metrics based on event type
+    if (campaignId) {
+      try {
+        if (event === 'notification_clicked') {
+          // Update click count
+          const updatedCampaign = await prisma.campaign.update({
+            where: { id: campaignId },
+            data: {
+              clickedCount: { increment: 1 }
+            }
+          })
+          
+          // Emit real-time update
+          campaignEvents.emitStatsUpdate(campaignId, {
+            clickedCount: updatedCampaign.clickedCount,
+            sentCount: updatedCampaign.sentCount,
+            ctr: updatedCampaign.clickedCount > 0 && updatedCampaign.sentCount > 0
+              ? ((updatedCampaign.clickedCount / updatedCampaign.sentCount) * 100).toFixed(1)
+              : 0
+          })
+        } else if (event === 'notification_delivered') {
+          // Update delivered count
+          const updatedCampaign = await prisma.campaign.update({
+            where: { id: campaignId },
+            data: {
+              deliveredCount: { increment: 1 }
+            }
+          })
+          
+          // Emit real-time update
+          campaignEvents.emitStatsUpdate(campaignId, {
+            deliveredCount: updatedCampaign.deliveredCount
+          })
+        }
+      } catch (dbError) {
+        console.error('Failed to update campaign metrics:', dbError)
+        // Continue even if database update fails
+      }
+    }
 
     console.log('Analytics event tracked:', analyticsEvent)
 
