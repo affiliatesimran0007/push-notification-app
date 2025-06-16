@@ -143,18 +143,11 @@ export default function BotCheckPage() {
     
     const clickHelper = new BrowserClickHelper()
     
-    // Debug logging
-    console.log('Browser detection:', {
-      browser: clickHelper.browser,
-      requiresClick: clickHelper.browser.requiresClick,
-      needsPermission: clickHelper.needsPermission(),
-      userAgent: navigator.userAgent,
-      clientInfoBrowser: clientInfo?.browser
-    })
     
     // Double check with both methods for Firefox/Edge
+    // Remove needsPermission check - Edge should always show soft prompt
     const isFirefoxOrEdgeBrowser = 
-      (clickHelper.browser.requiresClick && clickHelper.needsPermission()) ||
+      clickHelper.browser.requiresClick ||
       (clientInfo && (clientInfo.browser === 'Firefox' || clientInfo.browser === 'Edge'))
     
     if (isFirefoxOrEdgeBrowser) {
@@ -198,13 +191,11 @@ export default function BotCheckPage() {
   }, [clientInfo, ipAddress, isFirefoxOrEdge, showSoftPrompt])
 
   const handleSoftPromptAllow = async (e) => {
-    console.log('handleSoftPromptAllow called')
     e.preventDefault()
     e.stopPropagation()
     
     // If embedded in iframe, we need to handle differently for Firefox/Edge
     if (window.isEmbedded && window.parent !== window) {
-      console.log('Embedded mode detected - sending message to parent for Firefox/Edge')
       // Send message to parent to handle permission request
       window.parent.postMessage({
         type: 'request-permission-firefox',
@@ -228,11 +219,7 @@ export default function BotCheckPage() {
       
       // When user clicks Allow button, show the native browser prompt
       // This will show the same permission popup as Chrome/Safari
-      console.log('Current permission status:', Notification.permission)
-      
-      // Request permission immediately in response to user click
       const permission = await Notification.requestPermission()
-      console.log('Permission result:', permission)
       
       if (permission === 'granted') {
         setPermissionGranted(true)
@@ -368,9 +355,7 @@ export default function BotCheckPage() {
             console.warn('Push notifications not available on this domain');
             // Just redirect without creating fake subscription
             if (allowRedirect) {
-              console.log('Would redirect (DISABLED FOR DEBUG):', allowRedirect);
-              // DISABLED FOR DEBUG
-              // window.location.href = allowRedirect;
+              window.location.href = allowRedirect;
             }
             return;
           }
@@ -424,12 +409,10 @@ export default function BotCheckPage() {
         
         // Only redirect if not embedded
         if (!window.isEmbedded) {
-          console.log('Would redirect to (DISABLED FOR DEBUG):', allowRedirect || subscribedUrl || '/')
-          // DISABLED FOR DEBUG
-          // const redirectUrl = new URL(allowRedirect || subscribedUrl || '/')
-          // redirectUrl.searchParams.set('push-subscribed', 'true')
-          // redirectUrl.searchParams.set('push-landing-id', landingId)
-          // window.location.href = redirectUrl.toString()
+          const redirectUrl = new URL(allowRedirect || subscribedUrl || '/')
+          redirectUrl.searchParams.set('push-subscribed', 'true')
+          redirectUrl.searchParams.set('push-landing-id', landingId)
+          window.location.href = redirectUrl.toString()
         }
       } else if (permission === 'denied') {
         // Don't show alert, just update the UI
@@ -440,11 +423,9 @@ export default function BotCheckPage() {
       } else if (permission === 'default') {
         // User dismissed the prompt without choosing
         console.log('User dismissed the notification prompt')
-        console.log('Would redirect to /landing after 2s (DISABLED FOR DEBUG)')
-        // DISABLED FOR DEBUG
-        // setTimeout(() => {
-        //   window.location.href = '/landing'
-        // }, 2000)
+        setTimeout(() => {
+          window.location.href = '/landing'
+        }, 2000)
       }
     } catch (error) {
       console.error('Error requesting permission:', error)
@@ -528,9 +509,7 @@ export default function BotCheckPage() {
     
     // Only redirect if not embedded
     if (!window.isEmbedded) {
-      console.log('Would redirect to blocked page (DISABLED FOR DEBUG):', blockRedirect || subscribedUrl || '/')
-      // DISABLED FOR DEBUG
-      // window.location.href = blockRedirect || subscribedUrl || '/'
+      window.location.href = blockRedirect || subscribedUrl || '/'
     }
   }
 
@@ -595,10 +574,7 @@ export default function BotCheckPage() {
                   <Button 
                     variant="primary"
                     size="lg"
-                    onClick={(e) => {
-                      console.log('Allow button clicked!')
-                      handleSoftPromptAllow(e)
-                    }}
+                    onClick={handleSoftPromptAllow}
                     style={{
                       background: '#0066cc',
                       border: 'none',

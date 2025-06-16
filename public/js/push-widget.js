@@ -445,6 +445,31 @@
       try {
         // Request permission in parent window (not iframe)
         console.log('Requesting permission in parent window for Firefox/Edge');
+        console.log('Current permission status:', Notification.permission);
+        
+        // Only request if not already granted or denied
+        if (Notification.permission === 'denied') {
+          console.log('Notifications are already denied for this domain');
+          this.closeBotCheck();
+          // Handle redirect for denied
+          if (this.config.redirects && this.config.redirects.enabled && this.config.redirects.onBlock) {
+            window.location.href = this.config.redirects.onBlock;
+          }
+          return;
+        }
+        
+        if (Notification.permission === 'granted') {
+          console.log('Notifications are already granted, proceeding with subscription');
+          // Close the iframe overlay
+          this.closeBotCheck();
+          // Register subscription
+          await this.registerPushSubscription({
+            browserInfo: data.browserInfo,
+            location: data.location
+          });
+          return;
+        }
+        
         const permission = await Notification.requestPermission();
         console.log('Parent window permission result:', permission);
         
