@@ -57,8 +57,9 @@ export async function GET(request) {
               // Then use the landing page's id to filter clients
               whereClause = { landingPageId: landingPage.id }
             } else {
-              console.error(`Landing page not found with landingId: ${landingId}`)
-              whereClause = { landingPageId: null } // This will return no clients
+              console.error(`Landing page not found with landingId: ${landingId} for campaign ${campaign.id}`)
+              // Skip this campaign if landing page not found
+              continue
             }
           }
         }
@@ -124,7 +125,7 @@ export async function GET(request) {
               icon: campaign.icon,
               badge: campaign.badge,
               campaignId: campaign.id,
-              actions: campaign.variantA?.actions?.map(a => ({ action: a.action, title: a.title })) || [],
+              actions: campaign.variantA?.actions || [],
               requireInteraction: true
             }
           }

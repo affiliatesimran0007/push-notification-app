@@ -37,6 +37,7 @@ self.addEventListener('push', (event) => {
       requireInteraction: requireInteraction || false,
       data: {
         url: url || '/',
+        actions: actions || [],
         ...customData
       },
       actions: actions || [],
@@ -69,16 +70,17 @@ self.addEventListener('notificationclick', (event) => {
   // Handle action button clicks
   if (event.action) {
     console.log('Action clicked:', event.action)
-    // You can handle different actions here
-    switch (event.action) {
-      case 'view-cart':
-        event.waitUntil(clients.openWindow('/cart'))
-        break
-      case 'dismiss':
-        // Just close the notification
-        break
-      default:
-        event.waitUntil(clients.openWindow(url))
+    
+    // Find the action in the notification data
+    const actions = event.notification.data?.actions || []
+    const clickedAction = actions.find(a => a.action === event.action)
+    
+    if (clickedAction && clickedAction.url) {
+      // Open the URL specified for this action
+      event.waitUntil(clients.openWindow(clickedAction.url))
+    } else {
+      // Fallback to main URL
+      event.waitUntil(clients.openWindow(url))
     }
   } else {
     // Main notification body clicked

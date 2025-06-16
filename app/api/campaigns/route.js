@@ -174,7 +174,10 @@ export async function POST(request) {
             whereClause = { landingPageId: landingPage.id }
           } else {
             console.error(`Landing page not found with landingId: ${landingId}`)
-            whereClause = { landingPageId: null } // This will return no clients
+            return NextResponse.json(
+              { error: 'Selected landing page not found' },
+              { status: 400 }
+            )
           }
         } else {
           // Handle other segment types in the future
@@ -203,7 +206,7 @@ export async function POST(request) {
             icon: newCampaign.icon,
             badge: newCampaign.badge,
             campaignId: newCampaign.id,
-            actions: actions || [],
+            actions: actionData || [],
             requireInteraction: true
           }
         }
