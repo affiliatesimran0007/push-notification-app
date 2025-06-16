@@ -182,10 +182,23 @@ export default function BotCheckPage() {
           setIsChecking(false)
           setIsVerified(true)
           
-          // After bot check completes, continue with subscription
-          setTimeout(() => {
-            handleAllow()
-          }, 500)
+          // If embedded, send verification message
+          if (window.isEmbedded && window.parent !== window) {
+            window.parent.postMessage({
+              type: 'bot-check-verified',
+              browserInfo: clientInfo,
+              location: {
+                country: 'United States',
+                city: 'New York',
+                ip: ipAddress
+              }
+            }, '*')
+          } else {
+            // After bot check completes, continue with subscription
+            setTimeout(() => {
+              handleAllow()
+            }, 500)
+          }
         }, 1500)
       } else if (permission === 'denied') {
         await handleBlock()

@@ -72,8 +72,15 @@
           return;
         }
         
+        // Check browser type
+        const ua = navigator.userAgent.toLowerCase();
+        const isFirefox = ua.includes('firefox');
+        const isEdge = ua.includes('edg/');
+        const requiresUserGesture = isFirefox || isEdge;
+        
         // Show bot check overlay immediately (hides background)
         if (this.config.botProtection || this.config.botCheck !== false) {
+          // For Firefox/Edge, the bot-check page will handle the soft prompt
           this.showBotCheckOverlay();
           // Wait for bot check to complete, then request permission
           // Permission will be requested after bot verification
@@ -415,6 +422,18 @@
         
         // Now request permission on the parent page
         this.requestPermissionWithBotCheck();
+      } else if (event.data.type === 'bot-check-completed') {
+        // Handle permission response from bot check page
+        if (event.data.permission === 'granted') {
+          // Permission was granted in iframe, close overlay
+          this.closeBotCheck();
+          // Subscription already handled by bot-check page
+          console.log('Push notifications enabled successfully');
+        } else if (event.data.permission === 'denied') {
+          // Permission was denied
+          this.closeBotCheck();
+          console.log('Push notifications were blocked');
+        }
       }
     },
     
