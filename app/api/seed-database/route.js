@@ -9,8 +9,10 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url)
     const secret = searchParams.get('secret')
     
-    // You can set this in your environment variables for security
-    if (secret !== 'your-secret-key-123') {
+    // Use environment variable for security, with fallback for development
+    const expectedSecret = process.env.SEED_SECRET || 'your-secret-key-123'
+    
+    if (secret !== expectedSecret) {
       return NextResponse.json(
         { error: 'Unauthorized. Please provide the correct secret.' },
         { status: 401 }
