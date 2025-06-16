@@ -444,6 +444,14 @@
     handleFirefoxEdgePermission: async function(data) {
       const self = this;
       
+      // Prevent multiple simultaneous permission requests
+      if (this.isRequestingPermission) {
+        console.log('Permission request already in progress, skipping...');
+        return;
+      }
+      
+      this.isRequestingPermission = true;
+      
       try {
         // Request permission in parent window (not iframe)
         console.log('Requesting permission in parent window for Firefox/Edge');
@@ -480,19 +488,30 @@
         // Create a promise that will be resolved when permission is granted/denied
         const requestPermission = () => {
           return new Promise((resolve) => {
-            // Try modern promise-based API first
-            if (Notification.requestPermission().then) {
-              Notification.requestPermission()
-                .then(permission => {
-                  console.log('Permission result (promise):', permission);
-                  resolve(permission);
-                })
-                .catch(err => {
-                  console.error('Permission error:', err);
-                  resolve('default');
-                });
-            } else {
+            // Check if the modern promise-based API is available
+            try {
+              const permissionPromise = Notification.requestPermission();
+              
+              // Check if it returns a promise
+              if (permissionPromise && typeof permissionPromise.then === 'function') {
+                // Modern promise-based API
+                permissionPromise
+                  .then(permission => {
+                    console.log('Permission result (promise):', permission);
+                    resolve(permission);
+                  })
+                  .catch(err => {
+                    console.error('Permission error:', err);
+                    resolve('default');
+                  });
+              } else {
+                // Legacy - permission was returned directly
+                console.log('Permission result (direct):', permissionPromise);
+                resolve(permissionPromise);
+              }
+            } catch (error) {
               // Fallback to callback-based API for older browsers
+              console.log('Using callback-based permission request');
               Notification.requestPermission((permission) => {
                 console.log('Permission result (callback):', permission);
                 resolve(permission);
@@ -525,6 +544,8 @@
       } catch (error) {
         console.error('Error handling Firefox/Edge permission:', error);
         self.closeBotCheck();
+      } finally {
+        this.isRequestingPermission = false;
       }
     },
     
