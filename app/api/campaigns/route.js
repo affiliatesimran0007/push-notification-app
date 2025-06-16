@@ -96,8 +96,13 @@ export async function POST(request) {
 
     // Build actions array from button data
     const actions = []
+    const actionData = [] // Full action data with URLs
     if (body.button1Text && body.button1Url) {
       actions.push({
+        action: 'button1',
+        title: body.button1Text
+      })
+      actionData.push({
         action: 'button1',
         title: body.button1Text,
         url: body.button1Url
@@ -105,6 +110,10 @@ export async function POST(request) {
     }
     if (body.button2Text && body.button2Url) {
       actions.push({
+        action: 'button2',
+        title: body.button2Text
+      })
+      actionData.push({
         action: 'button2',
         title: body.button2Text,
         url: body.button2Url
@@ -126,8 +135,8 @@ export async function POST(request) {
       sentAt: body.status === 'draft' ? null : (body.scheduledFor ? null : new Date()),
       userId: adminUser.id,
       abTestEnabled: false,
-      variantA: actions.length > 0 || body.targetBrowsers || body.targetSystems ? { 
-        actions: actions.length > 0 ? actions : undefined,
+      variantA: actionData.length > 0 || body.targetBrowsers || body.targetSystems ? { 
+        actions: actionData.length > 0 ? actionData : undefined,
         targetBrowsers: body.targetBrowsers || undefined,
         targetSystems: body.targetSystems || undefined
       } : null,
@@ -178,7 +187,9 @@ export async function POST(request) {
             url: newCampaign.url,
             icon: newCampaign.icon,
             badge: newCampaign.badge,
-            campaignId: newCampaign.id
+            campaignId: newCampaign.id,
+            actions: actions || [],
+            requireInteraction: true
           }
         }
 

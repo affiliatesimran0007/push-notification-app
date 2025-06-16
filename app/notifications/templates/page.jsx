@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Row, Col, Card, Badge, Button, Modal, Form, Alert, Spinner } from 'react-bootstrap'
-import { FiCheck, FiX } from 'react-icons/fi'
+import { FiCheck, FiX, FiTrash2 } from 'react-icons/fi'
 import DashboardLayout from '@/components/DashboardLayout'
 
 export default function PushTemplates() {
@@ -135,6 +135,31 @@ export default function PushTemplates() {
     } catch (error) {
       console.error('Error creating template:', error)
       alert('Failed to create template. Please try again.')
+    }
+  }
+
+  const handleDeleteTemplate = async (templateId, templateName) => {
+    if (!confirm(`Are you sure you want to delete the template "${templateName}"?`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/templates?id=${templateId}`, {
+        method: 'DELETE'
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        // Remove the template from the local state
+        setTemplates(templates.filter(t => t.id !== templateId))
+        alert('Template deleted successfully')
+      } else {
+        alert(data.error || 'Failed to delete template')
+      }
+    } catch (error) {
+      console.error('Error deleting template:', error)
+      alert('Failed to delete template. Please try again.')
     }
   }
 
@@ -273,20 +298,33 @@ export default function PushTemplates() {
                       </p>
                     </div>
 
-                    {/* Action Button */}
-                    <Button 
-                      variant="primary"
-                      className="w-100"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        // Store template data in sessionStorage
-                        sessionStorage.setItem('selectedTemplate', JSON.stringify(template))
-                        // Navigate to campaign builder
-                        router.push('/notifications/campaign-builder')
-                      }}
-                    >
-                      Select Template
-                    </Button>
+                    {/* Action Buttons */}
+                    <div className="d-flex gap-2">
+                      <Button 
+                        variant="primary"
+                        className="flex-grow-1"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          // Store template data in sessionStorage
+                          sessionStorage.setItem('selectedTemplate', JSON.stringify(template))
+                          // Navigate to campaign builder
+                          router.push('/notifications/campaign-builder')
+                        }}
+                      >
+                        Select Template
+                      </Button>
+                      <Button
+                        variant="outline-danger"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteTemplate(template.id, template.name)
+                        }}
+                        title="Delete template"
+                      >
+                        <FiTrash2 />
+                      </Button>
+                    </div>
                   </div>
                 </Card.Body>
               </Card>

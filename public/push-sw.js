@@ -30,14 +30,15 @@ self.addEventListener('push', (event) => {
     icon: data.icon || '/icon-192x192.png',
     badge: data.badge || '/badge-72x72.png',
     image: data.image,
-    tag: data.tag || 'notification',
+    tag: data.tag || `notification-${Date.now()}`,
     requireInteraction: data.requireInteraction !== false ? true : false,
     silent: data.silent || false,
     data: {
       url: data.data?.url || data.url || '/',
       campaignId: data.data?.campaignId || data.campaignId,
       clientId: data.data?.clientId || data.clientId,
-      notificationId: data.data?.notificationId || data.notificationId
+      notificationId: data.data?.notificationId || data.notificationId,
+      actions: data.actions || []
     },
     actions: data.actions || [],
     vibrate: data.vibrate || [200, 100, 200]
@@ -66,9 +67,26 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   
-  const url = event.notification.data.url || '/';
-  const campaignId = event.notification.data.campaignId;
-  const clientId = event.notification.data.clientId;
+  const data = event.notification.data;
+  let url = data.url || '/';
+  
+  // Handle action button clicks
+  if (event.action) {
+    console.log('[Service Worker] Action clicked:', event.action);
+    // Find the action in the notification data
+    const actions = event.notification.actions || [];
+    const clickedAction = actions.find(a => a.action === event.action);
+    if (clickedAction && data.actions) {
+      // Find the original action data with URL
+      const originalAction = data.actions.find(a => a.action === event.action);
+      if (originalAction && originalAction.url) {
+        url = originalAction.url;
+      }
+    }
+  }
+  
+  const campaignId = data.campaignId;
+  const clientId = data.clientId;
   
   // Track click and open URL
   event.waitUntil(
@@ -81,7 +99,8 @@ self.addEventListener('notificationclick', (event) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               campaignId: campaignId,
-              clientId: clientId
+              clientId: clientId,
+              action: event.action || 'default'
             })
           });
         }

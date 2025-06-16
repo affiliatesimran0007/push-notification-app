@@ -35,7 +35,7 @@ self.addEventListener('push', function(event) {
     body: data.body || data.message || 'You have a new notification',
     icon: data.icon || '/icon-192x192.png',
     badge: data.badge || '/icon-192x192.png',
-    tag: data.tag || 'default',
+    tag: data.tag || `notification-${Date.now()}`,
     renotify: true,
     requireInteraction: true, // Keep notifications persistent on desktop
     data: {
@@ -43,7 +43,8 @@ self.addEventListener('push', function(event) {
       campaignId: data.campaignId || data.data?.campaignId,
       notificationId: data.notificationId || data.data?.notificationId,
       clientId: data.clientId || data.data?.clientId,
-      trackingUrl: data.trackingUrl || data.data?.trackingUrl
+      trackingUrl: data.trackingUrl || data.data?.trackingUrl,
+      actions: data.actions || []
     }
   };
   
@@ -126,6 +127,19 @@ self.addEventListener('notificationclick', function(event) {
   event.notification.close();
   
   const data = event.notification.data;
+  let urlToOpen = data.url || '/';
+  
+  // Handle action button clicks
+  if (event.action) {
+    console.log('[Service Worker] Action clicked:', event.action);
+    // Find the action URL from the stored actions
+    if (data.actions && Array.isArray(data.actions)) {
+      const clickedAction = data.actions.find(a => a.action === event.action);
+      if (clickedAction && clickedAction.url) {
+        urlToOpen = clickedAction.url;
+      }
+    }
+  }
   
   // Track the click if tracking URL provided
   if (data.trackingUrl && data.clientId) {
@@ -141,15 +155,6 @@ self.addEventListener('notificationclick', function(event) {
         timestamp: new Date().toISOString()
       })
     }).catch(err => console.error('[Service Worker] Failed to track click:', err));
-  }
-  
-  // Handle action buttons
-  let urlToOpen = data.url || '/';
-  
-  if (event.action) {
-    // If an action button was clicked, handle it
-    console.log('[Service Worker] Action clicked:', event.action);
-    // You can customize URLs based on actions here
   }
   
   // Open the URL

@@ -114,7 +114,8 @@ export async function GET(request) {
               icon: campaign.icon,
               badge: campaign.badge,
               campaignId: campaign.id,
-              actions: campaign.variantA?.actions || []
+              actions: campaign.variantA?.actions?.map(a => ({ action: a.action, title: a.title })) || [],
+              requireInteraction: true
             }
           }
           
