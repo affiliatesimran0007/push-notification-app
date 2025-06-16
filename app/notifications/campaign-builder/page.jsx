@@ -195,6 +195,21 @@ export default function CampaignBuilder() {
           setIconType('url')
         }
         
+        // Extract button data from template actions
+        let button1Text = '', button1Url = '', button2Text = '', button2Url = ''
+        if (template.actions && Array.isArray(template.actions)) {
+          const button1 = template.actions.find(a => a.action === 'button1')
+          const button2 = template.actions.find(a => a.action === 'button2')
+          if (button1) {
+            button1Text = button1.title || ''
+            button1Url = button1.url || ''
+          }
+          if (button2) {
+            button2Text = button2.title || ''
+            button2Url = button2.url || ''
+          }
+        }
+        
         setCampaignData(prev => ({
           ...prev,
           name: template.name + ' Campaign',
@@ -202,7 +217,11 @@ export default function CampaignBuilder() {
           message: template.message,
           icon: template.icon || '',
           url: template.url || '',
-          image: template.image || ''
+          image: template.image || '',
+          button1Text,
+          button1Url,
+          button2Text,
+          button2Url
         }))
         sessionStorage.removeItem('selectedTemplate')
       }
@@ -386,6 +405,9 @@ export default function CampaignBuilder() {
                   </Form.Group>
 
                   <h6 className="mb-3">Action Buttons (Optional)</h6>
+                  <Form.Text className="text-muted d-block mb-2">
+                    <small>Note: Firefox only shows 1 custom button due to browser limitations</small>
+                  </Form.Text>
                   <Row className="mb-3">
                     <Col md={6}>
                       <Form.Group className="mb-3">

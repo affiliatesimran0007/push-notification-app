@@ -29,6 +29,17 @@ self.addEventListener('push', (event) => {
     
     const { title, body, icon, badge, url, tag, requireInteraction, actions, data: customData } = data
 
+    // Firefox limitation: only shows 1 custom action + automatic Dismiss
+    // Chrome/Edge: shows up to 2 custom actions
+    const isFirefox = /Firefox/.test(self.navigator.userAgent)
+    let notificationActions = actions || []
+    
+    if (isFirefox && notificationActions.length > 1) {
+      // For Firefox, only use the first action since it adds Dismiss automatically
+      notificationActions = notificationActions.slice(0, 1)
+      console.log('Firefox detected: limiting to 1 custom action')
+    }
+
     const options = {
       body,
       icon: icon || '/icon-192x192.png',
@@ -37,10 +48,10 @@ self.addEventListener('push', (event) => {
       requireInteraction: requireInteraction || false,
       data: {
         url: url || '/',
-        actions: actions || [],
+        actions: actions || [], // Keep original actions for click handling
         ...customData
       },
-      actions: actions || [],
+      actions: notificationActions,
       vibrate: [200, 100, 200],
       timestamp: Date.now(),
       silent: false // Ensure notification is not silent

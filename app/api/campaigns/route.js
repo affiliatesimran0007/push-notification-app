@@ -242,7 +242,7 @@ export async function POST(request) {
   } catch (error) {
     console.error('Failed to create campaign:', error)
     return NextResponse.json(
-      { error: 'Failed to create campaign' },
+      { error: 'Failed to create campaign', details: error.message },
       { status: 500 }
     )
   }
