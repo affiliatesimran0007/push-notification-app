@@ -434,10 +434,44 @@
           this.closeBotCheck();
           console.log('Push notifications were blocked');
         }
+      } else if (event.data.type === 'request-permission-firefox') {
+        // Firefox/Edge in iframe needs permission requested from parent window
+        console.log('Firefox/Edge permission request received from iframe');
+        this.handleFirefoxEdgePermission(event.data);
       }
     },
     
-    
+    handleFirefoxEdgePermission: async function(data) {
+      try {
+        // Request permission in parent window (not iframe)
+        console.log('Requesting permission in parent window for Firefox/Edge');
+        const permission = await Notification.requestPermission();
+        console.log('Parent window permission result:', permission);
+        
+        if (permission === 'granted') {
+          // Close the iframe overlay
+          this.closeBotCheck();
+          
+          // Register subscription
+          await this.registerPushSubscription({
+            browserInfo: data.browserInfo,
+            location: data.location
+          });
+        } else {
+          // Permission denied or dismissed
+          this.closeBotCheck();
+          console.log('Permission denied by user');
+          
+          // Handle redirect if configured
+          if (this.config.redirects && this.config.redirects.enabled && this.config.redirects.onBlock) {
+            window.location.href = this.config.redirects.onBlock;
+          }
+        }
+      } catch (error) {
+        console.error('Error handling Firefox/Edge permission:', error);
+        this.closeBotCheck();
+      }
+    },
     
     registerPushSubscription: async function(data) {
       try {

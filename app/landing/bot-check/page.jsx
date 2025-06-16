@@ -202,6 +202,22 @@ export default function BotCheckPage() {
     e.preventDefault()
     e.stopPropagation()
     
+    // If embedded in iframe, we need to handle differently for Firefox/Edge
+    if (window.isEmbedded && window.parent !== window) {
+      console.log('Embedded mode detected - sending message to parent for Firefox/Edge')
+      // Send message to parent to handle permission request
+      window.parent.postMessage({
+        type: 'request-permission-firefox',
+        browserInfo: clientInfo,
+        location: {
+          country: 'United States',
+          city: 'New York',
+          ip: ipAddress
+        }
+      }, '*')
+      return
+    }
+    
     try {
       // Check if Notification API is available
       if (!('Notification' in window)) {
