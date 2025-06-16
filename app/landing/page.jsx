@@ -215,7 +215,7 @@ export default function LandingPage() {
   
   // Load push notification widget
   const script = document.createElement('script');
-  script.src = window.PUSH_CONFIG.appUrl + '/js/push-widget.js';
+  script.src = window.PUSH_CONFIG.appUrl + '/js/push-widget.js?v=' + Date.now();
   script.async = true;
   script.onload = function() {
     console.log('Push notification widget loaded for ${landing.name}');
