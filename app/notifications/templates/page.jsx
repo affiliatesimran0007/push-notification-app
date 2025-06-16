@@ -18,6 +18,7 @@ export default function PushTemplates() {
     category: '',
     title: '',
     message: '',
+    url: '',
     icon: '',
     iconType: 'url' // 'url' or 'emoji'
   })
@@ -100,6 +101,7 @@ export default function PushTemplates() {
           category: newTemplate.category,
           title: newTemplate.title,
           message: newTemplate.message,
+          url: newTemplate.url || '',
           icon: newTemplate.icon && newTemplate.icon.trim() !== '' ? newTemplate.icon : '',
           sound: 'default',
           requireInteraction: false
@@ -121,6 +123,7 @@ export default function PushTemplates() {
             category: '',
             title: '',
             message: '',
+            url: '',
             icon: '',
             iconType: 'url'
           })
@@ -488,6 +491,19 @@ export default function PushTemplates() {
               </Form.Group>
 
               <Form.Group className="mb-3">
+                <Form.Label>Click URL</Form.Label>
+                <Form.Control
+                  type="url"
+                  placeholder="https://example.com (URL to open when notification is clicked)"
+                  value={newTemplate.url}
+                  onChange={(e) => setNewTemplate({...newTemplate, url: e.target.value})}
+                />
+                <Form.Text className="text-muted">
+                  Leave empty to use default landing page URL
+                </Form.Text>
+              </Form.Group>
+
+              <Form.Group className="mb-3">
                 <Form.Label>Icon</Form.Label>
                 <div className="mb-2">
                   <Form.Check
@@ -679,6 +695,19 @@ export default function PushTemplates() {
                 />
                 <Form.Text className="text-muted">
                   {editingTemplate.message.length}/200 characters
+                </Form.Text>
+              </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label>Click URL</Form.Label>
+                <Form.Control
+                  type="url"
+                  placeholder="https://example.com (URL to open when notification is clicked)"
+                  value={editingTemplate.url || ''}
+                  onChange={(e) => setEditingTemplate({...editingTemplate, url: e.target.value})}
+                />
+                <Form.Text className="text-muted">
+                  Leave empty to use default landing page URL
                 </Form.Text>
               </Form.Group>
 
