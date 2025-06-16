@@ -352,7 +352,9 @@ export default function BotCheckPage() {
             console.warn('Push notifications not available on this domain');
             // Just redirect without creating fake subscription
             if (allowRedirect) {
-              window.location.href = allowRedirect;
+              console.log('Would redirect (DISABLED FOR DEBUG):', allowRedirect);
+              // DISABLED FOR DEBUG
+              // window.location.href = allowRedirect;
             }
             return;
           }
@@ -406,10 +408,12 @@ export default function BotCheckPage() {
         
         // Only redirect if not embedded
         if (!window.isEmbedded) {
-          const redirectUrl = new URL(allowRedirect || subscribedUrl || '/')
-          redirectUrl.searchParams.set('push-subscribed', 'true')
-          redirectUrl.searchParams.set('push-landing-id', landingId)
-          window.location.href = redirectUrl.toString()
+          console.log('Would redirect to (DISABLED FOR DEBUG):', allowRedirect || subscribedUrl || '/')
+          // DISABLED FOR DEBUG
+          // const redirectUrl = new URL(allowRedirect || subscribedUrl || '/')
+          // redirectUrl.searchParams.set('push-subscribed', 'true')
+          // redirectUrl.searchParams.set('push-landing-id', landingId)
+          // window.location.href = redirectUrl.toString()
         }
       } else if (permission === 'denied') {
         // Don't show alert, just update the UI
@@ -420,9 +424,11 @@ export default function BotCheckPage() {
       } else if (permission === 'default') {
         // User dismissed the prompt without choosing
         console.log('User dismissed the notification prompt')
-        setTimeout(() => {
-          window.location.href = '/landing'
-        }, 2000)
+        console.log('Would redirect to /landing after 2s (DISABLED FOR DEBUG)')
+        // DISABLED FOR DEBUG
+        // setTimeout(() => {
+        //   window.location.href = '/landing'
+        // }, 2000)
       }
     } catch (error) {
       console.error('Error requesting permission:', error)
@@ -506,7 +512,9 @@ export default function BotCheckPage() {
     
     // Only redirect if not embedded
     if (!window.isEmbedded) {
-      window.location.href = blockRedirect || subscribedUrl || '/'
+      console.log('Would redirect to blocked page (DISABLED FOR DEBUG):', blockRedirect || subscribedUrl || '/')
+      // DISABLED FOR DEBUG
+      // window.location.href = blockRedirect || subscribedUrl || '/'
     }
   }
 
