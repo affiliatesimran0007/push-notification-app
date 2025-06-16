@@ -56,8 +56,19 @@ export async function POST(request) {
     })
     
     if (!adminUser) {
+      // Try to find any user for debugging
+      const userCount = await prisma.user.count()
+      console.error('Admin user not found. Total users in database:', userCount)
+      console.error('DATABASE_URL:', process.env.DATABASE_URL?.substring(0, 50) + '...')
+      
       return NextResponse.json(
-        { error: 'Admin user not found. Please run database seed.' },
+        { 
+          error: 'Admin user not found. Please run database seed.',
+          debug: {
+            userCount,
+            dbUrl: process.env.DATABASE_URL?.substring(0, 50) + '...'
+          }
+        },
         { status: 500 }
       )
     }
