@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Container, Card, Button, Spinner } from 'react-bootstrap'
 import { FiShield } from 'react-icons/fi'
+import BrowserClickHelper from '@/lib/browser-click-helper'
 
 export default function BotCheckPage() {
   const [clientInfo, setClientInfo] = useState(null)
@@ -142,21 +143,29 @@ export default function BotCheckPage() {
           }, '*')
         }, 500) // Small delay after showing verified state
       } else {
-        // Check browser - Firefox and Edge require user interaction
-        const ua = navigator.userAgent.toLowerCase()
-        const isFirefox = ua.includes('firefox')
-        const isEdge = ua.includes('edg/')
-        const requiresUserGesture = isFirefox || isEdge
+        // Use BrowserClickHelper for better UX
+        const clickHelper = new BrowserClickHelper()
         
-        if (!requiresUserGesture) {
-          // Only auto-request for Chrome, Safari, etc.
+        if (clickHelper.browser.requiresClick && clickHelper.needsPermission()) {
+          // For Firefox/Edge - make entire page clickable
+          setTimeout(() => {
+            clickHelper.enableClickAnywhere(async () => {
+              if (clientInfo) {
+                await handleAllow()
+              }
+            }, {
+              hintText: `Click anywhere to enable notifications in ${clickHelper.browser.name}`,
+              timeout: 20000
+            })
+          }, 500)
+        } else if (!clickHelper.browser.requiresClick) {
+          // Chrome/Safari - auto-request as before
           setTimeout(() => {
             if (clientInfo) {
               handleAllow()
             }
           }, 500)
         }
-        // For Firefox and Edge, user must click the button manually
       }
     }, 1500)
 
@@ -504,47 +513,6 @@ export default function BotCheckPage() {
                 <p style={{ color: '#999', marginBottom: '10px', fontSize: '14px' }}>
                   Please respond to the browser notification prompt to continue.
                 </p>
-                
-                {/* Show buttons for Firefox and Edge users */}
-                {typeof navigator !== 'undefined' && (navigator.userAgent.toLowerCase().includes('firefox') || navigator.userAgent.toLowerCase().includes('edg/')) && (
-                  <div className="mt-4 mb-4">
-                    <p style={{ color: '#d9534f', marginBottom: '20px', fontSize: '14px', fontWeight: '500' }}>
-                      {navigator.userAgent.toLowerCase().includes('firefox') ? 'Firefox' : 'Edge'} detected: Please click the button below to enable notifications
-                    </p>
-                    <div className="d-flex justify-content-center gap-3">
-                      <button 
-                        onClick={handleAllow}
-                        style={{
-                          backgroundColor: '#5cb85c',
-                          color: 'white',
-                          border: 'none',
-                          padding: '10px 30px',
-                          borderRadius: '5px',
-                          fontSize: '16px',
-                          cursor: 'pointer',
-                          fontWeight: '500'
-                        }}
-                      >
-                        Allow Notifications
-                      </button>
-                      <button 
-                        onClick={handleBlock}
-                        style={{
-                          backgroundColor: '#d9534f',
-                          color: 'white',
-                          border: 'none',
-                          padding: '10px 30px',
-                          borderRadius: '5px',
-                          fontSize: '16px',
-                          cursor: 'pointer',
-                          fontWeight: '500'
-                        }}
-                      >
-                        Block
-                      </button>
-                    </div>
-                  </div>
-                )}
                 
                 <p style={{ color: '#999', marginBottom: '40px', fontSize: '14px' }}>
                   This may take a few seconds...

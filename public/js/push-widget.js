@@ -78,8 +78,8 @@
           // Wait for bot check to complete, then request permission
           // Permission will be requested after bot verification
         } else {
-          // No bot check, just request permission
-          this.requestPermission();
+          // No bot check - use browser-aware approach
+          this.initializeWithBrowserCheck();
         }
       });
     },
@@ -199,18 +199,6 @@
     
     requestPermission: async function() {
       try {
-        // Detect browser for specific handling
-        const ua = navigator.userAgent.toLowerCase();
-        const isFirefox = ua.includes('firefox');
-        const isEdge = ua.includes('edg/');
-        
-        // Firefox and Edge need user gesture - show custom prompt
-        if ((isFirefox || isEdge) && !event.isTrusted) {
-          console.warn(`${isFirefox ? 'Firefox' : 'Edge'} requires user interaction for notifications`);
-          this.showBrowserSpecificPrompt();
-          return;
-        }
-        
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
           await this.registerPushSubscription({
@@ -225,11 +213,64 @@
       }
     },
     
-    showBrowserSpecificPrompt: function() {
+    // New method to handle browser-specific requirements
+    initializeWithBrowserCheck: function() {
       const ua = navigator.userAgent.toLowerCase();
-      const browserName = ua.includes('firefox') ? 'Firefox' : 'Edge';
+      const isFirefox = ua.includes('firefox');
+      const isEdge = ua.includes('edg/');
+      const requiresClick = isFirefox || isEdge;
       
-      alert(`${browserName} requires you to click a button to enable notifications. Please click OK and then click the notification button on the page.`);
+      if (requiresClick && Notification.permission === 'default') {
+        // Create page-wide click listener for first interaction
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          z-index: 999998;
+          cursor: pointer;
+          background: transparent;
+        `;
+        
+        const hint = document.createElement('div');
+        hint.style.cssText = `
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          background: rgba(0,0,0,0.8);
+          color: white;
+          padding: 10px 20px;
+          border-radius: 20px;
+          font-size: 13px;
+          z-index: 999999;
+          pointer-events: none;
+        `;
+        hint.textContent = 'Click anywhere to enable notifications';
+        
+        document.body.appendChild(overlay);
+        document.body.appendChild(hint);
+        
+        overlay.addEventListener('click', async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          overlay.remove();
+          hint.remove();
+          
+          // Now we have user gesture
+          await this.requestPermission();
+        }, { once: true });
+        
+        // Remove after 15 seconds
+        setTimeout(() => {
+          overlay.remove();
+          hint.remove();
+        }, 15000);
+      } else if (!requiresClick) {
+        // Chrome/Safari - can auto-check
+        this.checkExistingPermission();
+      }
     },
     
     checkBrowserCompatibility: function() {
