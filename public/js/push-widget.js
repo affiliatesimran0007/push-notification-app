@@ -199,6 +199,18 @@
     
     requestPermission: async function() {
       try {
+        // Detect browser for specific handling
+        const ua = navigator.userAgent.toLowerCase();
+        const isFirefox = ua.includes('firefox');
+        const isEdge = ua.includes('edg/');
+        
+        // Firefox and Edge need user gesture - show custom prompt
+        if ((isFirefox || isEdge) && !event.isTrusted) {
+          console.warn(`${isFirefox ? 'Firefox' : 'Edge'} requires user interaction for notifications`);
+          this.showBrowserSpecificPrompt();
+          return;
+        }
+        
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
           await this.registerPushSubscription({
@@ -211,6 +223,13 @@
       } catch (error) {
         console.error('Error requesting permission:', error);
       }
+    },
+    
+    showBrowserSpecificPrompt: function() {
+      const ua = navigator.userAgent.toLowerCase();
+      const browserName = ua.includes('firefox') ? 'Firefox' : 'Edge';
+      
+      alert(`${browserName} requires you to click a button to enable notifications. Please click OK and then click the notification button on the page.`);
     },
     
     checkBrowserCompatibility: function() {

@@ -117,6 +117,64 @@ export async function POST(request) {
   }
 }
 
+// PUT /api/templates - Update existing template
+export async function PUT(request) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const templateId = searchParams.get('id')
+    const body = await request.json()
+
+    if (!templateId) {
+      return NextResponse.json(
+        { error: 'Template ID required' },
+        { status: 400 }
+      )
+    }
+
+    if (!body.name || !body.title || !body.message || !body.category) {
+      return NextResponse.json(
+        { error: 'Name, category, title, and message are required' },
+        { status: 400 }
+      )
+    }
+
+    // Extract variables from title and message
+    const variablePattern = /\{\{(\w+)\}\}/g
+    const titleVars = [...(body.title.matchAll(variablePattern) || [])].map(m => m[1])
+    const messageVars = [...(body.message.matchAll(variablePattern) || [])].map(m => m[1])
+    const urlVars = body.url ? [...(body.url.matchAll(variablePattern) || [])].map(m => m[1]) : []
+    const allVars = [...new Set([...titleVars, ...messageVars, ...urlVars])]
+
+    const updatedTemplate = await prisma.template.update({
+      where: { id: templateId },
+      data: {
+        name: body.name,
+        category: body.category.toLowerCase(),
+        title: body.title,
+        message: body.message,
+        icon: body.icon || '/icon-192x192.png',
+        badge: body.badge || '/badge-72x72.png',
+        url: body.url || '/',
+        actions: body.actions || [],
+        sound: body.sound || 'default',
+        variables: allVars,
+        requireInteraction: body.requireInteraction || false
+      }
+    })
+
+    return NextResponse.json({
+      success: true,
+      template: updatedTemplate
+    })
+  } catch (error) {
+    console.error('Failed to update template:', error)
+    return NextResponse.json(
+      { error: 'Failed to update template', details: error.message },
+      { status: 500 }
+    )
+  }
+}
+
 // DELETE /api/templates/[id]
 export async function DELETE(request) {
   try {

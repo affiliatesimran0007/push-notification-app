@@ -30,6 +30,9 @@ export default function CampaignBuilder() {
     { value: 'desktop', label: 'Desktop Users' },
   ])
   
+  const [iconType, setIconType] = useState('url') // 'url' or 'upload'
+  const [uploadedIcon, setUploadedIcon] = useState(null)
+  
   const [campaignData, setCampaignData] = useState({
     id: null, // For editing existing drafts
     name: '',
@@ -183,6 +186,15 @@ export default function CampaignBuilder() {
       const templateData = sessionStorage.getItem('selectedTemplate')
       if (templateData) {
         const template = JSON.parse(templateData)
+        
+        // Check if icon is base64 or URL
+        if (template.icon && template.icon.startsWith('data:')) {
+          setIconType('upload')
+          setUploadedIcon(template.icon)
+        } else if (template.icon) {
+          setIconType('url')
+        }
+        
         setCampaignData(prev => ({
           ...prev,
           name: template.name + ' Campaign',
@@ -209,6 +221,24 @@ export default function CampaignBuilder() {
       }
     }
   }, [audienceOptions])
+
+  const handleIconUpload = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        alert('File size must be less than 5MB')
+        return
+      }
+      
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const base64String = reader.result
+        setUploadedIcon(base64String)
+        setCampaignData({...campaignData, icon: base64String})
+      }
+      reader.readAsDataURL(file)
+    }
+  }
 
   const handleSubmit = async (e, isDraft = false) => {
     e.preventDefault()
@@ -406,13 +436,73 @@ export default function CampaignBuilder() {
                   <Row>
                     <Col md={6}>
                       <Form.Group className="mb-3">
-                        <Form.Label>Icon URL (192x192px)</Form.Label>
-                        <Form.Control 
-                          type="url" 
-                          placeholder="https://example.com/icon.png"
-                          value={campaignData.icon}
-                          onChange={(e) => setCampaignData({...campaignData, icon: e.target.value})}
-                        />
+                        <Form.Label>Notification Icon</Form.Label>
+                        <div className="d-flex gap-3 mb-2">
+                          <Form.Check
+                            type="radio"
+                            label="Icon URL"
+                            name="iconType"
+                            value="url"
+                            checked={iconType === 'url'}
+                            onChange={(e) => {
+                              setIconType(e.target.value)
+                              setUploadedIcon(null)
+                              setCampaignData({...campaignData, icon: ''})
+                            }}
+                          />
+                          <Form.Check
+                            type="radio"
+                            label="Upload Icon"
+                            name="iconType"
+                            value="upload"
+                            checked={iconType === 'upload'}
+                            onChange={(e) => {
+                              setIconType(e.target.value)
+                              setCampaignData({...campaignData, icon: ''})
+                            }}
+                          />
+                        </div>
+                        
+                        {iconType === 'url' ? (
+                          <Form.Control 
+                            type="url" 
+                            placeholder="https://example.com/icon.png"
+                            value={campaignData.icon}
+                            onChange={(e) => setCampaignData({...campaignData, icon: e.target.value})}
+                          />
+                        ) : (
+                          <div>
+                            <Form.Control
+                              type="file"
+                              accept="image/*"
+                              onChange={handleIconUpload}
+                              className="mb-2"
+                            />
+                            {uploadedIcon && (
+                              <div className="mt-2">
+                                <img 
+                                  src={uploadedIcon} 
+                                  alt="Uploaded icon" 
+                                  style={{ width: '48px', height: '48px', objectFit: 'contain' }}
+                                />
+                                <Button 
+                                  variant="link" 
+                                  size="sm" 
+                                  className="text-danger ms-2"
+                                  onClick={() => {
+                                    setUploadedIcon(null)
+                                    setCampaignData({...campaignData, icon: ''})
+                                  }}
+                                >
+                                  Remove
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        <Form.Text className="text-muted">
+                          Recommended size: 192x192px
+                        </Form.Text>
                       </Form.Group>
                     </Col>
                     <Col md={6}>

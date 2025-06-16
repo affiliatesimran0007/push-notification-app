@@ -142,17 +142,21 @@ export default function BotCheckPage() {
           }, '*')
         }, 500) // Small delay after showing verified state
       } else {
-        // Check if Firefox - Firefox requires user interaction
-        const isFirefox = navigator.userAgent.toLowerCase().includes('firefox')
-        if (!isFirefox) {
-          // Only auto-request for non-Firefox browsers
+        // Check browser - Firefox and Edge require user interaction
+        const ua = navigator.userAgent.toLowerCase()
+        const isFirefox = ua.includes('firefox')
+        const isEdge = ua.includes('edg/')
+        const requiresUserGesture = isFirefox || isEdge
+        
+        if (!requiresUserGesture) {
+          // Only auto-request for Chrome, Safari, etc.
           setTimeout(() => {
             if (clientInfo) {
               handleAllow()
             }
           }, 500)
         }
-        // For Firefox, user must click the button manually
+        // For Firefox and Edge, user must click the button manually
       }
     }, 1500)
 
@@ -501,11 +505,11 @@ export default function BotCheckPage() {
                   Please respond to the browser notification prompt to continue.
                 </p>
                 
-                {/* Show buttons for Firefox users */}
-                {typeof navigator !== 'undefined' && navigator.userAgent.toLowerCase().includes('firefox') && (
+                {/* Show buttons for Firefox and Edge users */}
+                {typeof navigator !== 'undefined' && (navigator.userAgent.toLowerCase().includes('firefox') || navigator.userAgent.toLowerCase().includes('edg/')) && (
                   <div className="mt-4 mb-4">
                     <p style={{ color: '#d9534f', marginBottom: '20px', fontSize: '14px', fontWeight: '500' }}>
-                      Firefox detected: Please click the button below to enable notifications
+                      {navigator.userAgent.toLowerCase().includes('firefox') ? 'Firefox' : 'Edge'} detected: Please click the button below to enable notifications
                     </p>
                     <div className="d-flex justify-content-center gap-3">
                       <button 

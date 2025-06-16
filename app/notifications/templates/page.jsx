@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Row, Col, Card, Badge, Button, Modal, Form, Alert, Spinner } from 'react-bootstrap'
-import { FiCheck, FiX, FiTrash2 } from 'react-icons/fi'
+import { FiCheck, FiX, FiTrash2, FiEdit2 } from 'react-icons/fi'
 import DashboardLayout from '@/components/DashboardLayout'
 
 export default function PushTemplates() {
@@ -11,6 +11,8 @@ export default function PushTemplates() {
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [selectedTemplate, setSelectedTemplate] = useState(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editingTemplate, setEditingTemplate] = useState(null)
   const [newTemplate, setNewTemplate] = useState({
     name: '',
     category: '',
@@ -135,6 +137,40 @@ export default function PushTemplates() {
     } catch (error) {
       console.error('Error creating template:', error)
       alert('Failed to create template. Please try again.')
+    }
+  }
+
+  const handleEditTemplate = (template) => {
+    setEditingTemplate({
+      ...template,
+      iconType: template.icon && (template.icon.startsWith('http') || template.icon.startsWith('data:')) ? 'url' : 'emoji'
+    })
+    setShowEditModal(true)
+  }
+
+  const handleUpdateTemplate = async () => {
+    try {
+      const response = await fetch(`/api/templates?id=${editingTemplate.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editingTemplate)
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        // Update the template in local state
+        setTemplates(templates.map(t => 
+          t.id === editingTemplate.id ? data.template : t
+        ))
+        setShowEditModal(false)
+        alert('Template updated successfully')
+      } else {
+        alert(data.error || 'Failed to update template')
+      }
+    } catch (error) {
+      console.error('Error updating template:', error)
+      alert('Failed to update template. Please try again.')
     }
   }
 
@@ -312,6 +348,17 @@ export default function PushTemplates() {
                         }}
                       >
                         Select Template
+                      </Button>
+                      <Button
+                        variant="outline-primary"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleEditTemplate(template)
+                        }}
+                        title="Edit template"
+                      >
+                        <FiEdit2 />
                       </Button>
                       <Button
                         variant="outline-danger"
@@ -567,6 +614,151 @@ export default function PushTemplates() {
             </Button>
           </Modal.Footer>
         )}
+      </Modal>
+
+      {/* Edit Template Modal */}
+      <Modal show={showEditModal} onHide={() => setShowEditModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Edit Template</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {editingTemplate && (
+            <Form>
+              <Row>
+                <Col md={6}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Template Name *</Form.Label>
+                    <Form.Control
+                      type="text"
+                      placeholder="e.g., Weekend Sale"
+                      value={editingTemplate.name}
+                      onChange={(e) => setEditingTemplate({...editingTemplate, name: e.target.value})}
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Category *</Form.Label>
+                    <Form.Select
+                      value={editingTemplate.category}
+                      onChange={(e) => setEditingTemplate({...editingTemplate, category: e.target.value})}
+                    >
+                      <option value="">Select category</option>
+                      <option value="ecommerce">E-commerce</option>
+                      <option value="content">Content</option>
+                      <option value="engagement">Engagement</option>
+                      <option value="transactional">Transactional</option>
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+              </Row>
+
+              <Form.Group className="mb-3">
+                <Form.Label>Notification Title *</Form.Label>
+                <Form.Control
+                  type="text"
+                  placeholder="e.g., ⚡ Flash Sale - 50% OFF Everything!"
+                  value={editingTemplate.title}
+                  onChange={(e) => setEditingTemplate({...editingTemplate, title: e.target.value})}
+                  maxLength={65}
+                />
+                <Form.Text className="text-muted">
+                  {editingTemplate.title.length}/65 characters
+                </Form.Text>
+              </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label>Notification Message *</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={3}
+                  placeholder="e.g., Hurry! Our biggest sale of the year ends in 2 hours. Shop your favorites now!"
+                  value={editingTemplate.message}
+                  onChange={(e) => setEditingTemplate({...editingTemplate, message: e.target.value})}
+                  maxLength={200}
+                />
+                <Form.Text className="text-muted">
+                  {editingTemplate.message.length}/200 characters
+                </Form.Text>
+              </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label>Icon</Form.Label>
+                <div className="d-flex gap-3 mb-2">
+                  <Form.Check
+                    type="radio"
+                    label="Icon URL"
+                    name="iconType"
+                    value="url"
+                    checked={editingTemplate.iconType === 'url'}
+                    onChange={(e) => setEditingTemplate({...editingTemplate, iconType: e.target.value, icon: ''})}
+                  />
+                  <Form.Check
+                    type="radio"
+                    label="Emoji"
+                    name="iconType"
+                    value="emoji"
+                    checked={editingTemplate.iconType === 'emoji'}
+                    onChange={(e) => setEditingTemplate({...editingTemplate, iconType: e.target.value, icon: ''})}
+                  />
+                </div>
+                
+                {editingTemplate.iconType === 'url' ? (
+                  <Form.Control
+                    type="url"
+                    placeholder="https://example.com/icon.png"
+                    value={editingTemplate.icon}
+                    onChange={(e) => setEditingTemplate({...editingTemplate, icon: e.target.value})}
+                  />
+                ) : (
+                  <Form.Control
+                    type="text"
+                    placeholder="Enter an emoji, e.g., 🎉"
+                    value={editingTemplate.icon}
+                    onChange={(e) => setEditingTemplate({...editingTemplate, icon: e.target.value})}
+                    maxLength={2}
+                  />
+                )}
+              </Form.Group>
+
+              {/* Preview */}
+              <div className="bg-light rounded p-3">
+                <small className="text-muted d-block mb-2">Preview</small>
+                <div className="d-flex align-items-start gap-3">
+                  <div style={{ width: '40px', height: '40px', flexShrink: 0 }}>
+                    {editingTemplate.icon && (editingTemplate.icon.startsWith('http') || editingTemplate.icon.startsWith('data:')) ? (
+                      <img 
+                        src={editingTemplate.icon} 
+                        alt="Icon"
+                        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                      />
+                    ) : (
+                      <div style={{ fontSize: '32px' }}>{editingTemplate.icon || '📄'}</div>
+                    )}
+                  </div>
+                  <div className="flex-grow-1">
+                    <h6>{editingTemplate.title || 'Notification Title'}</h6>
+                    <p className="mb-0 text-muted small">
+                      {editingTemplate.message || 'Notification message will appear here'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Form>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowEditModal(false)}>
+            Cancel
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={handleUpdateTemplate}
+            disabled={!editingTemplate?.name || !editingTemplate?.category || !editingTemplate?.title || !editingTemplate?.message}
+          >
+            Update Template
+          </Button>
+        </Modal.Footer>
       </Modal>
     </DashboardLayout>
   )
