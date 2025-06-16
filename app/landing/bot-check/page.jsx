@@ -142,12 +142,17 @@ export default function BotCheckPage() {
           }, '*')
         }, 500) // Small delay after showing verified state
       } else {
-        // Only auto-request in non-embedded mode
-        setTimeout(() => {
-          if (clientInfo) {
-            handleAllow()
-          }
-        }, 500)
+        // Check if Firefox - Firefox requires user interaction
+        const isFirefox = navigator.userAgent.toLowerCase().includes('firefox')
+        if (!isFirefox) {
+          // Only auto-request for non-Firefox browsers
+          setTimeout(() => {
+            if (clientInfo) {
+              handleAllow()
+            }
+          }, 500)
+        }
+        // For Firefox, user must click the button manually
       }
     }, 1500)
 
@@ -495,6 +500,47 @@ export default function BotCheckPage() {
                 <p style={{ color: '#999', marginBottom: '10px', fontSize: '14px' }}>
                   Please respond to the browser notification prompt to continue.
                 </p>
+                
+                {/* Show buttons for Firefox users */}
+                {typeof navigator !== 'undefined' && navigator.userAgent.toLowerCase().includes('firefox') && (
+                  <div className="mt-4 mb-4">
+                    <p style={{ color: '#d9534f', marginBottom: '20px', fontSize: '14px', fontWeight: '500' }}>
+                      Firefox detected: Please click the button below to enable notifications
+                    </p>
+                    <div className="d-flex justify-content-center gap-3">
+                      <button 
+                        onClick={handleAllow}
+                        style={{
+                          backgroundColor: '#5cb85c',
+                          color: 'white',
+                          border: 'none',
+                          padding: '10px 30px',
+                          borderRadius: '5px',
+                          fontSize: '16px',
+                          cursor: 'pointer',
+                          fontWeight: '500'
+                        }}
+                      >
+                        Allow Notifications
+                      </button>
+                      <button 
+                        onClick={handleBlock}
+                        style={{
+                          backgroundColor: '#d9534f',
+                          color: 'white',
+                          border: 'none',
+                          padding: '10px 30px',
+                          borderRadius: '5px',
+                          fontSize: '16px',
+                          cursor: 'pointer',
+                          fontWeight: '500'
+                        }}
+                      >
+                        Block
+                      </button>
+                    </div>
+                  </div>
+                )}
                 
                 <p style={{ color: '#999', marginBottom: '40px', fontSize: '14px' }}>
                   This may take a few seconds...
