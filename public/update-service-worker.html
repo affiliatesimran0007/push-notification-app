@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Service Worker</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        .warning { background: #fff3cd; color: #856404; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        pre {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            background: #f9f9f9;
+            border-left: 3px solid #007bff;
+        }
+    </style>
+</head>
+<body>
+    <h1>Service Worker Update Tool</h1>
+    
+    <div id="status"></div>
+    
+    <h2>Current Service Worker Status</h2>
+    <div id="sw-info"></div>
+    
+    <h2>Actions</h2>
+    <button onclick="checkServiceWorker()">Check Service Worker</button>
+    <button onclick="updateServiceWorker()">Force Update</button>
+    <button onclick="unregisterServiceWorker()">Unregister All</button>
+    <button onclick="downloadLatestSW()">Download Latest push-sw.js</button>
+    
+    <h2>Logs</h2>
+    <div id="logs"></div>
+    
+    <h2>Instructions</h2>
+    <ol>
+        <li>Click "Check Service Worker" to see current status</li>
+        <li>Click "Force Update" to update to the latest version</li>
+        <li>If issues persist, click "Unregister All" and re-subscribe</li>
+        <li>Make sure your domain hosts the latest push-sw.js at the root</li>
+    </ol>
+
+    <script>
+        const logContainer = document.getElementById('logs');
+        const statusContainer = document.getElementById('status');
+        const swInfoContainer = document.getElementById('sw-info');
+        
+        function log(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            entry.style.borderColor = type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : '#007bff';
+            logContainer.insertBefore(entry, logContainer.firstChild);
+        }
+        
+        function setStatus(message, type = 'info') {
+            statusContainer.className = `status ${type}`;
+            statusContainer.textContent = message;
+        }
+        
+        async function checkServiceWorker() {
+            log('Checking service worker status...');
+            
+            if (!('serviceWorker' in navigator)) {
+                setStatus('Service Workers not supported in this browser', 'error');
+                return;
+            }
+            
+            try {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                
+                if (registrations.length === 0) {
+                    setStatus('No service workers registered', 'warning');
+                    swInfoContainer.innerHTML = '<p>No service workers found</p>';
+                    return;
+                }
+                
+                let html = '<h3>Registered Service Workers:</h3>';
+                
+                for (const reg of registrations) {
+                    const sw = reg.active || reg.waiting || reg.installing;
+                    
+                    html += '<div style="margin: 10px 0; padding: 10px; background: #f4f4f4; border-radius: 5px;">';
+                    html += `<strong>Scope:</strong> ${reg.scope}<br>`;
+                    
+                    if (sw) {
+                        html += `<strong>Script URL:</strong> ${sw.scriptURL}<br>`;
+                        html += `<strong>State:</strong> ${sw.state}<br>`;
+                        
+                        // Try to get version from SW
+                        if (sw.scriptURL.includes('push-sw.js')) {
+                            html += '<strong>Type:</strong> Push Notification Service Worker<br>';
+                            
+                            // Check if it's the latest version by looking at the response
+                            try {
+                                const response = await fetch(sw.scriptURL);
+                                const text = await response.text();
+                                const versionMatch = text.match(/SW_VERSION\s*=\s*['"]([^'"]+)['"]/);
+                                if (versionMatch) {
+                                    html += `<strong>Version:</strong> ${versionMatch[1]}<br>`;
+                                    
+                                    // Check if it has trackingUrl support
+                                    if (text.includes('trackingUrl')) {
+                                        html += '<strong>Click Tracking:</strong> ✅ Supported<br>';
+                                    } else {
+                                        html += '<strong>Click Tracking:</strong> ❌ Not supported (needs update)<br>';
+                                    }
+                                }
+                            } catch (e) {
+                                log('Could not fetch service worker script', 'error');
+                            }
+                        }
+                    }
+                    
+                    html += '</div>';
+                }
+                
+                swInfoContainer.innerHTML = html;
+                setStatus('Service worker check complete', 'success');
+                log('Service worker check completed');
+                
+            } catch (error) {
+                setStatus(`Error: ${error.message}`, 'error');
+                log(`Error checking service worker: ${error.message}`, 'error');
+            }
+        }
+        
+        async function updateServiceWorker() {
+            log('Starting service worker update...');
+            
+            try {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                
+                for (const reg of registrations) {
+                    if (reg.active && reg.active.scriptURL.includes('push-sw.js')) {
+                        log(`Updating service worker at ${reg.scope}`);
+                        await reg.update();
+                        
+                        // Wait a bit for the update to process
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        
+                        // Check if there's a waiting worker
+                        if (reg.waiting) {
+                            log('New service worker is waiting, activating...');
+                            
+                            // Skip waiting
+                            reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                            
+                            // Reload to activate
+                            setStatus('Update complete! Reloading page...', 'success');
+                            setTimeout(() => window.location.reload(), 2000);
+                        } else if (reg.installing) {
+                            log('Service worker is installing...');
+                            setStatus('Service worker is updating, please wait...', 'info');
+                        } else {
+                            log('Service worker is already up to date');
+                            setStatus('Service worker is already up to date', 'info');
+                        }
+                    }
+                }
+                
+            } catch (error) {
+                setStatus(`Update failed: ${error.message}`, 'error');
+                log(`Error updating service worker: ${error.message}`, 'error');
+            }
+        }
+        
+        async function unregisterServiceWorker() {
+            if (!confirm('This will unregister all service workers. You will need to re-subscribe to notifications. Continue?')) {
+                return;
+            }
+            
+            log('Unregistering all service workers...');
+            
+            try {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                
+                for (const reg of registrations) {
+                    log(`Unregistering service worker at ${reg.scope}`);
+                    await reg.unregister();
+                }
+                
+                setStatus('All service workers unregistered. Reload the page to re-register.', 'success');
+                log('All service workers unregistered successfully', 'success');
+                
+                // Clear all caches
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    await Promise.all(cacheNames.map(name => caches.delete(name)));
+                    log('All caches cleared', 'success');
+                }
+                
+            } catch (error) {
+                setStatus(`Unregister failed: ${error.message}`, 'error');
+                log(`Error unregistering service workers: ${error.message}`, 'error');
+            }
+        }
+        
+        function downloadLatestSW() {
+            log('Downloading latest push-sw.js...');
+            
+            // Create a link to download the latest service worker
+            const link = document.createElement('a');
+            link.href = '/push-sw.js';
+            link.download = 'push-sw.js';
+            link.click();
+            
+            setStatus('Download started. Replace your existing push-sw.js with this file.', 'info');
+            log('Download initiated for latest push-sw.js');
+        }
+        
+        // Check on load
+        window.addEventListener('load', () => {
+            checkServiceWorker();
+        });
+        
+        // Listen for service worker updates
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                log('Service worker controller changed', 'success');
+                setStatus('Service worker updated! Reloading...', 'success');
+                setTimeout(() => window.location.reload(), 1000);
+            });
+        }
+    </script>
+</body>
+</html>

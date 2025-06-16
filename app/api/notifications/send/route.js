@@ -84,9 +84,12 @@ export async function POST(request) {
         data: {
           campaignId: notification.campaignId,
           clientId: sub.id,
+          notificationId: notification.notificationId || `notif-${Date.now()}-${sub.id}`,
           testMode
         }
       })
+      
+      console.log(`Sending notification to client ${sub.id} with trackingUrl:`, clientPayload.trackingUrl)
       
       const result = await webPushService.sendNotification(sub.subscription, clientPayload)
       return { ...result, clientId: sub.id }

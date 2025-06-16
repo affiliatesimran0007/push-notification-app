@@ -1,9 +1,9 @@
 // Push Notification Service Worker
 // This file should be hosted on YOUR domain at the root (e.g., https://yourdomain.com/push-sw.js)
 // It handles push notifications sent from the push notification platform
-// Version: 1.1.0 - Added tracking URL support
+// Version: 1.2.0 - Improved tracking URL support
 
-const SW_VERSION = 'v1.1.0';
+const SW_VERSION = 'v1.2.0';
 
 self.addEventListener('push', function(event) {
   console.log('[Service Worker] Push received at:', new Date().toISOString());
@@ -144,20 +144,38 @@ self.addEventListener('notificationclick', function(event) {
     }
   }
   
+  console.log('[Service Worker] Click data:', {
+    campaignId: data.campaignId,
+    clientId: data.clientId,
+    trackingUrl: data.trackingUrl,
+    action: event.action || 'default',
+    urlToOpen
+  });
+  
   // Track the click if tracking URL provided
   if (data.trackingUrl && data.clientId) {
+    console.log('[Service Worker] Sending click tracking to:', data.trackingUrl);
     // Fire and forget the tracking request
     fetch(data.trackingUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        event: 'notification_clicked',
         campaignId: data.campaignId,
         notificationId: data.notificationId,
         clientId: data.clientId,
         action: event.action || 'click',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        metadata: {
+          action: event.action || 'default',
+          url: urlToOpen
+        }
       })
+    }).then(response => {
+      console.log('[Service Worker] Click tracking response:', response.status);
     }).catch(err => console.error('[Service Worker] Failed to track click:', err));
+  } else {
+    console.warn('[Service Worker] Missing tracking data:', { trackingUrl: data.trackingUrl, clientId: data.clientId });
   }
   
   // Open the URL

@@ -10,6 +10,19 @@ export async function POST(request) {
   try {
     const body = await request.json()
     const { event, campaignId, clientId, timestamp, metadata } = body
+    
+    console.log('\n=== ANALYTICS TRACKING REQUEST ===')
+    console.log('Event:', event)
+    console.log('Campaign ID:', campaignId)
+    console.log('Client ID:', clientId)
+    console.log('Timestamp:', timestamp)
+    console.log('Metadata:', metadata)
+    console.log('Headers:', {
+      origin: request.headers.get('origin'),
+      referer: request.headers.get('referer'),
+      userAgent: request.headers.get('user-agent')
+    })
+    console.log('=================================\n')
 
     if (!event) {
       return NextResponse.json(
@@ -73,10 +86,18 @@ export async function POST(request) {
 
     console.log('Analytics event tracked:', analyticsEvent)
 
-    return NextResponse.json({
+    // Add CORS headers for cross-origin requests from service workers
+    const response = NextResponse.json({
       success: true,
       eventId: analyticsEvent.id
     })
+    
+    // Allow requests from any origin (service workers on customer domains)
+    response.headers.set('Access-Control-Allow-Origin', '*')
+    response.headers.set('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type')
+    
+    return response
   } catch (error) {
     console.error('Failed to track analytics:', error)
     return NextResponse.json(
@@ -84,6 +105,15 @@ export async function POST(request) {
       { status: 500 }
     )
   }
+}
+
+// OPTIONS /api/analytics/track - Handle CORS preflight
+export async function OPTIONS(request) {
+  const response = new NextResponse(null, { status: 200 })
+  response.headers.set('Access-Control-Allow-Origin', '*')
+  response.headers.set('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type')
+  return response
 }
 
 // GET /api/analytics/track - Get analytics events (for debugging)

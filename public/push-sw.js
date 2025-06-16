@@ -1,8 +1,8 @@
 // Push Notification Service Worker
 // Customers download and host this file on their domain
-// Version: 2.0.0 - Added click tracking
+// Version: 2.3.0 - Fixed click tracking with trackingUrl
 
-const SW_VERSION = 'v2.2.0';
+const SW_VERSION = 'v2.3.0';
 
 self.addEventListener('install', (event) => {
   console.log('[Service Worker] Installing...', SW_VERSION);
@@ -38,6 +38,7 @@ self.addEventListener('push', (event) => {
       campaignId: data.data?.campaignId || data.campaignId,
       clientId: data.data?.clientId || data.clientId,
       notificationId: data.data?.notificationId || data.notificationId,
+      trackingUrl: data.trackingUrl || data.data?.trackingUrl,
       actions: data.actions || []
     },
     actions: data.actions || [],
@@ -87,25 +88,44 @@ self.addEventListener('notificationclick', (event) => {
   
   const campaignId = data.campaignId;
   const clientId = data.clientId;
+  const trackingUrl = data.trackingUrl;
+  
+  console.log('[Service Worker] Click data:', {
+    campaignId,
+    clientId,
+    trackingUrl,
+    action: event.action || 'default',
+    url
+  });
   
   // Track click and open URL
   event.waitUntil(
     (async () => {
       try {
-        // Track the click
-        if (campaignId && clientId) {
-          await fetch(self.location.origin + '/api/notifications/track-click', {
+        // Track the click if tracking URL is provided
+        if (trackingUrl && campaignId && clientId) {
+          console.log('[Service Worker] Sending click tracking to:', trackingUrl);
+          const response = await fetch(trackingUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+              event: 'notification_clicked',
               campaignId: campaignId,
               clientId: clientId,
-              action: event.action || 'default'
+              action: event.action || 'click',
+              timestamp: new Date().toISOString(),
+              metadata: {
+                action: event.action || 'default',
+                url: url
+              }
             })
           });
+          console.log('[Service Worker] Click tracking response:', response.status);
+        } else {
+          console.warn('[Service Worker] Missing tracking data:', { trackingUrl, campaignId, clientId });
         }
       } catch (error) {
-        console.error('Failed to track click:', error);
+        console.error('[Service Worker] Failed to track click:', error);
       }
       
       // Always open the URL
