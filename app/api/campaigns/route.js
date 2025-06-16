@@ -127,7 +127,7 @@ export async function POST(request) {
       title: body.title || '',
       message: body.message || '',
       url: body.url || '',
-      icon: body.icon || '',
+      icon: body.icon || '/icon-192x192.png',
       badge: body.badge || '/badge-72x72.png',
       image: body.image || '',
       targetAudience: body.targetAudience || 'all',

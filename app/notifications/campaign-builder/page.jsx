@@ -282,7 +282,7 @@ export default function CampaignBuilder() {
         title: campaignData.title,
         message: campaignData.message,
         url: campaignData.url || '',
-        icon: campaignData.icon || '',
+        icon: campaignData.icon && campaignData.icon.trim() !== '' ? campaignData.icon : undefined,
         image: campaignData.image || '',
         targetAudience: campaignData.targetAudience?.value || 'all',
         targetBrowsers: campaignData.targetBrowsers,

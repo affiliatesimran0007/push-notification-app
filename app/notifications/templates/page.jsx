@@ -100,7 +100,7 @@ export default function PushTemplates() {
           category: newTemplate.category,
           title: newTemplate.title,
           message: newTemplate.message,
-          icon: newTemplate.icon || undefined,
+          icon: newTemplate.icon && newTemplate.icon.trim() !== '' ? newTemplate.icon : '',
           sound: 'default',
           requireInteraction: false
         })
