@@ -442,6 +442,8 @@
     },
     
     handleFirefoxEdgePermission: async function(data) {
+      const self = this;
+      
       try {
         // Request permission in parent window (not iframe)
         console.log('Requesting permission in parent window for Firefox/Edge');
@@ -470,31 +472,59 @@
           return;
         }
         
-        const permission = await Notification.requestPermission();
-        console.log('Parent window permission result:', permission);
+        console.log('About to request permission...');
+        console.log('Notification API available:', 'Notification' in window);
+        console.log('RequestPermission available:', typeof Notification.requestPermission);
+        
+        // Edge sometimes needs to be in a direct user gesture handler
+        // Create a promise that will be resolved when permission is granted/denied
+        const requestPermission = () => {
+          return new Promise((resolve) => {
+            // Try modern promise-based API first
+            if (Notification.requestPermission().then) {
+              Notification.requestPermission()
+                .then(permission => {
+                  console.log('Permission result (promise):', permission);
+                  resolve(permission);
+                })
+                .catch(err => {
+                  console.error('Permission error:', err);
+                  resolve('default');
+                });
+            } else {
+              // Fallback to callback-based API for older browsers
+              Notification.requestPermission((permission) => {
+                console.log('Permission result (callback):', permission);
+                resolve(permission);
+              });
+            }
+          });
+        };
+        
+        const permission = await requestPermission();
         
         if (permission === 'granted') {
           // Close the iframe overlay
-          this.closeBotCheck();
+          self.closeBotCheck();
           
           // Register subscription
-          await this.registerPushSubscription({
+          await self.registerPushSubscription({
             browserInfo: data.browserInfo,
             location: data.location
           });
         } else {
           // Permission denied or dismissed
-          this.closeBotCheck();
-          console.log('Permission denied by user');
+          self.closeBotCheck();
+          console.log('Permission denied or dismissed by user');
           
           // Handle redirect if configured
-          if (this.config.redirects && this.config.redirects.enabled && this.config.redirects.onBlock) {
-            window.location.href = this.config.redirects.onBlock;
+          if (self.config.redirects && self.config.redirects.enabled && self.config.redirects.onBlock) {
+            window.location.href = self.config.redirects.onBlock;
           }
         }
       } catch (error) {
         console.error('Error handling Firefox/Edge permission:', error);
-        this.closeBotCheck();
+        self.closeBotCheck();
       }
     },
     
