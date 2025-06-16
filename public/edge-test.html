@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edge Push Notification Test</title>
+    <link rel="manifest" href="/manifest.json">
+</head>
+<body>
+    <h1>Microsoft Edge Push Notification Test</h1>
+    <p>This page tests if Edge can show notification permission prompts.</p>
+    
+    <button id="testBtn" style="padding: 10px 20px; font-size: 16px;">
+        Test Notification Permission
+    </button>
+    
+    <div id="log" style="margin-top: 20px; padding: 10px; background: #f0f0f0; font-family: monospace; white-space: pre-line;"></div>
+    
+    <script>
+        const log = (msg) => {
+            console.log(msg);
+            document.getElementById('log').textContent += msg + '\n';
+        };
+        
+        document.getElementById('testBtn').addEventListener('click', async () => {
+            log('Button clicked');
+            log('Notification API available: ' + ('Notification' in window));
+            log('Current permission: ' + Notification.permission);
+            log('User Agent: ' + navigator.userAgent);
+            
+            try {
+                // Method 1: Direct call
+                log('\nMethod 1: Direct permission request...');
+                const permission = await Notification.requestPermission();
+                log('Result: ' + permission);
+            } catch (e) {
+                log('Error with method 1: ' + e.message);
+                
+                // Method 2: Callback
+                try {
+                    log('\nMethod 2: Callback-based request...');
+                    Notification.requestPermission((permission) => {
+                        log('Callback result: ' + permission);
+                    });
+                } catch (e2) {
+                    log('Error with method 2: ' + e2.message);
+                }
+            }
+        });
+        
+        // Auto-register service worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/push-sw.js').then(reg => {
+                log('Service worker registered');
+            }).catch(err => {
+                log('Service worker registration failed: ' + err.message);
+            });
+        }
+    </script>
+</body>
+</html>

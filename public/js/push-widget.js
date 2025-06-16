@@ -545,35 +545,62 @@
               }
             }
             
-            // Edge-specific: Try using the Notification API directly without async/await
+            // Edge-specific: Add a small delay after SW registration
+            console.log('Waiting for service worker to fully activate...');
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
             console.log('Requesting Edge permission...');
             console.log('Permission state before request:', Notification.permission);
             
-            // Use the callback-based approach for Edge
-            Notification.requestPermission(function(result) {
-              console.log('Edge permission callback result:', result);
-              permission = result;
+            // Try the simplest possible approach for Edge
+            try {
+              // Method 1: Try promise-based with explicit then
+              const permissionPromise = Notification.requestPermission();
+              console.log('Permission promise created');
               
-              // Handle the result immediately in the callback
-              if (result === 'granted') {
-                console.log('Permission granted, proceeding with subscription...');
-                self.registerPushSubscription({
-                  browserInfo: data.browserInfo,
-                  location: data.location
-                }).then(() => {
-                  console.log('Subscription completed');
-                }).catch(err => {
-                  console.error('Subscription failed:', err);
-                });
-              } else {
-                console.log('Permission denied or dismissed');
-                if (self.config.redirects && self.config.redirects.enabled && self.config.redirects.onBlock) {
-                  window.location.href = self.config.redirects.onBlock;
+              permissionPromise.then(function(result) {
+                console.log('Edge permission result (promise):', result);
+                
+                if (result === 'granted') {
+                  console.log('Permission granted, proceeding with subscription...');
+                  self.registerPushSubscription({
+                    browserInfo: data.browserInfo,
+                    location: data.location
+                  }).then(() => {
+                    console.log('Subscription completed');
+                  }).catch(err => {
+                    console.error('Subscription failed:', err);
+                  });
+                } else {
+                  console.log('Permission denied or dismissed');
+                  if (self.config.redirects && self.config.redirects.enabled && self.config.redirects.onBlock) {
+                    window.location.href = self.config.redirects.onBlock;
+                  }
                 }
-              }
-            });
+              }).catch(function(error) {
+                console.error('Permission promise rejected:', error);
+                
+                // Fallback: Try callback method
+                console.log('Trying callback method as fallback...');
+                Notification.requestPermission(function(result) {
+                  console.log('Edge permission callback result:', result);
+                  
+                  if (result === 'granted') {
+                    self.registerPushSubscription({
+                      browserInfo: data.browserInfo,
+                      location: data.location
+                    });
+                  } else if (self.config.redirects && self.config.redirects.enabled && self.config.redirects.onBlock) {
+                    window.location.href = self.config.redirects.onBlock;
+                  }
+                });
+              });
+            } catch (error) {
+              console.error('Edge permission error:', error);
+              alert('Edge notification permission failed. Please check your browser settings.');
+            }
             
-            // Return early since we're handling everything in the callback
+            // Return early since we're handling everything asynchronously
             return;
           } catch (error) {
             console.error('Edge permission error:', error);
