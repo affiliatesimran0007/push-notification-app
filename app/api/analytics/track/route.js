@@ -121,15 +121,6 @@ export async function POST(request) {
   }
 }
 
-// OPTIONS /api/analytics/track - Handle CORS preflight
-export async function OPTIONS(request) {
-  const response = new NextResponse(null, { status: 200 })
-  response.headers.set('Access-Control-Allow-Origin', '*')
-  response.headers.set('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type')
-  return response
-}
-
 // GET /api/analytics/track - Get analytics events (for debugging)
 export async function GET(request) {
   try {
