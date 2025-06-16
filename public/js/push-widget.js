@@ -484,43 +484,88 @@
         console.log('Notification API available:', 'Notification' in window);
         console.log('RequestPermission available:', typeof Notification.requestPermission);
         
-        // Edge sometimes needs to be in a direct user gesture handler
-        // Create a promise that will be resolved when permission is granted/denied
-        const requestPermission = () => {
-          return new Promise((resolve) => {
-            // Check if the modern promise-based API is available
-            try {
-              const permissionPromise = Notification.requestPermission();
-              
-              // Check if it returns a promise
-              if (permissionPromise && typeof permissionPromise.then === 'function') {
-                // Modern promise-based API
-                permissionPromise
-                  .then(permission => {
-                    console.log('Permission result (promise):', permission);
-                    resolve(permission);
-                  })
-                  .catch(err => {
-                    console.error('Permission error:', err);
-                    resolve('default');
-                  });
-              } else {
-                // Legacy - permission was returned directly
-                console.log('Permission result (direct):', permissionPromise);
-                resolve(permissionPromise);
-              }
-            } catch (error) {
-              // Fallback to callback-based API for older browsers
-              console.log('Using callback-based permission request');
-              Notification.requestPermission((permission) => {
-                console.log('Permission result (callback):', permission);
-                resolve(permission);
-              });
-            }
-          });
-        };
+        // Special handling for Edge
+        const isEdge = /edg/i.test(navigator.userAgent);
+        console.log('Is Edge browser:', isEdge);
         
-        const permission = await requestPermission();
+        let permission;
+        
+        if (isEdge) {
+          // Simplified approach for Edge - direct call with timeout
+          console.log('Using Edge-specific permission flow');
+          
+          try {
+            // Create a race between permission request and timeout
+            const permissionPromise = new Promise((resolve, reject) => {
+              // Direct call for Edge
+              const result = Notification.requestPermission((perm) => {
+                console.log('Edge permission callback result:', perm);
+                resolve(perm);
+              });
+              
+              // If it returns a promise (newer Edge versions)
+              if (result && typeof result.then === 'function') {
+                console.log('Edge returned a promise');
+                result.then(resolve).catch(reject);
+              } else if (typeof result === 'string') {
+                // If it returns a string directly (older Edge)
+                console.log('Edge returned permission directly:', result);
+                resolve(result);
+              }
+            });
+            
+            const timeoutPromise = new Promise((resolve) => {
+              setTimeout(() => {
+                console.log('Permission request timed out');
+                resolve('timeout');
+              }, 5000); // 5 second timeout
+            });
+            
+            permission = await Promise.race([permissionPromise, timeoutPromise]);
+            
+            if (permission === 'timeout') {
+              console.error('Edge permission request timed out');
+              permission = 'default';
+            }
+          } catch (error) {
+            console.error('Edge permission error:', error);
+            permission = 'default';
+          }
+        } else {
+          // Original flow for Firefox
+          const requestPermission = () => {
+            return new Promise((resolve) => {
+              try {
+                const permissionPromise = Notification.requestPermission();
+                
+                if (permissionPromise && typeof permissionPromise.then === 'function') {
+                  permissionPromise
+                    .then(permission => {
+                      console.log('Permission result (promise):', permission);
+                      resolve(permission);
+                    })
+                    .catch(err => {
+                      console.error('Permission error:', err);
+                      resolve('default');
+                    });
+                } else {
+                  console.log('Permission result (direct):', permissionPromise);
+                  resolve(permissionPromise);
+                }
+              } catch (error) {
+                console.log('Using callback-based permission request');
+                Notification.requestPermission((permission) => {
+                  console.log('Permission result (callback):', permission);
+                  resolve(permission);
+                });
+              }
+            });
+          };
+          
+          permission = await requestPermission();
+        }
+        
+        console.log('Final permission result:', permission);
         
         if (permission === 'granted') {
           // Close the iframe overlay
