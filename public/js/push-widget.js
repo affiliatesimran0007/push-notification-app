@@ -530,25 +530,50 @@
             const registrations = await navigator.serviceWorker.getRegistrations();
             console.log('Existing service workers:', registrations.length);
             
-            // Direct permission request without any wrappers
-            console.log('Requesting Edge permission directly...');
-            console.log('Permission state before request:', Notification.permission);
-            
-            permission = await Notification.requestPermission();
-            
-            console.log('Edge permission result:', permission);
-            
-            // If permission granted, register subscription
-            if (permission === 'granted') {
-              await self.registerPushSubscription({
-                browserInfo: data.browserInfo,
-                location: data.location
-              });
-            } else if (self.config.redirects && self.config.redirects.enabled && self.config.redirects.onBlock) {
-              window.location.href = self.config.redirects.onBlock;
+            // Edge might require service worker to be registered first
+            if (registrations.length === 0) {
+              console.log('No service worker found, registering push-sw.js first...');
+              try {
+                const swReg = await navigator.serviceWorker.register('/push-sw.js');
+                console.log('Service worker registered:', swReg);
+                await navigator.serviceWorker.ready;
+                console.log('Service worker is ready');
+              } catch (swError) {
+                console.error('Failed to register service worker:', swError);
+                alert('Please ensure push-sw.js is uploaded to your domain root');
+                return;
+              }
             }
             
-            // Early return for Edge since we already handled everything
+            // Edge-specific: Try using the Notification API directly without async/await
+            console.log('Requesting Edge permission...');
+            console.log('Permission state before request:', Notification.permission);
+            
+            // Use the callback-based approach for Edge
+            Notification.requestPermission(function(result) {
+              console.log('Edge permission callback result:', result);
+              permission = result;
+              
+              // Handle the result immediately in the callback
+              if (result === 'granted') {
+                console.log('Permission granted, proceeding with subscription...');
+                self.registerPushSubscription({
+                  browserInfo: data.browserInfo,
+                  location: data.location
+                }).then(() => {
+                  console.log('Subscription completed');
+                }).catch(err => {
+                  console.error('Subscription failed:', err);
+                });
+              } else {
+                console.log('Permission denied or dismissed');
+                if (self.config.redirects && self.config.redirects.enabled && self.config.redirects.onBlock) {
+                  window.location.href = self.config.redirects.onBlock;
+                }
+              }
+            });
+            
+            // Return early since we're handling everything in the callback
             return;
           } catch (error) {
             console.error('Edge permission error:', error);
