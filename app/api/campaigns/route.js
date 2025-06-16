@@ -165,7 +165,17 @@ export async function POST(request) {
         // Check if it's a landing page selection
         if (body.targetAudience.startsWith('landing:')) {
           const landingId = body.targetAudience.replace('landing:', '')
-          whereClause = { landingId }
+          // First find the landing page by its landingId
+          const landingPage = await prisma.landingPage.findUnique({
+            where: { landingId }
+          })
+          if (landingPage) {
+            // Then use the landing page's id to filter clients
+            whereClause = { landingPageId: landingPage.id }
+          } else {
+            console.error(`Landing page not found with landingId: ${landingId}`)
+            whereClause = { landingPageId: null } // This will return no clients
+          }
         } else {
           // Handle other segment types in the future
           whereClause = {}
@@ -175,6 +185,11 @@ export async function POST(request) {
       const clients = await prisma.client.findMany({
         where: whereClause,
         select: { id: true }
+      })
+      
+      console.log(`Found ${clients.length} clients for campaign targeting:`, {
+        targetAudience: body.targetAudience,
+        whereClause
       })
 
       if (clients.length > 0) {

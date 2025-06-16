@@ -49,7 +49,17 @@ export async function GET(request) {
         if (campaign.targetAudience !== 'all') {
           if (campaign.targetAudience.startsWith('landing:')) {
             const landingId = campaign.targetAudience.replace('landing:', '')
-            whereClause = { landingId }
+            // First find the landing page by its landingId
+            const landingPage = await prisma.landingPage.findUnique({
+              where: { landingId }
+            })
+            if (landingPage) {
+              // Then use the landing page's id to filter clients
+              whereClause = { landingPageId: landingPage.id }
+            } else {
+              console.error(`Landing page not found with landingId: ${landingId}`)
+              whereClause = { landingPageId: null } // This will return no clients
+            }
           }
         }
         
