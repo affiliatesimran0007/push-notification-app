@@ -494,6 +494,21 @@
           // Edge needs a very specific approach
           console.log('Using Edge-specific permission flow');
           
+          // Check Edge requirements first
+          console.log('Checking Edge requirements:');
+          console.log('- Protocol:', window.location.protocol);
+          console.log('- Service Worker support:', 'serviceWorker' in navigator);
+          console.log('- Push API support:', 'PushManager' in window);
+          console.log('- Current domain:', window.location.hostname);
+          
+          // Check if we're on HTTPS (required for notifications)
+          if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+            console.error('Edge requires HTTPS for notifications');
+            self.closeBotCheck();
+            alert('Push notifications require HTTPS. Please ensure your site uses HTTPS.');
+            return;
+          }
+          
           // For Edge, we need to close the iframe first and request permission on the parent page
           console.log('Closing iframe for Edge permission request');
           self.closeBotCheck();
@@ -502,9 +517,17 @@
           await new Promise(resolve => setTimeout(resolve, 100));
           
           try {
+            // Check if service worker is already registered
+            console.log('Checking service worker registration...');
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            console.log('Existing service workers:', registrations.length);
+            
             // Direct permission request without any wrappers
             console.log('Requesting Edge permission directly...');
+            console.log('Permission state before request:', Notification.permission);
+            
             permission = await Notification.requestPermission();
+            
             console.log('Edge permission result:', permission);
             
             // If permission granted, register subscription
@@ -521,32 +544,26 @@
             return;
           } catch (error) {
             console.error('Edge permission error:', error);
+            console.error('Error name:', error.name);
+            console.error('Error message:', error.message);
+            console.error('Error stack:', error.stack);
+            
+            // Check for specific Edge errors
+            if (error.name === 'NotAllowedError') {
+              console.error('Edge: Permission request was not triggered by user gesture or was blocked by browser settings');
+              alert('Please check your Edge browser settings and ensure notifications are not blocked for this site.');
+            } else if (error.name === 'SecurityError') {
+              console.error('Edge: Security error - possibly due to iframe or cross-origin issues');
+            }
+            
             permission = 'default';
             
-            // Try callback approach as fallback
-            try {
-              console.log('Trying Edge callback approach...');
-              Notification.requestPermission(function(perm) {
-                console.log('Edge callback permission:', perm);
-                permission = perm;
-                
-                if (permission === 'granted') {
-                  self.registerPushSubscription({
-                    browserInfo: data.browserInfo,
-                    location: data.location
-                  });
-                } else if (self.config.redirects && self.config.redirects.enabled && self.config.redirects.onBlock) {
-                  window.location.href = self.config.redirects.onBlock;
-                }
-              });
-              return;
-            } catch (callbackError) {
-              console.error('Edge callback error:', callbackError);
-              if (self.config.redirects && self.config.redirects.enabled && self.config.redirects.onBlock) {
-                window.location.href = self.config.redirects.onBlock;
-              }
-              return;
+            // Try simpler approach - just redirect for Edge
+            console.log('Edge permission failed, handling redirect...');
+            if (self.config.redirects && self.config.redirects.enabled && self.config.redirects.onBlock) {
+              window.location.href = self.config.redirects.onBlock;
             }
+            return;
           }
         } else {
           // Original flow for Firefox
