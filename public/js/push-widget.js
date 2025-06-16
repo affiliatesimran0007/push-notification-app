@@ -491,45 +491,62 @@
         let permission;
         
         if (isEdge) {
-          // Simplified approach for Edge - direct call with timeout
+          // Edge needs a very specific approach
           console.log('Using Edge-specific permission flow');
           
+          // For Edge, we need to close the iframe first and request permission on the parent page
+          console.log('Closing iframe for Edge permission request');
+          self.closeBotCheck();
+          
+          // Small delay to ensure iframe is closed
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
           try {
-            // Create a race between permission request and timeout
-            const permissionPromise = new Promise((resolve, reject) => {
-              // Direct call for Edge
-              const result = Notification.requestPermission((perm) => {
-                console.log('Edge permission callback result:', perm);
-                resolve(perm);
+            // Direct permission request without any wrappers
+            console.log('Requesting Edge permission directly...');
+            permission = await Notification.requestPermission();
+            console.log('Edge permission result:', permission);
+            
+            // If permission granted, register subscription
+            if (permission === 'granted') {
+              await self.registerPushSubscription({
+                browserInfo: data.browserInfo,
+                location: data.location
               });
-              
-              // If it returns a promise (newer Edge versions)
-              if (result && typeof result.then === 'function') {
-                console.log('Edge returned a promise');
-                result.then(resolve).catch(reject);
-              } else if (typeof result === 'string') {
-                // If it returns a string directly (older Edge)
-                console.log('Edge returned permission directly:', result);
-                resolve(result);
-              }
-            });
-            
-            const timeoutPromise = new Promise((resolve) => {
-              setTimeout(() => {
-                console.log('Permission request timed out');
-                resolve('timeout');
-              }, 5000); // 5 second timeout
-            });
-            
-            permission = await Promise.race([permissionPromise, timeoutPromise]);
-            
-            if (permission === 'timeout') {
-              console.error('Edge permission request timed out');
-              permission = 'default';
+            } else if (self.config.redirects && self.config.redirects.enabled && self.config.redirects.onBlock) {
+              window.location.href = self.config.redirects.onBlock;
             }
+            
+            // Early return for Edge since we already handled everything
+            return;
           } catch (error) {
             console.error('Edge permission error:', error);
             permission = 'default';
+            
+            // Try callback approach as fallback
+            try {
+              console.log('Trying Edge callback approach...');
+              Notification.requestPermission(function(perm) {
+                console.log('Edge callback permission:', perm);
+                permission = perm;
+                
+                if (permission === 'granted') {
+                  self.registerPushSubscription({
+                    browserInfo: data.browserInfo,
+                    location: data.location
+                  });
+                } else if (self.config.redirects && self.config.redirects.enabled && self.config.redirects.onBlock) {
+                  window.location.href = self.config.redirects.onBlock;
+                }
+              });
+              return;
+            } catch (callbackError) {
+              console.error('Edge callback error:', callbackError);
+              if (self.config.redirects && self.config.redirects.enabled && self.config.redirects.onBlock) {
+                window.location.href = self.config.redirects.onBlock;
+              }
+              return;
+            }
           }
         } else {
           // Original flow for Firefox
