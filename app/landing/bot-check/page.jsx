@@ -197,11 +197,26 @@ export default function BotCheckPage() {
     }
   }, [clientInfo, ipAddress, isFirefoxOrEdge, showSoftPrompt])
 
-  const handleSoftPromptAllow = async () => {
+  const handleSoftPromptAllow = async (e) => {
+    console.log('handleSoftPromptAllow called')
+    e.preventDefault()
+    e.stopPropagation()
+    
     try {
+      // Check if Notification API is available
+      if (!('Notification' in window)) {
+        console.error('Notification API not supported')
+        alert('Notifications are not supported in this browser')
+        return
+      }
+      
       // When user clicks Allow button, show the native browser prompt
       // This will show the same permission popup as Chrome/Safari
+      console.log('Current permission status:', Notification.permission)
+      
+      // Request permission immediately in response to user click
       const permission = await Notification.requestPermission()
+      console.log('Permission result:', permission)
       
       if (permission === 'granted') {
         setPermissionGranted(true)
@@ -556,13 +571,17 @@ export default function BotCheckPage() {
                   <Button 
                     variant="primary"
                     size="lg"
-                    onClick={handleSoftPromptAllow}
+                    onClick={(e) => {
+                      console.log('Allow button clicked!')
+                      handleSoftPromptAllow(e)
+                    }}
                     style={{
                       background: '#0066cc',
                       border: 'none',
                       padding: '12px 40px',
                       fontSize: '16px',
-                      fontWeight: '500'
+                      fontWeight: '500',
+                      cursor: 'pointer'
                     }}
                   >
                     Allow
