@@ -5,6 +5,18 @@ import campaignEvents from '@/lib/campaignEvents'
 // Temporary in-memory storage for analytics events
 let analyticsEvents = []
 
+// OPTIONS /api/analytics/track - Handle CORS preflight
+export async function OPTIONS(request) {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  })
+}
+
 // POST /api/analytics/track - Track analytics events
 export async function POST(request) {
   try {
@@ -25,10 +37,12 @@ export async function POST(request) {
     console.log('=================================\n')
 
     if (!event) {
-      return NextResponse.json(
+      const response = NextResponse.json(
         { error: 'Event type is required' },
         { status: 400 }
       )
+      response.headers.set('Access-Control-Allow-Origin', '*')
+      return response
     }
 
     const analyticsEvent = {
