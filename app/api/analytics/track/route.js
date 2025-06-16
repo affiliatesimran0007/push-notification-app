@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/db'
-import campaignEvents from '@/lib/events/campaignEvents'
+import campaignEvents from '@/lib/campaignEvents'
 
 // Temporary in-memory storage for analytics events
 let analyticsEvents = []
