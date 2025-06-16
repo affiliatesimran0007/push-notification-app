@@ -51,22 +51,34 @@ export async function POST(request) {
 
     // For now, using the admin user since we don't have authentication yet
     // In production, this should come from the authenticated user
-    const adminUser = await prisma.user.findFirst({
-      where: { email: 'admin@example.com' }
+    // First try to find by admin role, then by email
+    let adminUser = await prisma.user.findFirst({
+      where: { role: 'admin' }
     })
+    
+    if (!adminUser) {
+      // Fallback to email search
+      adminUser = await prisma.user.findFirst({
+        where: { email: 'admin@example.com' }
+      })
+    }
     
     if (!adminUser) {
       // Try to find any user for debugging
       const userCount = await prisma.user.count()
+      const allUsers = await prisma.user.findMany({
+        take: 5,
+        select: { email: true, role: true }
+      })
       console.error('Admin user not found. Total users in database:', userCount)
-      console.error('DATABASE_URL:', process.env.DATABASE_URL?.substring(0, 50) + '...')
+      console.error('Users found:', allUsers)
       
       return NextResponse.json(
         { 
           error: 'Admin user not found. Please run database seed.',
           debug: {
             userCount,
-            dbUrl: process.env.DATABASE_URL?.substring(0, 50) + '...'
+            users: allUsers
           }
         },
         { status: 500 }
