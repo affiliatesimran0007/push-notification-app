@@ -34,7 +34,7 @@ export async function POST(request) {
     // Update campaign metrics based on event type
     if (campaignId) {
       try {
-        if (event === 'notification_clicked') {
+        if (event === 'notification_clicked' || event === 'click') {
           // Update click count
           const updatedCampaign = await prisma.campaign.update({
             where: { id: campaignId },

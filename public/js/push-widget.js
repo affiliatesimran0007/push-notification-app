@@ -598,6 +598,9 @@
           updateViaCache: 'none' // Ensure fresh service worker in all Chrome versions
         });
         
+        // Check for updates immediately
+        registration.update().catch(err => console.log('SW update check failed:', err));
+        
         // Wait for service worker to be ready
         console.log('Waiting for service worker to be ready...');
         await navigator.serviceWorker.ready;
