@@ -63,7 +63,7 @@ export default function BotCheckPage() {
         if (ua.indexOf('OPR') > -1 || ua.indexOf('Opera') > -1) {
           browser = 'Opera'
           browserVersion = ua.match(/(?:OPR|Opera)[\s\/]([\d.]+)/)?.[1] || 'Unknown'
-        } else if (ua.indexOf('Edg') > -1) {
+        } else if (ua.indexOf('Edg') > -1 || ua.indexOf('Edge') > -1) {
           browser = 'Edge'
           browserVersion = ua.match(/Edg[e]?\/(\d+)/)?.[1] || 'Unknown'
         } else if (ua.indexOf('SamsungBrowser') > -1) {
@@ -123,12 +123,28 @@ export default function BotCheckPage() {
         }
       }
 
-      setClientInfo(getBrowserInfo())
+      const info = getBrowserInfo()
+      setClientInfo(info)
+      
+      // Additional check for Firefox/Edge to show soft prompt immediately
+      if (info.browser === 'Firefox' || info.browser === 'Edge') {
+        setIsFirefoxOrEdge(true)
+        setIsChecking(false)
+        setShowSoftPrompt(true)
+      }
     }
   }, [])
 
   useEffect(() => {
     const clickHelper = new BrowserClickHelper()
+    
+    // Debug logging
+    console.log('Browser detection:', {
+      browser: clickHelper.browser,
+      requiresClick: clickHelper.browser.requiresClick,
+      needsPermission: clickHelper.needsPermission(),
+      userAgent: navigator.userAgent
+    })
     
     // For Firefox/Edge, show soft prompt immediately - NO BOT CHECK AT ALL
     if (clickHelper.browser.requiresClick && clickHelper.needsPermission()) {
