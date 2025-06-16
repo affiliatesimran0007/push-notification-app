@@ -31,7 +31,7 @@ self.addEventListener('push', (event) => {
     badge: data.badge || '/badge-72x72.png',
     image: data.image,
     tag: data.tag || 'notification',
-    requireInteraction: data.requireInteraction || false,
+    requireInteraction: data.requireInteraction !== false ? true : false,
     silent: data.silent || false,
     data: {
       url: data.data?.url || data.url || '/',

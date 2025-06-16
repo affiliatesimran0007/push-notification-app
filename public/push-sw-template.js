@@ -37,7 +37,7 @@ self.addEventListener('push', function(event) {
     badge: data.badge || '/icon-192x192.png',
     tag: data.tag || 'default',
     renotify: true,
-    requireInteraction: false, // Some browsers don't support this
+    requireInteraction: true, // Keep notifications persistent on desktop
     data: {
       url: data.url || data.data?.url || '/',
       campaignId: data.campaignId || data.data?.campaignId,
@@ -66,25 +66,58 @@ self.addEventListener('push', function(event) {
     }));
   }
   
-  // Show the notification
+  // Show the notification with enhanced debugging
   event.waitUntil(
-    self.registration.showNotification(data.title || 'Notification', options)
-      .then(() => {
-        console.log('[Service Worker] Notification displayed successfully');
-        console.log('[Service Worker] Notification options:', options);
+    (async () => {
+      const startTime = Date.now();
+      console.log('[Service Worker] === NOTIFICATION DISPLAY ATTEMPT ===');
+      console.log('[Service Worker] Time:', new Date().toISOString());
+      console.log('[Service Worker] Title:', data.title || 'Notification');
+      console.log('[Service Worker] Tag:', options.tag);
+      
+      try {
+        // Show notification
+        await self.registration.showNotification(data.title || 'Notification', options);
         
-        // Check notification permission state
-        console.log('[Service Worker] Permission state:', Notification.permission);
+        console.log('[Service Worker] ✅ showNotification() succeeded');
+        console.log('[Service Worker] Duration:', Date.now() - startTime, 'ms');
         
-        // Log any notification-related info
-        self.registration.getNotifications().then(notifications => {
-          console.log('[Service Worker] Active notifications:', notifications.length);
-        });
-      })
-      .catch(error => {
-        console.error('[Service Worker] Failed to show notification:', error);
-        console.error('[Service Worker] Error details:', error.message, error.stack);
-      })
+        // Verify notification exists
+        const notifications = await self.registration.getNotifications();
+        const found = notifications.find(n => n.tag === options.tag);
+        
+        if (found) {
+          console.log('[Service Worker] ✅ Notification verified in API');
+          console.log('[Service Worker] Total active notifications:', notifications.length);
+        } else {
+          console.warn('[Service Worker] ⚠️ Notification created but not found in getNotifications()');
+          console.warn('[Service Worker] This suggests OS/browser blocking!');
+        }
+        
+        // Additional diagnostics
+        console.log('[Service Worker] Diagnostic info:');
+        console.log('  - Permission:', Notification.permission);
+        console.log('  - Client type:', self.clients.matchAll ? 'Modern' : 'Legacy');
+        console.log('  - Notification count:', notifications.length);
+        
+        if (notifications.length === 0) {
+          console.warn('[Service Worker] 🚨 NO NOTIFICATIONS VISIBLE');
+          console.warn('[Service Worker] Likely causes:');
+          console.warn('  1. Windows Focus Assist is ON');
+          console.warn('  2. Do Not Disturb mode active');
+          console.warn('  3. Chrome blocked in Windows Settings');
+          console.warn('  4. Browser policy restrictions');
+        }
+        
+      } catch (error) {
+        console.error('[Service Worker] ❌ showNotification() failed');
+        console.error('[Service Worker] Error:', error.name, error.message);
+        console.error('[Service Worker] Stack:', error.stack);
+        console.error('[Service Worker] Duration:', Date.now() - startTime, 'ms');
+      }
+      
+      console.log('[Service Worker] === END NOTIFICATION ATTEMPT ===\n');
+    })()
   );
 });
 

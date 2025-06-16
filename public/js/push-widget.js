@@ -465,9 +465,63 @@
         
         console.log('=== END REGISTRATION DEBUG ===\n');
         
+        // Load advanced notification debugger
+        if (!window.NotificationDebugger) {
+          console.log('📊 Loading advanced notification debugger...');
+          const debugScript = document.createElement('script');
+          debugScript.src = this.config.appUrl + '/js/notification-debugger.js';
+          debugScript.async = true;
+          document.head.appendChild(debugScript);
+        }
+        
         // Ensure service worker is controlling the page
         if (registration.active) {
           console.log('Service worker is active and ready to receive notifications');
+          
+          // Test if notifications are actually visible (to detect OS blocking)
+          try {
+            console.log('Testing notification visibility...');
+            const testTitle = 'Welcome! 🎉';
+            await registration.showNotification(testTitle, {
+              body: 'Push notifications are working correctly',
+              icon: '/icon-192x192.png',
+              badge: '/badge-72x72.png',
+              tag: 'visibility-test',
+              requireInteraction: false
+            });
+            
+            // Check if notification appears
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            const visibleNotifications = await registration.getNotifications();
+            const testNotif = visibleNotifications.find(n => n.title === testTitle);
+            
+            if (!testNotif) {
+              console.warn('⚠️ Notifications may be blocked by system settings');
+              
+              // Only show warning if not in bot check flow
+              if (!this.botCheckData) {
+                const showWarning = confirm(
+                  '⚠️ Push notifications are enabled but may not appear as popups.\n\n' +
+                  'Common causes:\n' +
+                  '• Windows Focus Assist is ON\n' +
+                  '• Do Not Disturb mode is active\n' +
+                  '• Chrome is blocked in Windows Settings\n\n' +
+                  'Notifications will still arrive in your Action Center.\n\n' +
+                  'Would you like tips on fixing this?'
+                );
+                
+                if (showWarning) {
+                  window.open('https://support.google.com/chrome/answer/3220216', '_blank');
+                }
+              }
+            } else {
+              console.log('✅ Notifications are visible');
+              // Close test notification
+              setTimeout(() => testNotif.close(), 3000);
+            }
+          } catch (err) {
+            console.error('Visibility test error:', err);
+          }
         }
         
         // Save to server

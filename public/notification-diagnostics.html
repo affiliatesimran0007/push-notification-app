@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Push Notification Diagnostics</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; }
+        h2 { color: #555; margin-top: 0; }
+        .status { padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .success { background: #d4edda; color: #155724; }
+        .warning { background: #fff3cd; color: #856404; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .diagnostic-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .diagnostic-item:last-child { border-bottom: none; }
+        code {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔔 Push Notification Diagnostics</h1>
+    
+    <div class="card">
+        <h2>Browser & System Info</h2>
+        <div id="system-info"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Notification Permission</h2>
+        <div id="permission-info"></div>
+        <button onclick="requestPermission()">Request Permission</button>
+    </div>
+    
+    <div class="card">
+        <h2>Service Worker Status</h2>
+        <div id="sw-info"></div>
+        <button onclick="registerSW()">Register Service Worker</button>
+        <button onclick="unregisterSW()">Unregister All</button>
+    </div>
+    
+    <div class="card">
+        <h2>Push Subscription</h2>
+        <div id="subscription-info"></div>
+        <button onclick="subscribePush()">Subscribe to Push</button>
+        <button onclick="unsubscribePush()">Unsubscribe</button>
+    </div>
+    
+    <div class="card">
+        <h2>Notification Tests</h2>
+        <button onclick="testLocalNotification()">Test Local Notification</button>
+        <button onclick="testSWNotification()">Test SW Notification</button>
+        <button onclick="testMultipleNotifications()">Test Multiple (5)</button>
+        <button onclick="getActiveNotifications()">List Active Notifications</button>
+    </div>
+    
+    <div class="card">
+        <h2>Common Issues & Solutions</h2>
+        <div class="status info">
+            <h3>If notifications don't appear:</h3>
+            <ol>
+                <li><strong>Windows Focus Assist:</strong> Settings → System → Focus assist → Turn off</li>
+                <li><strong>Chrome Site Settings:</strong> chrome://settings/content/notifications → Check alerts-intuit.com is allowed</li>
+                <li><strong>Windows Notifications:</strong> Settings → System → Notifications → Make sure Chrome is allowed</li>
+                <li><strong>Browser Profile:</strong> Some Chrome profiles block all notifications</li>
+                <li><strong>Incognito Mode:</strong> Notifications may be blocked in incognito</li>
+            </ol>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2>Debug Log</h2>
+        <div id="log" class="log"></div>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+    
+    <script>
+        const VAPID_KEY = 'BNV70f-uHInqVEOT9r2d6pVfK5WViCXdtoYjB87Nf8WUQZ6mDMSXEXGFQmJXl6bvGpvzL2jVSuPZUk-S9YS8rYc';
+        
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            const color = {
+                'info': '#0c5460',
+                'success': '#155724',
+                'warning': '#856404',
+                'error': '#721c24'
+            }[type] || '#333';
+            
+            logDiv.innerHTML += `<div style="color: ${color}">[${time}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        async function updateSystemInfo() {
+            const info = document.getElementById('system-info');
+            const ua = navigator.userAgent;
+            const browser = ua.match(/Chrome\/(\d+)/) || ua.match(/Safari\/(\d+)/) || ua.match(/Firefox\/(\d+)/);
+            
+            info.innerHTML = `
+                <div class="diagnostic-item">
+                    <span>Browser:</span>
+                    <span>${browser ? browser[0] : 'Unknown'}</span>
+                </div>
+                <div class="diagnostic-item">
+                    <span>Platform:</span>
+                    <span>${navigator.platform}</span>
+                </div>
+                <div class="diagnostic-item">
+                    <span>Service Worker Support:</span>
+                    <span>${'serviceWorker' in navigator ? '✅ Yes' : '❌ No'}</span>
+                </div>
+                <div class="diagnostic-item">
+                    <span>Push API Support:</span>
+                    <span>${'PushManager' in window ? '✅ Yes' : '❌ No'}</span>
+                </div>
+                <div class="diagnostic-item">
+                    <span>Notification API Support:</span>
+                    <span>${'Notification' in window ? '✅ Yes' : '❌ No'}</span>
+                </div>
+            `;
+        }
+        
+        async function updatePermissionInfo() {
+            const info = document.getElementById('permission-info');
+            const permission = Notification.permission;
+            
+            let statusClass = 'warning';
+            if (permission === 'granted') statusClass = 'success';
+            if (permission === 'denied') statusClass = 'error';
+            
+            info.innerHTML = `<div class="status ${statusClass}">
+                Permission: <strong>${permission}</strong>
+            </div>`;
+            
+            log(`Notification permission: ${permission}`);
+        }
+        
+        async function requestPermission() {
+            try {
+                log('Requesting notification permission...');
+                const result = await Notification.requestPermission();
+                log(`Permission result: ${result}`, result === 'granted' ? 'success' : 'warning');
+                updatePermissionInfo();
+            } catch (err) {
+                log(`Permission error: ${err.message}`, 'error');
+            }
+        }
+        
+        async function updateSWInfo() {
+            const info = document.getElementById('sw-info');
+            
+            if (!('serviceWorker' in navigator)) {
+                info.innerHTML = '<div class="status error">Service Workers not supported</div>';
+                return;
+            }
+            
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            
+            if (registrations.length === 0) {
+                info.innerHTML = '<div class="status warning">No service workers registered</div>';
+                return;
+            }
+            
+            let html = '';
+            for (const reg of registrations) {
+                const active = reg.active ? '✅ Active' : '⏳ Not Active';
+                html += `<div class="diagnostic-item">
+                    <span>${reg.scope}</span>
+                    <span>${active}</span>
+                </div>`;
+            }
+            info.innerHTML = html;
+        }
+        
+        async function registerSW() {
+            try {
+                log('Registering service worker...');
+                const reg = await navigator.serviceWorker.register('/push-sw-template.js');
+                await navigator.serviceWorker.ready;
+                log('Service worker registered and ready', 'success');
+                updateSWInfo();
+            } catch (err) {
+                log(`SW registration error: ${err.message}`, 'error');
+            }
+        }
+        
+        async function unregisterSW() {
+            try {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (const reg of registrations) {
+                    await reg.unregister();
+                    log(`Unregistered SW: ${reg.scope}`, 'success');
+                }
+                updateSWInfo();
+            } catch (err) {
+                log(`Unregister error: ${err.message}`, 'error');
+            }
+        }
+        
+        async function updateSubscriptionInfo() {
+            const info = document.getElementById('subscription-info');
+            
+            const reg = await navigator.serviceWorker.ready;
+            const sub = await reg.pushManager.getSubscription();
+            
+            if (!sub) {
+                info.innerHTML = '<div class="status warning">Not subscribed to push notifications</div>';
+                return;
+            }
+            
+            const endpoint = sub.endpoint;
+            const provider = endpoint.includes('fcm.googleapis.com') ? 'FCM (Google)' :
+                           endpoint.includes('mozilla.com') ? 'Mozilla' :
+                           endpoint.includes('windows.com') ? 'WNS' : 'Unknown';
+            
+            info.innerHTML = `
+                <div class="diagnostic-item">
+                    <span>Provider:</span>
+                    <span>${provider}</span>
+                </div>
+                <div class="diagnostic-item">
+                    <span>Endpoint:</span>
+                    <span><code>${endpoint.substring(0, 50)}...</code></span>
+                </div>
+                <div class="diagnostic-item">
+                    <span>Has Keys:</span>
+                    <span>${sub.toJSON().keys ? '✅ Yes' : '❌ No'}</span>
+                </div>
+            `;
+        }
+        
+        async function subscribePush() {
+            try {
+                log('Subscribing to push notifications...');
+                const reg = await navigator.serviceWorker.ready;
+                
+                const sub = await reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(VAPID_KEY)
+                });
+                
+                log('Push subscription created', 'success');
+                log(`Endpoint: ${sub.endpoint}`);
+                updateSubscriptionInfo();
+            } catch (err) {
+                log(`Subscribe error: ${err.message}`, 'error');
+            }
+        }
+        
+        async function unsubscribePush() {
+            try {
+                const reg = await navigator.serviceWorker.ready;
+                const sub = await reg.pushManager.getSubscription();
+                
+                if (sub) {
+                    await sub.unsubscribe();
+                    log('Unsubscribed from push', 'success');
+                    updateSubscriptionInfo();
+                } else {
+                    log('No subscription found', 'warning');
+                }
+            } catch (err) {
+                log(`Unsubscribe error: ${err.message}`, 'error');
+            }
+        }
+        
+        async function testLocalNotification() {
+            try {
+                log('Testing local notification...');
+                
+                if (Notification.permission !== 'granted') {
+                    log('Permission not granted', 'error');
+                    return;
+                }
+                
+                const notification = new Notification('Test Local Notification', {
+                    body: 'This is a direct browser notification at ' + new Date().toLocaleTimeString(),
+                    icon: '/icon-192x192.png',
+                    badge: '/badge-72x72.png',
+                    tag: 'test-' + Date.now()
+                });
+                
+                notification.onclick = () => {
+                    log('Local notification clicked', 'success');
+                    notification.close();
+                };
+                
+                log('Local notification created', 'success');
+            } catch (err) {
+                log(`Local notification error: ${err.message}`, 'error');
+            }
+        }
+        
+        async function testSWNotification() {
+            try {
+                log('Testing service worker notification...');
+                
+                const reg = await navigator.serviceWorker.ready;
+                
+                await reg.showNotification('Test SW Notification', {
+                    body: 'This is from the service worker at ' + new Date().toLocaleTimeString(),
+                    icon: '/icon-192x192.png',
+                    badge: '/badge-72x72.png',
+                    tag: 'sw-test-' + Date.now(),
+                    requireInteraction: false,
+                    vibrate: [200, 100, 200]
+                });
+                
+                log('SW notification shown', 'success');
+                
+                // Check if it's actually visible
+                setTimeout(async () => {
+                    const notifications = await reg.getNotifications();
+                    log(`Active notifications count: ${notifications.length}`);
+                }, 500);
+            } catch (err) {
+                log(`SW notification error: ${err.message}`, 'error');
+            }
+        }
+        
+        async function testMultipleNotifications() {
+            try {
+                log('Testing multiple notifications...');
+                const reg = await navigator.serviceWorker.ready;
+                
+                for (let i = 1; i <= 5; i++) {
+                    await reg.showNotification(`Test Notification #${i}`, {
+                        body: `Notification ${i} of 5`,
+                        icon: '/icon-192x192.png',
+                        tag: `multi-test-${i}-${Date.now()}`
+                    });
+                    log(`Created notification ${i}/5`);
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+                
+                log('All notifications created', 'success');
+            } catch (err) {
+                log(`Multiple notification error: ${err.message}`, 'error');
+            }
+        }
+        
+        async function getActiveNotifications() {
+            try {
+                const reg = await navigator.serviceWorker.ready;
+                const notifications = await reg.getNotifications();
+                
+                log(`Found ${notifications.length} active notifications`);
+                
+                notifications.forEach((notif, i) => {
+                    log(`${i + 1}. "${notif.title}" - Tag: ${notif.tag}`);
+                });
+                
+                if (notifications.length === 0) {
+                    log('No active notifications found. They may have been:', 'warning');
+                    log('- Blocked by Focus Assist or Do Not Disturb');
+                    log('- Hidden by Windows notification settings');
+                    log('- Cleared by the browser');
+                }
+            } catch (err) {
+                log(`Get notifications error: ${err.message}`, 'error');
+            }
+        }
+        
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding)
+                .replace(/\-/g, '+')
+                .replace(/_/g, '/');
+            
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        }
+        
+        // Initialize on load
+        window.addEventListener('load', async () => {
+            log('Diagnostics page loaded');
+            updateSystemInfo();
+            updatePermissionInfo();
+            updateSWInfo();
+            updateSubscriptionInfo();
+        });
+    </script>
+</body>
+</html>
