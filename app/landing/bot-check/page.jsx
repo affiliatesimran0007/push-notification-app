@@ -550,7 +550,7 @@ export default function BotCheckPage() {
               // Custom prompt for Firefox/Edge with bot check style
               <div className="text-center">
                 <h2 style={{ fontSize: '24px', fontWeight: '400', color: '#333', marginBottom: '30px' }}>
-                  Click "Allow" if you're not a robot
+                  {clientInfo?.browser === 'Edge' ? 'Enable Notifications for Microsoft Edge' : 'Click "Allow" if you\'re not a robot'}
                 </h2>
                 
                 <div style={{ 

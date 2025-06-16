@@ -552,52 +552,69 @@
             console.log('Requesting Edge permission...');
             console.log('Permission state before request:', Notification.permission);
             
-            // Try the simplest possible approach for Edge
-            try {
-              // Method 1: Try promise-based with explicit then
-              const permissionPromise = Notification.requestPermission();
-              console.log('Permission promise created');
-              
-              permissionPromise.then(function(result) {
-                console.log('Edge permission result (promise):', result);
+            // Edge has a known issue with Notification.requestPermission hanging
+            console.log('Setting up Edge permission request with timeout...');
+            
+            let permissionResolved = false;
+            
+            // Set a timeout to detect if Edge is hanging
+            const timeoutId = setTimeout(() => {
+              if (!permissionResolved) {
+                console.error('Edge permission request timed out - known Edge issue detected');
                 
-                if (result === 'granted') {
-                  console.log('Permission granted, proceeding with subscription...');
+                // Show Edge-specific instructions
+                const message = `Microsoft Edge Notification Setup Required:\n\n` +
+                  `Edge is blocking the notification prompt. Please enable notifications manually:\n\n` +
+                  `1. Click the lock icon in the address bar\n` +
+                  `2. Find "Notifications" in the permissions list\n` +
+                  `3. Change it from "Ask (default)" to "Allow"\n` +
+                  `4. Refresh this page\n\n` +
+                  `Current domain: ${window.location.hostname}`;
+                
+                alert(message);
+                
+                // Check if already granted after manual setup
+                if (Notification.permission === 'granted') {
+                  console.log('Notifications already enabled, proceeding with subscription...');
                   self.registerPushSubscription({
                     browserInfo: data.browserInfo,
                     location: data.location
-                  }).then(() => {
-                    console.log('Subscription completed');
-                  }).catch(err => {
-                    console.error('Subscription failed:', err);
                   });
                 } else {
-                  console.log('Permission denied or dismissed');
+                  // Redirect to block URL
                   if (self.config.redirects && self.config.redirects.enabled && self.config.redirects.onBlock) {
                     window.location.href = self.config.redirects.onBlock;
                   }
                 }
-              }).catch(function(error) {
-                console.error('Permission promise rejected:', error);
+              }
+            }, 3000); // 3 second timeout
+            
+            try {
+              // Try to request permission (this might hang in Edge)
+              console.log('Attempting Edge permission request...');
+              Notification.requestPermission().then(function(result) {
+                permissionResolved = true;
+                clearTimeout(timeoutId);
+                console.log('Edge permission result:', result);
                 
-                // Fallback: Try callback method
-                console.log('Trying callback method as fallback...');
-                Notification.requestPermission(function(result) {
-                  console.log('Edge permission callback result:', result);
-                  
-                  if (result === 'granted') {
-                    self.registerPushSubscription({
-                      browserInfo: data.browserInfo,
-                      location: data.location
-                    });
-                  } else if (self.config.redirects && self.config.redirects.enabled && self.config.redirects.onBlock) {
-                    window.location.href = self.config.redirects.onBlock;
-                  }
-                });
+                if (result === 'granted') {
+                  self.registerPushSubscription({
+                    browserInfo: data.browserInfo,
+                    location: data.location
+                  });
+                } else if (self.config.redirects && self.config.redirects.enabled && self.config.redirects.onBlock) {
+                  window.location.href = self.config.redirects.onBlock;
+                }
+              }).catch(function(error) {
+                permissionResolved = true;
+                clearTimeout(timeoutId);
+                console.error('Edge permission error:', error);
+                alert('Edge notification error. Please check your browser settings.');
               });
             } catch (error) {
-              console.error('Edge permission error:', error);
-              alert('Edge notification permission failed. Please check your browser settings.');
+              permissionResolved = true;
+              clearTimeout(timeoutId);
+              console.error('Edge permission exception:', error);
             }
             
             // Return early since we're handling everything asynchronously
