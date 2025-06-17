@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Row, Col, Card, Badge, Button, Modal, Form, Alert, Spinner } from 'react-bootstrap'
 import { FiCheck, FiX, FiTrash2, FiEdit2 } from 'react-icons/fi'
 import DashboardLayout from '@/components/DashboardLayout'
+import IconPicker from '@/components/IconPicker'
 
 export default function PushTemplates() {
   const router = useRouter()
@@ -19,8 +20,7 @@ export default function PushTemplates() {
     title: '',
     message: '',
     url: '',
-    icon: '',
-    iconType: 'url' // 'url' or 'emoji'
+    icon: ''
   })
   const [creationSuccess, setCreationSuccess] = useState(false)
   const [showNewCategory, setShowNewCategory] = useState(false)
@@ -30,6 +30,7 @@ export default function PushTemplates() {
   const [templates, setTemplates] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [showIconPicker, setShowIconPicker] = useState(false)
 
   // Fetch templates from API
   useEffect(() => {
@@ -77,39 +78,6 @@ export default function PushTemplates() {
     return formatted.charAt(0).toUpperCase() + formatted.slice(1)
   }
 
-  const handleIconUpload = async (e) => {
-    const file = e.target.files[0]
-    if (file && file.type.startsWith('image/')) {
-      try {
-        setUploadingIcon(true)
-        
-        // Create FormData
-        const formData = new FormData()
-        formData.append('file', file)
-        
-        // Upload to server
-        const response = await fetch('/api/upload/icon', {
-          method: 'POST',
-          body: formData
-        })
-        
-        const data = await response.json()
-        
-        if (response.ok && data.success) {
-          setNewTemplate({...newTemplate, icon: data.url})
-          setUploadedIcon(file.name)
-        } else {
-          console.error('Upload failed:', data)
-          alert(data.error || 'Failed to upload icon')
-        }
-      } catch (error) {
-        console.error('Upload error:', error)
-        alert('Failed to upload icon. Please try again.')
-      } finally {
-        setUploadingIcon(false)
-      }
-    }
-  }
 
   const handleCreateTemplate = async () => {
     try {
@@ -146,8 +114,7 @@ export default function PushTemplates() {
             title: '',
             message: '',
             url: '',
-            icon: '',
-            iconType: 'url'
+            icon: ''
           })
           setShowNewCategory(false)
           setCustomCategory('')
@@ -527,68 +494,32 @@ export default function PushTemplates() {
 
               <Form.Group className="mb-3">
                 <Form.Label>Icon</Form.Label>
-                <div className="mb-2">
-                  <Form.Check
-                    inline
-                    type="radio"
-                    label="Icon URL"
-                    name="iconType"
-                    checked={newTemplate.iconType === 'url'}
-                    onChange={() => setNewTemplate({...newTemplate, iconType: 'url', icon: ''})}
-                  />
-                  <Form.Check
-                    inline
-                    type="radio"
-                    label="Emoji"
-                    name="iconType"
-                    checked={newTemplate.iconType === 'emoji'}
-                    onChange={() => setNewTemplate({...newTemplate, iconType: 'emoji', icon: ''})}
-                  />
-                </div>
-                {newTemplate.iconType === 'url' ? (
-                  <div>
-                    <div className="d-flex gap-2 mb-2">
-                      <Form.Control
-                        type="url"
-                        placeholder="https://example.com/icon.png (192x192px recommended)"
-                        value={newTemplate.icon}
-                        onChange={(e) => {
-                          setNewTemplate({...newTemplate, icon: e.target.value})
-                          setUploadedIcon(null)
-                        }}
-                        className="flex-grow-1"
-                      />
-                    </div>
-                    <div className="d-flex align-items-center gap-3">
-                      <span className="text-muted">OR</span>
-                      <div>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleIconUpload}
-                          style={{ display: 'none' }}
-                          id="icon-upload"
+                <div className="d-flex align-items-center gap-2">
+                  {newTemplate.icon ? (
+                    <div className="d-flex align-items-center gap-2">
+                      {newTemplate.icon.length <= 4 && !newTemplate.icon.startsWith('http') && !newTemplate.icon.startsWith('/') ? (
+                        <div style={{ fontSize: '32px' }}>{newTemplate.icon}</div>
+                      ) : (
+                        <img
+                          src={newTemplate.icon}
+                          alt="Selected icon"
+                          style={{ width: '32px', height: '32px', objectFit: 'contain' }}
+                          onError={(e) => e.target.style.display = 'none'}
                         />
-                        <label htmlFor="icon-upload" className="btn btn-outline-primary btn-sm mb-0">
-                          {uploadingIcon ? 'Uploading...' : 'Upload Icon'}
-                        </label>
-                        {uploadedIcon && (
-                          <span className="ms-2 text-success small">
-                            ✓ {uploadedIcon}
-                          </span>
-                        )}
-                      </div>
+                      )}
+                      <span className="text-muted small">{newTemplate.icon}</span>
                     </div>
-                  </div>
-                ) : (
-                  <Form.Control
-                    type="text"
-                    placeholder="e.g., 🛍️ or 📦"
-                    value={newTemplate.icon}
-                    onChange={(e) => setNewTemplate({...newTemplate, icon: e.target.value})}
-                    maxLength={2}
-                  />
-                )}
+                  ) : (
+                    <span className="text-muted">No icon selected</span>
+                  )}
+                  <Button
+                    variant="outline-primary"
+                    size="sm"
+                    onClick={() => setShowIconPicker(true)}
+                  >
+                    Choose Icon
+                  </Button>
+                </div>
               </Form.Group>
 
               {/* Preview */}
@@ -811,6 +742,17 @@ export default function PushTemplates() {
           </Button>
         </Modal.Footer>
       </Modal>
+
+      {/* Icon Picker Modal */}
+      <IconPicker
+        show={showIconPicker}
+        onHide={() => setShowIconPicker(false)}
+        onSelect={(icon) => {
+          setNewTemplate({...newTemplate, icon: icon})
+          setShowIconPicker(false)
+        }}
+        currentIcon={newTemplate.icon}
+      />
     </DashboardLayout>
   )
 }

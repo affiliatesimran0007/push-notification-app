@@ -1,6 +1,4 @@
 import { NextResponse } from 'next/server'
-import { writeFile } from 'fs/promises'
-import path from 'path'
 import crypto from 'crypto'
 
 export async function POST(request) {
@@ -36,40 +34,34 @@ export async function POST(request) {
       )
     }
 
-    // Generate unique filename
+    // Convert file to base64 for storage (since Vercel filesystem is read-only)
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
+    const base64 = buffer.toString('base64')
+    const dataUrl = `data:${file.type};base64,${base64}`
     
-    // Create hash of file content for unique naming
+    // For now, return the base64 URL
+    // In production, you should upload to a cloud storage service like:
+    // - Cloudinary
+    // - AWS S3
+    // - Vercel Blob Storage
+    // - Supabase Storage
+    
+    console.log('File converted to base64, length:', base64.length)
+    
+    // Generate a unique filename for reference
     const hash = crypto.createHash('md5').update(buffer).digest('hex')
-    const ext = path.extname(file.name)
-    const filename = `icon-${hash.substring(0, 8)}${ext}`
-    
-    // Save to public/icons directory
-    const iconsDir = path.join(process.cwd(), 'public', 'icons')
-    const filepath = path.join(iconsDir, filename)
-    
-    console.log('Icons directory:', iconsDir)
-    console.log('File path:', filepath)
-    
-    // Create icons directory if it doesn't exist
-    const { mkdir } = await import('fs/promises')
-    await mkdir(iconsDir, { recursive: true })
-    console.log('Directory created/verified')
-    
-    // Write file
-    await writeFile(filepath, buffer)
-    console.log('File written successfully')
-    
-    // Return the URL path
-    const iconUrl = `/icons/${filename}`
+    const ext = file.name.split('.').pop()
+    const filename = `icon-${hash.substring(0, 8)}.${ext}`
     
     return NextResponse.json({
       success: true,
-      url: iconUrl,
+      url: dataUrl, // This will be handled by our webPushService
       filename: filename,
       size: file.size,
-      type: file.type
+      type: file.type,
+      isBase64: true,
+      message: 'File uploaded as base64. For production, use cloud storage.'
     })
   } catch (error) {
     console.error('Icon upload error:', error)
