@@ -34,11 +34,7 @@ export async function GET(request) {
       where,
       skip,
       take: limit,
-      orderBy: [
-        { sentAt: { sort: 'desc', nulls: 'last' } },
-        { scheduledFor: { sort: 'desc', nulls: 'last' } },
-        { createdAt: 'desc' }
-      ],
+      orderBy: { createdAt: 'desc' },
       include: {
         user: {
           select: {
