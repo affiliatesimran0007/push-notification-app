@@ -48,8 +48,8 @@ export async function GET(request) {
     // Add calculated CTR to each campaign
     const campaignsWithCtr = campaigns.map(campaign => ({
       ...campaign,
-      dismissedCount: 0, // Set to 0 since columns don't exist yet
-      pendingCount: 0,   // Set to 0 since columns don't exist yet
+      dismissedCount: campaign.dismissedCount || 0,
+      pendingCount: 0,   // Not tracked in current system
       ctr: campaign.clickedCount > 0 && campaign.sentCount > 0
         ? ((campaign.clickedCount / campaign.sentCount) * 100).toFixed(1)
         : 0,

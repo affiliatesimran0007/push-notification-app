@@ -40,7 +40,13 @@ export default function IconPicker({ show, onHide, onSelect, currentIcon }) {
     if (activeTab === 'custom' && customUrl) {
       onSelect(customUrl)
     } else if (selectedIcon) {
-      onSelect(selectedIcon)
+      // Convert relative URLs to full URLs
+      let fullUrl = selectedIcon
+      if (selectedIcon.startsWith('/') && !selectedIcon.startsWith('//')) {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://push-notification-app-steel.vercel.app'
+        fullUrl = `${appUrl}${selectedIcon}`
+      }
+      onSelect(fullUrl)
     }
     onHide()
   }

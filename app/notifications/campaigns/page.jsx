@@ -43,6 +43,21 @@ export default function PushCampaigns() {
   
   const campaigns = localCampaigns.length > 0 ? sortCampaigns(localCampaigns) : sortCampaigns(data?.campaigns || [])
   const pagination = data?.pagination || { total: 0, totalPages: 0 }
+  
+  // Debug logging for the QBP campaign
+  useEffect(() => {
+    const qbpCampaign = campaigns.find(c => c.name?.includes('QBP Campaign'))
+    if (qbpCampaign) {
+      console.log('QBP Campaign stats:', {
+        id: qbpCampaign.id,
+        name: qbpCampaign.name,
+        sentCount: qbpCampaign.sentCount,
+        deliveredCount: qbpCampaign.deliveredCount,
+        clickedCount: qbpCampaign.clickedCount,
+        failedCount: qbpCampaign.failedCount
+      })
+    }
+  }, [campaigns])
 
   useEffect(() => {
     setMounted(true)
@@ -65,12 +80,21 @@ export default function PushCampaigns() {
         switch (data.type) {
           case 'stats-updated':
             console.log('Real-time stats update:', data)
-            // Update the specific campaign's stats
-            setLocalCampaigns(prev => prev.map(campaign => 
-              campaign.id === data.campaignId 
-                ? { ...campaign, ...data.stats }
-                : campaign
-            ))
+            // Update the specific campaign's stats - merge only the provided stats
+            setLocalCampaigns(prev => prev.map(campaign => {
+              if (campaign.id === data.campaignId) {
+                const updatedCampaign = { ...campaign }
+                // Only update the stats that were provided
+                if (data.stats.sentCount !== undefined) updatedCampaign.sentCount = data.stats.sentCount
+                if (data.stats.deliveredCount !== undefined) updatedCampaign.deliveredCount = data.stats.deliveredCount
+                if (data.stats.clickedCount !== undefined) updatedCampaign.clickedCount = data.stats.clickedCount
+                if (data.stats.dismissedCount !== undefined) updatedCampaign.dismissedCount = data.stats.dismissedCount
+                if (data.stats.failedCount !== undefined) updatedCampaign.failedCount = data.stats.failedCount
+                if (data.stats.ctr !== undefined) updatedCampaign.ctr = data.stats.ctr
+                return updatedCampaign
+              }
+              return campaign
+            }))
             break
             
           case 'campaign-created':
@@ -648,7 +672,7 @@ export default function PushCampaigns() {
                               <FiUsers size={20} className="text-primary" />
                             </div>
                             <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary" style={{ transform: 'translate(-50%, -50%) !important' }}>
-                              {campaign.sentCount.toLocaleString()}
+                              {(campaign.sentCount || 0).toLocaleString()}
                             </span>
                           </div>
                           <div className="mt-2">
@@ -660,25 +684,10 @@ export default function PushCampaigns() {
                         <div className="text-center">
                           <div className="position-relative d-inline-block">
                             <div className="rounded-circle bg-secondary bg-opacity-10 d-inline-flex align-items-center justify-content-center" style={{ width: '40px', height: '40px' }}>
-                              <FiClock size={20} className="text-warning" />
-                            </div>
-                            <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning" style={{ transform: 'translate(-50%, -50%) !important' }}>
-                              {0}
-                            </span>
-                          </div>
-                          <div className="mt-2">
-                            <small className="text-muted">Pending</small>
-                          </div>
-                        </div>
-                      </Col>
-                      <Col xs={6} sm={4} lg={2}>
-                        <div className="text-center">
-                          <div className="position-relative d-inline-block">
-                            <div className="rounded-circle bg-secondary bg-opacity-10 d-inline-flex align-items-center justify-content-center" style={{ width: '40px', height: '40px' }}>
                               <FiSend size={20} className="text-info" />
                             </div>
                             <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-info" style={{ transform: 'translate(-50%, -50%) !important' }}>
-                              {campaign.sentCount.toLocaleString()}
+                              {(campaign.sentCount || 0).toLocaleString()}
                             </span>
                           </div>
                           <div className="mt-2">
@@ -693,7 +702,7 @@ export default function PushCampaigns() {
                               <FiCheckCircle size={20} className="text-success" />
                             </div>
                             <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success" style={{ transform: 'translate(-50%, -50%) !important' }}>
-                              {campaign.deliveredCount.toLocaleString()}
+                              {(campaign.deliveredCount || 0).toLocaleString()}
                             </span>
                           </div>
                           <div className="mt-2">
@@ -708,7 +717,7 @@ export default function PushCampaigns() {
                               <FiMousePointer size={20} className="text-primary" />
                             </div>
                             <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary" style={{ transform: 'translate(-50%, -50%) !important' }}>
-                              {campaign.clickedCount.toLocaleString()}
+                              {(campaign.clickedCount || 0).toLocaleString()}
                             </span>
                           </div>
                           <div className="mt-2">
@@ -723,7 +732,7 @@ export default function PushCampaigns() {
                               <FiXCircle size={20} className="text-secondary" />
                             </div>
                             <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-secondary" style={{ transform: 'translate(-50%, -50%) !important' }}>
-                              {0}
+                              {(campaign.dismissedCount || 0).toLocaleString()}
                             </span>
                           </div>
                           <div className="mt-2">
@@ -752,7 +761,7 @@ export default function PushCampaigns() {
                                 <FiTrendingUp size={20} className="text-success" />
                               </div>
                               <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success" style={{ transform: 'translate(-50%, -50%) !important' }}>
-                                {campaign.ctr || 0}%
+                                {campaign.ctr !== undefined ? campaign.ctr : 0}%
                               </span>
                             </div>
                             <div className="text-start ms-2">

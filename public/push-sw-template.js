@@ -197,7 +197,19 @@ self.addEventListener('notificationclick', function(event) {
 
 self.addEventListener('notificationclose', function(event) {
   console.log('[Service Worker] Notification closed');
-  // You can add dismiss tracking here if needed
+  
+  // Track dismiss event
+  const data = event.notification.data;
+  if (data && data.campaignId) {
+    fetch('https://push-notification-app-steel.vercel.app/api/campaigns/track-dismiss', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        campaignId: data.campaignId,
+        clientId: data.clientId
+      })
+    }).catch(err => console.error('[Service Worker] Failed to track dismiss:', err));
+  }
 });
 
 // Update service worker immediately

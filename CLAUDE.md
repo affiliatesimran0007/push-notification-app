@@ -231,7 +231,8 @@ This is a Next.js 15.3.3 push notification platform MVP built with the App Route
 - Support for all campaign statuses
 - Proper relationships and constraints
 - Landing pages linked to clients
-- Removed unused dismissedCount/pendingCount fields
+- Added dismissedCount field to track notification dismissals
+- Removed pendingCount field (not tracked in current system)
 
 ### 🚀 Platform Architecture:
 - White-label push notification service

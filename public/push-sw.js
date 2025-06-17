@@ -144,7 +144,8 @@ self.addEventListener('notificationclose', (event) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        campaignId: campaignId
+        campaignId: campaignId,
+        clientId: clientId
       })
     }).catch(err => console.error('Failed to track dismiss:', err));
   }
