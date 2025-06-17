@@ -76,16 +76,32 @@ export default function PushTemplates() {
     return formatted.charAt(0).toUpperCase() + formatted.slice(1)
   }
 
-  const handleIconUpload = (e) => {
+  const handleIconUpload = async (e) => {
     const file = e.target.files[0]
     if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        const base64String = reader.result
-        setNewTemplate({...newTemplate, icon: base64String})
-        setUploadedIcon(file.name)
+      try {
+        // Create FormData
+        const formData = new FormData()
+        formData.append('file', file)
+        
+        // Upload to server
+        const response = await fetch('/api/upload/icon', {
+          method: 'POST',
+          body: formData
+        })
+        
+        const data = await response.json()
+        
+        if (response.ok && data.success) {
+          setNewTemplate({...newTemplate, icon: data.url})
+          setUploadedIcon(file.name)
+        } else {
+          alert(data.error || 'Failed to upload icon')
+        }
+      } catch (error) {
+        console.error('Upload error:', error)
+        alert('Failed to upload icon. Please try again.')
       }
-      reader.readAsDataURL(file)
     }
   }
 

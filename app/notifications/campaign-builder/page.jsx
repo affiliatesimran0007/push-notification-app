@@ -241,21 +241,37 @@ export default function CampaignBuilder() {
     }
   }, [audienceOptions])
 
-  const handleIconUpload = (e) => {
+  const handleIconUpload = async (e) => {
     const file = e.target.files[0]
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        alert('File size must be less than 5MB')
+      if (file.size > 1 * 1024 * 1024) { // 1MB limit
+        alert('File size must be less than 1MB')
         return
       }
       
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        const base64String = reader.result
-        setUploadedIcon(base64String)
-        setCampaignData({...campaignData, icon: base64String})
+      try {
+        // Create FormData
+        const formData = new FormData()
+        formData.append('file', file)
+        
+        // Upload to server
+        const response = await fetch('/api/upload/icon', {
+          method: 'POST',
+          body: formData
+        })
+        
+        const data = await response.json()
+        
+        if (response.ok && data.success) {
+          setUploadedIcon(data.url)
+          setCampaignData({...campaignData, icon: data.url})
+        } else {
+          alert(data.error || 'Failed to upload icon')
+        }
+      } catch (error) {
+        console.error('Upload error:', error)
+        alert('Failed to upload icon. Please try again.')
       }
-      reader.readAsDataURL(file)
     }
   }
 
@@ -503,7 +519,7 @@ export default function CampaignBuilder() {
                             {uploadedIcon && (
                               <div className="mt-2">
                                 <img 
-                                  src={uploadedIcon} 
+                                  src={campaignData.icon} 
                                   alt="Uploaded icon" 
                                   style={{ width: '48px', height: '48px', objectFit: 'contain' }}
                                 />

@@ -268,3 +268,10 @@ This is a Next.js 15.3.3 push notification platform MVP built with the App Route
    - Templates were missing URL field in creation form
    - Added URL field to both create and edit template modals
    - URL is now properly saved and used in campaigns
+
+4. **Base64 Icon Issue (Custom Templates)**:
+   - Problem: Custom templates with Base64 encoded icons (`data:image/png;base64,...`) were failing with errors
+   - Root Cause: Web push notifications require icon URLs, not Base64 encoded data
+   - Solution: Updated `webPushService.js` to detect Base64 icons/badges and convert them to default URLs
+   - The system now automatically detects Base64 images and uses default icons instead
+   - This fixes the QB campaign issue where custom templates weren't working
