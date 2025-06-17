@@ -14,8 +14,15 @@ export async function GET() {
     const files = fs.readdirSync(publicDir)
     files.forEach(file => {
       if (file.match(/\.(png|jpg|jpeg|gif|webp)$/i)) {
+        // Create a more user-friendly name
+        let displayName = file
+          .replace(/\.(png|jpg|jpeg|gif|webp)$/i, '') // Remove extension
+          .replace(/-/g, ' ') // Replace hyphens with spaces
+          .replace(/\b\w/g, l => l.toUpperCase()) // Capitalize words
+        
         iconFiles.push({
-          name: file,
+          name: displayName,
+          filename: file,
           url: `/${file}`,
           path: 'root'
         })
@@ -41,7 +48,10 @@ export async function GET() {
     const defaultIcons = [
       { name: 'Default Icon', url: '/icon-192x192.png', isDefault: true },
       { name: 'Badge Icon', url: '/badge-72x72.png', isDefault: true },
-      // Popular emoji alternatives (as text that will be converted to default icon)
+    ]
+    
+    // Add emoji options
+    const emojiIcons = [
       { name: 'Shopping Cart', emoji: '🛒', isEmoji: true },
       { name: 'Sale/Discount', emoji: '💰', isEmoji: true },
       { name: 'Gift', emoji: '🎁', isEmoji: true },
@@ -56,7 +66,8 @@ export async function GET() {
       success: true,
       icons: iconFiles,
       defaultIcons: defaultIcons,
-      total: iconFiles.length + defaultIcons.length
+      emojiIcons: emojiIcons,
+      total: iconFiles.length + defaultIcons.length + emojiIcons.length
     })
   } catch (error) {
     console.error('Failed to list icons:', error)

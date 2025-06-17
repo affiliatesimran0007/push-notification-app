@@ -6,6 +6,7 @@ import { Modal, Button, Form, Row, Col, Spinner } from 'react-bootstrap'
 export default function IconPicker({ show, onHide, onSelect, currentIcon }) {
   const [icons, setIcons] = useState([])
   const [defaultIcons, setDefaultIcons] = useState([])
+  const [emojiIcons, setEmojiIcons] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedIcon, setSelectedIcon] = useState(currentIcon || '')
   const [customUrl, setCustomUrl] = useState('')
@@ -26,6 +27,7 @@ export default function IconPicker({ show, onHide, onSelect, currentIcon }) {
       if (response.ok) {
         setIcons(data.icons || [])
         setDefaultIcons(data.defaultIcons || [])
+        setEmojiIcons(data.emojiIcons || [])
       }
     } catch (error) {
       console.error('Failed to fetch icons:', error)
@@ -76,42 +78,43 @@ export default function IconPicker({ show, onHide, onSelect, currentIcon }) {
           <>
             {activeTab === 'default' ? (
               <div>
-                <h6 className="mb-3">Available Icons</h6>
-                <Row className="g-3">
-                  {/* Default icons */}
+                {/* Uploaded Icons */}
+                {icons.length > 0 && (
+                  <>
+                    <h6 className="mb-3">Uploaded Icons</h6>
+                    <Row className="g-3 mb-4">
+                      {icons.map((icon, index) => (
+                        <Col xs={6} sm={4} md={3} key={`file-${index}`}>
+                          <div
+                            className={`border rounded p-3 text-center cursor-pointer ${
+                              selectedIcon === icon.url ? 'border-primary bg-light' : ''
+                            }`}
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => setSelectedIcon(icon.url)}
+                          >
+                            <img
+                              src={icon.url}
+                              alt={icon.name}
+                              style={{
+                                width: '48px',
+                                height: '48px',
+                                objectFit: 'contain',
+                                marginBottom: '10px'
+                              }}
+                            />
+                            <small className="d-block">{icon.name}</small>
+                          </div>
+                        </Col>
+                      ))}
+                    </Row>
+                  </>
+                )}
+
+                {/* Default Icons */}
+                <h6 className="mb-3">Default Icons</h6>
+                <Row className="g-3 mb-4">
                   {defaultIcons.map((icon, index) => (
                     <Col xs={6} sm={4} md={3} key={`default-${index}`}>
-                      <div
-                        className={`border rounded p-3 text-center cursor-pointer ${
-                          selectedIcon === (icon.url || icon.emoji) ? 'border-primary bg-light' : ''
-                        }`}
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => setSelectedIcon(icon.url || icon.emoji)}
-                      >
-                        {icon.isEmoji ? (
-                          <div style={{ fontSize: '48px', marginBottom: '10px' }}>
-                            {icon.emoji}
-                          </div>
-                        ) : (
-                          <img
-                            src={icon.url}
-                            alt={icon.name}
-                            style={{
-                              width: '48px',
-                              height: '48px',
-                              objectFit: 'contain',
-                              marginBottom: '10px'
-                            }}
-                          />
-                        )}
-                        <small className="d-block">{icon.name}</small>
-                      </div>
-                    </Col>
-                  ))}
-                  
-                  {/* File system icons */}
-                  {icons.map((icon, index) => (
-                    <Col xs={6} sm={4} md={3} key={`file-${index}`}>
                       <div
                         className={`border rounded p-3 text-center cursor-pointer ${
                           selectedIcon === icon.url ? 'border-primary bg-light' : ''
@@ -129,6 +132,27 @@ export default function IconPicker({ show, onHide, onSelect, currentIcon }) {
                             marginBottom: '10px'
                           }}
                         />
+                        <small className="d-block">{icon.name}</small>
+                      </div>
+                    </Col>
+                  ))}
+                </Row>
+
+                {/* Emoji Icons */}
+                <h6 className="mb-3">Emoji Icons</h6>
+                <Row className="g-3">
+                  {emojiIcons.map((icon, index) => (
+                    <Col xs={6} sm={4} md={3} key={`emoji-${index}`}>
+                      <div
+                        className={`border rounded p-3 text-center cursor-pointer ${
+                          selectedIcon === icon.emoji ? 'border-primary bg-light' : ''
+                        }`}
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => setSelectedIcon(icon.emoji)}
+                      >
+                        <div style={{ fontSize: '48px', marginBottom: '10px' }}>
+                          {icon.emoji}
+                        </div>
                         <small className="d-block">{icon.name}</small>
                       </div>
                     </Col>
