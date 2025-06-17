@@ -5,8 +5,11 @@ import crypto from 'crypto'
 
 export async function POST(request) {
   try {
+    console.log('Icon upload request received')
     const formData = await request.formData()
     const file = formData.get('file')
+    
+    console.log('File:', file ? `${file.name} (${file.size} bytes, ${file.type})` : 'No file')
     
     if (!file) {
       return NextResponse.json(
@@ -46,12 +49,17 @@ export async function POST(request) {
     const iconsDir = path.join(process.cwd(), 'public', 'icons')
     const filepath = path.join(iconsDir, filename)
     
+    console.log('Icons directory:', iconsDir)
+    console.log('File path:', filepath)
+    
     // Create icons directory if it doesn't exist
     const { mkdir } = await import('fs/promises')
     await mkdir(iconsDir, { recursive: true })
+    console.log('Directory created/verified')
     
     // Write file
     await writeFile(filepath, buffer)
+    console.log('File written successfully')
     
     // Return the URL path
     const iconUrl = `/icons/${filename}`
@@ -65,8 +73,13 @@ export async function POST(request) {
     })
   } catch (error) {
     console.error('Icon upload error:', error)
+    console.error('Error stack:', error.stack)
     return NextResponse.json(
-      { error: 'Failed to upload icon', details: error.message },
+      { 
+        error: 'Failed to upload icon', 
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      },
       { status: 500 }
     )
   }

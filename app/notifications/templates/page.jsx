@@ -26,6 +26,7 @@ export default function PushTemplates() {
   const [showNewCategory, setShowNewCategory] = useState(false)
   const [customCategory, setCustomCategory] = useState('')
   const [uploadedIcon, setUploadedIcon] = useState(null)
+  const [uploadingIcon, setUploadingIcon] = useState(false)
   const [templates, setTemplates] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -80,6 +81,8 @@ export default function PushTemplates() {
     const file = e.target.files[0]
     if (file && file.type.startsWith('image/')) {
       try {
+        setUploadingIcon(true)
+        
         // Create FormData
         const formData = new FormData()
         formData.append('file', file)
@@ -96,11 +99,14 @@ export default function PushTemplates() {
           setNewTemplate({...newTemplate, icon: data.url})
           setUploadedIcon(file.name)
         } else {
+          console.error('Upload failed:', data)
           alert(data.error || 'Failed to upload icon')
         }
       } catch (error) {
         console.error('Upload error:', error)
         alert('Failed to upload icon. Please try again.')
+      } finally {
+        setUploadingIcon(false)
       }
     }
   }
@@ -564,7 +570,7 @@ export default function PushTemplates() {
                           id="icon-upload"
                         />
                         <label htmlFor="icon-upload" className="btn btn-outline-primary btn-sm mb-0">
-                          Upload Icon
+                          {uploadingIcon ? 'Uploading...' : 'Upload Icon'}
                         </label>
                         {uploadedIcon && (
                           <span className="ms-2 text-success small">
