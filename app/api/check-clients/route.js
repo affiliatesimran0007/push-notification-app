@@ -64,6 +64,7 @@ export async function GET() {
       }
       
       analysis.isValidSubscription = webPushService.isValidSubscription(subscription)
+      analysis.validStructure = !!(subscription.endpoint && subscription.keys?.p256dh && subscription.keys?.auth)
       analysis.endpointType = 
         client.endpoint?.includes('fcm.googleapis.com') ? 'FCM (Chrome/Edge)' :
         client.endpoint?.includes('mozilla.com') ? 'Mozilla (Firefox)' :
