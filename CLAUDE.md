@@ -249,3 +249,22 @@ This is a Next.js 15.3.3 push notification platform MVP built with the App Route
 - Click-through rate calculation
 - Template management
 - Landing page analytics
+
+### 🐛 Recent Fixes & Debugging:
+
+1. **Emoji Icon Issue (QB Campaign)**:
+   - Problem: Campaigns with emoji icons (💰, 🛒, 📦, etc.) were failing with 7 errors
+   - Root Cause: Emoji icons need to be converted to URLs for web push notifications
+   - Solution: Added emoji detection in `webPushService.js` that converts emoji icons to default icon URL
+   - Test Page: `/test-emoji-icons` for testing various icon formats
+   - The system now automatically detects emojis (≤4 chars, non-URL) and converts them
+
+2. **Click Tracking Fix**:
+   - Added CORS headers to `/api/analytics/track`
+   - Updated service workers to include trackingUrl
+   - Note: Customers need to update their service workers for click tracking to work
+
+3. **Template URL Field**:
+   - Templates were missing URL field in creation form
+   - Added URL field to both create and edit template modals
+   - URL is now properly saved and used in campaigns

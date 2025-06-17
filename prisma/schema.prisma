@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,24 +7,21 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User model for authentication
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
+  id        String     @id @default(cuid())
+  email     String     @unique
   password  String
   name      String?
-  role      String   @default("user") // user, admin
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  role      String     @default("user")
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
   campaigns Campaign[]
   templates Template[]
 }
 
-// Push notification client/subscriber
 model Client {
-  id             String   @id @default(cuid())
-  endpoint       String   @unique
+  id             String                 @id @default(cuid())
+  endpoint       String                 @unique
   p256dh         String
   auth           String
   browser        String
@@ -38,157 +32,140 @@ model Client {
   os             String?
   device         String?
   subscribedUrl  String?
-  subscribedAt   DateTime @default(now())
-  lastActive     DateTime @default(now())
-  tags           String[] @default([])
-  accessStatus   String   @default("allowed") // allowed, blocked, pending
-  
-  // Landing page this client subscribed from
+  subscribedAt   DateTime               @default(now())
+  lastActive     DateTime               @default(now())
+  tags           String[]               @default([])
+  accessStatus   String                 @default("allowed")
   landingPageId  String?
-  landingPage    LandingPage? @relation(fields: [landingPageId], references: [id])
-  
-  notifications  NotificationDelivery[]
+  landingPage    LandingPage?           @relation(fields: [landingPageId], references: [id])
   segments       ClientSegment[]
+  notifications  NotificationDelivery[]
 }
 
-// Campaign model
 model Campaign {
-  id              String   @id @default(cuid())
-  name            String
-  title           String
-  message         String
-  url             String?
-  icon            String?
-  badge           String?
-  image           String?
-  type            String   @default("promotional") // promotional, transactional, engagement
-  status          String   @default("draft") // draft, scheduled, active, paused, completed
-  targetAudience  String   @default("all")
-  sentCount       Int      @default(0)
-  deliveredCount  Int      @default(0)
-  clickedCount    Int      @default(0)
-  failedCount     Int      @default(0)
-  scheduledFor    DateTime?
-  sentAt          DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  // A/B Testing
-  abTestEnabled   Boolean  @default(false)
-  variantA        Json?    // { title, message, url }
-  variantB        Json?    // { title, message, url }
-  trafficSplit    Int      @default(50) // Percentage for variant A
-  
-  user            User     @relation(fields: [userId], references: [id])
-  userId          String
-  
-  notifications   NotificationDelivery[]
-  segments        CampaignSegment[]
+  id             String                 @id @default(cuid())
+  name           String
+  title          String
+  message        String
+  url            String?
+  icon           String?
+  badge          String?
+  image          String?
+  type           String                 @default("promotional")
+  status         String                 @default("draft")
+  targetAudience String                 @default("all")
+  sentCount      Int                    @default(0)
+  deliveredCount Int                    @default(0)
+  clickedCount   Int                    @default(0)
+  failedCount    Int                    @default(0)
+  scheduledFor   DateTime?
+  sentAt         DateTime?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  abTestEnabled  Boolean                @default(false)
+  variantA       Json?
+  variantB       Json?
+  trafficSplit   Int                    @default(50)
+  userId         String
+  dismissedCount Int                    @default(0)
+  pendingCount   Int                    @default(0)
+  user           User                   @relation(fields: [userId], references: [id])
+  segments       CampaignSegment[]
+  notifications  NotificationDelivery[]
 }
 
-// Template model
 model Template {
-  id              String   @id @default(cuid())
-  name            String
-  category        String   // ecommerce, engagement, content, transactional, general
-  title           String
-  message         String
-  url             String?
-  icon            String?
-  badge           String?
-  sound           String   @default("default")
-  actions         Json?    // Array of action buttons
-  variables       String[] @default([]) // Variable names used in template
-  requireInteraction Boolean @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  user            User     @relation(fields: [userId], references: [id])
-  userId          String
+  id                 String   @id @default(cuid())
+  name               String
+  category           String
+  title              String
+  message            String
+  url                String?
+  icon               String?
+  badge              String?
+  sound              String   @default("default")
+  actions            Json?
+  variables          String[] @default([])
+  requireInteraction Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  userId             String
+  user               User     @relation(fields: [userId], references: [id])
 }
 
-// Track individual notification deliveries
 model NotificationDelivery {
-  id              String   @id @default(cuid())
-  campaign        Campaign @relation(fields: [campaignId], references: [id])
-  campaignId      String
-  client          Client   @relation(fields: [clientId], references: [id])
-  clientId        String
-  variant         String?  // 'A' or 'B' for A/B tests
-  status          String   // sent, delivered, clicked, failed, expired
-  sentAt          DateTime @default(now())
-  deliveredAt     DateTime?
-  clickedAt       DateTime?
-  error           String?
-  
+  id          String    @id @default(cuid())
+  campaignId  String
+  clientId    String
+  variant     String?
+  status      String
+  sentAt      DateTime  @default(now())
+  deliveredAt DateTime?
+  clickedAt   DateTime?
+  error       String?
+  campaign    Campaign  @relation(fields: [campaignId], references: [id])
+  client      Client    @relation(fields: [clientId], references: [id])
+
   @@unique([campaignId, clientId])
 }
 
-// Segment model for grouping clients
 model Segment {
-  id              String   @id @default(cuid())
-  name            String
-  description     String?
-  rules           Json     // Dynamic rules for segment criteria
-  clientCount     Int      @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  clients         ClientSegment[]
-  campaigns       CampaignSegment[]
+  id          String            @id @default(cuid())
+  name        String
+  description String?
+  rules       Json
+  clientCount Int               @default(0)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  campaigns   CampaignSegment[]
+  clients     ClientSegment[]
 }
 
-// Many-to-many relation between clients and segments
 model ClientSegment {
-  client          Client   @relation(fields: [clientId], references: [id])
-  clientId        String
-  segment         Segment  @relation(fields: [segmentId], references: [id])
-  segmentId       String
-  addedAt         DateTime @default(now())
-  
+  clientId  String
+  segmentId String
+  addedAt   DateTime @default(now())
+  client    Client   @relation(fields: [clientId], references: [id])
+  segment   Segment  @relation(fields: [segmentId], references: [id])
+
   @@id([clientId, segmentId])
 }
 
-// Many-to-many relation between campaigns and segments
 model CampaignSegment {
-  campaign        Campaign @relation(fields: [campaignId], references: [id])
-  campaignId      String
-  segment         Segment  @relation(fields: [segmentId], references: [id])
-  segmentId       String
-  
+  campaignId String
+  segmentId  String
+  campaign   Campaign @relation(fields: [campaignId], references: [id])
+  segment    Segment  @relation(fields: [segmentId], references: [id])
+
   @@id([campaignId, segmentId])
 }
 
-// Landing Page model
 model LandingPage {
-  id                String   @id @default(cuid())
-  name              String
-  domain            String   @unique
-  landingId         String   @unique
-  status            String   @default("active") // active, inactive
-  botProtection     Boolean  @default(true)
-  enableRedirect    Boolean  @default(false)
-  allowRedirectUrl  String?
-  blockRedirectUrl  String?
-  subscriberCount   Int      @default(0)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
-  // Track which clients subscribed from this landing page
-  clients           Client[]
+  id               String   @id @default(cuid())
+  name             String
+  domain           String   @unique
+  landingId        String   @unique
+  status           String   @default("active")
+  botProtection    Boolean  @default(true)
+  enableRedirect   Boolean  @default(false)
+  allowRedirectUrl String?
+  blockRedirectUrl String?
+  subscriberCount  Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  clients          Client[]
 }
 
-// Analytics events
 model AnalyticsEvent {
-  id              String   @id @default(cuid())
-  event           String   // notification_sent, notification_clicked, notification_closed, etc.
-  campaignId      String?
-  clientId        String?
-  metadata        Json?
-  ip              String?
-  userAgent       String?
-  timestamp       DateTime @default(now())
-  
+  id         String   @id @default(cuid())
+  event      String
+  campaignId String?
+  clientId   String?
+  metadata   Json?
+  ip         String?
+  userAgent  String?
+  timestamp  DateTime @default(now())
+
   @@index([event])
   @@index([campaignId])
   @@index([timestamp])
