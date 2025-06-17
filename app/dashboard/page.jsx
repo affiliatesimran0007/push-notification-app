@@ -1,7 +1,7 @@
 'use client'
 
 import { Card, Row, Col, Badge, Spinner, Alert } from 'react-bootstrap'
-import { FiUsers, FiBell, FiTrendingUp, FiActivity } from 'react-icons/fi'
+import { FiUsers, FiBell, FiTrendingUp, FiActivity, FiMousePointer, FiCheckCircle } from 'react-icons/fi'
 import DashboardLayout from '@/components/DashboardLayout'
 import PushSubscription from '@/components/PushSubscription'
 import { useApi } from '@/lib/hooks/useApi'
@@ -38,6 +38,20 @@ export default function Dashboard() {
       icon: FiTrendingUp,
       color: 'warning',
       change: `+${data.monthlyChange.ctr}%`,
+    },
+    {
+      title: 'Total Clicks',
+      value: data.overview.totalClicks.toLocaleString(),
+      icon: FiMousePointer,
+      color: 'primary',
+      change: `${data.overview.totalNotificationsSent > 0 ? ((data.overview.totalClicks / data.overview.totalNotificationsSent) * 100).toFixed(1) : '0.0'}% rate`,
+    },
+    {
+      title: 'Total Delivered',
+      value: data.overview.totalDelivered.toLocaleString(),
+      icon: FiCheckCircle,
+      color: 'success',
+      change: `${data.overview.totalNotificationsSent > 0 ? ((data.overview.totalDelivered / data.overview.totalNotificationsSent) * 100).toFixed(1) : '0.0'}% rate`,
     },
   ] : []
 
@@ -159,36 +173,36 @@ export default function Dashboard() {
                 <div className="mb-3">
                   <div className="d-flex justify-content-between mb-2">
                     <span>Desktop</span>
-                    <span className="fw-medium">{mockAnalytics.deviceBreakdown.desktop}%</span>
+                    <span className="fw-medium">{data?.deviceBreakdown?.desktop || 0}%</span>
                   </div>
                   <div className="progress" style={{ height: '8px' }}>
                     <div 
                       className="progress-bar bg-primary" 
-                      style={{ width: `${mockAnalytics.deviceBreakdown.desktop}%` }}
+                      style={{ width: `${data?.deviceBreakdown?.desktop || 0}%` }}
                     />
                   </div>
                 </div>
                 <div className="mb-3">
                   <div className="d-flex justify-content-between mb-2">
                     <span>Mobile</span>
-                    <span className="fw-medium">{mockAnalytics.deviceBreakdown.mobile}%</span>
+                    <span className="fw-medium">{data?.deviceBreakdown?.mobile || 0}%</span>
                   </div>
                   <div className="progress" style={{ height: '8px' }}>
                     <div 
                       className="progress-bar bg-success" 
-                      style={{ width: `${mockAnalytics.deviceBreakdown.mobile}%` }}
+                      style={{ width: `${data?.deviceBreakdown?.mobile || 0}%` }}
                     />
                   </div>
                 </div>
                 <div className="mb-3">
                   <div className="d-flex justify-content-between mb-2">
                     <span>Tablet</span>
-                    <span className="fw-medium">{mockAnalytics.deviceBreakdown.tablet}%</span>
+                    <span className="fw-medium">{data?.deviceBreakdown?.tablet || 0}%</span>
                   </div>
                   <div className="progress" style={{ height: '8px' }}>
                     <div 
                       className="progress-bar bg-warning" 
-                      style={{ width: `${mockAnalytics.deviceBreakdown.tablet}%` }}
+                      style={{ width: `${data?.deviceBreakdown?.tablet || 0}%` }}
                     />
                   </div>
                 </div>
