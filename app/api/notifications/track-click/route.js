@@ -28,7 +28,7 @@ export async function POST(request) {
       clickedCount: updatedCampaign.clickedCount,
       ctr: updatedCampaign.sentCount > 0 
         ? ((updatedCampaign.clickedCount / updatedCampaign.sentCount) * 100).toFixed(1)
-        : 0
+        : '0.0'
     })
 
     // Update notification delivery record if exists

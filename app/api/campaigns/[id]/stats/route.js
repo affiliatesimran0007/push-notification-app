@@ -41,7 +41,7 @@ export async function GET(request, { params }) {
       pendingCount: 0,   // Not implemented yet
       ctr: campaign.sentCount > 0 
         ? ((campaign.clickedCount / campaign.sentCount) * 100).toFixed(1)
-        : 0,
+        : '0.0',
       deliveryDetails: {
         total: campaign.notifications.length,
         delivered: campaign.notifications.filter(n => n.deliveredAt).length,

@@ -50,9 +50,9 @@ export async function GET(request) {
       ...campaign,
       dismissedCount: campaign.dismissedCount || 0,
       pendingCount: 0,   // Not tracked in current system
-      ctr: campaign.clickedCount > 0 && campaign.sentCount > 0
+      ctr: campaign.sentCount > 0
         ? ((campaign.clickedCount / campaign.sentCount) * 100).toFixed(1)
-        : 0,
+        : '0.0',
       abTest: {
         enabled: campaign.abTestEnabled,
         variantA: campaign.variantA,

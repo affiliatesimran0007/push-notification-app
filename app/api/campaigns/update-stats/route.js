@@ -36,7 +36,7 @@ export async function POST(request) {
     // Calculate CTR
     const ctr = campaign.sentCount > 0 
       ? ((campaign.clickedCount / campaign.sentCount) * 100).toFixed(1)
-      : 0
+      : '0.0'
 
     return NextResponse.json({ 
       success: true, 

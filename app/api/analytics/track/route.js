@@ -74,9 +74,9 @@ export async function POST(request) {
           campaignEvents.emitStatsUpdate(campaignId, {
             clickedCount: updatedCampaign.clickedCount,
             sentCount: updatedCampaign.sentCount,
-            ctr: updatedCampaign.clickedCount > 0 && updatedCampaign.sentCount > 0
+            ctr: updatedCampaign.sentCount > 0
               ? ((updatedCampaign.clickedCount / updatedCampaign.sentCount) * 100).toFixed(1)
-              : 0
+              : '0.0'
           })
         } else if (event === 'notification_delivered') {
           // Update delivered count
