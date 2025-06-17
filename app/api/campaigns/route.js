@@ -3,6 +3,13 @@ import prisma from '@/lib/db'
 
 // GET /api/campaigns
 export async function GET(request) {
+  // Add CORS headers
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  }
+
   try {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
@@ -66,18 +73,32 @@ export async function GET(request) {
         total,
         totalPages: Math.ceil(total / limit)
       }
-    })
+    }, { headers })
   } catch (error) {
     console.error('Failed to fetch campaigns:', error)
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    })
     return NextResponse.json(
-      { error: 'Failed to fetch campaigns' },
-      { status: 500 }
+      { 
+        error: 'Failed to fetch campaigns',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      },
+      { status: 500, headers }
     )
   }
 }
 
 // POST /api/campaigns - Create new campaign
 export async function POST(request) {
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  }
+
   try {
     const body = await request.json()
     
@@ -238,18 +259,32 @@ export async function POST(request) {
           trafficSplit: newCampaign.trafficSplit
         }
       }
-    })
+    }, { headers })
   } catch (error) {
     console.error('Failed to create campaign:', error)
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    })
     return NextResponse.json(
-      { error: 'Failed to create campaign', details: error.message },
-      { status: 500 }
+      { 
+        error: 'Failed to create campaign', 
+        details: error.message 
+      },
+      { status: 500, headers }
     )
   }
 }
 
 // PUT /api/campaigns/[id] - Update campaign
 export async function PUT(request) {
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  }
+
   try {
     const { searchParams } = new URL(request.url)
     const campaignId = searchParams.get('id')
@@ -325,18 +360,24 @@ export async function PUT(request) {
     return NextResponse.json({
       success: true,
       campaign: updatedCampaign
-    })
+    }, { headers })
   } catch (error) {
     console.error('Failed to update campaign:', error)
     return NextResponse.json(
       { error: 'Failed to update campaign' },
-      { status: 500 }
+      { status: 500, headers }
     )
   }
 }
 
 // DELETE /api/campaigns/[id] - Delete campaign
 export async function DELETE(request) {
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  }
+
   try {
     const { searchParams } = new URL(request.url)
     const campaignId = searchParams.get('id')
@@ -375,7 +416,7 @@ export async function DELETE(request) {
     return NextResponse.json({
       success: true,
       message: 'Campaign deleted successfully'
-    })
+    }, { headers })
   } catch (error) {
     console.error('Failed to delete campaign:', error)
     return NextResponse.json(
@@ -384,7 +425,20 @@ export async function DELETE(request) {
         details: error.message,
         success: false
       },
-      { status: 500 }
+      { status: 500, headers }
     )
   }
+}
+
+// OPTIONS handler for CORS preflight
+export async function OPTIONS(request) {
+  return new Response(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '86400',
+    },
+  })
 }
