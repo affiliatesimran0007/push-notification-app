@@ -21,7 +21,7 @@ export async function GET() {
         p256dh: true,
         auth: true,
         accessStatus: true,
-        createdAt: true
+        subscribedAt: true
       }
     })
 
@@ -32,7 +32,7 @@ export async function GET() {
         browser: client.browser,
         os: client.os,
         accessStatus: client.accessStatus,
-        createdAt: client.createdAt,
+        subscribedAt: client.subscribedAt,
         issues: []
       }
 
