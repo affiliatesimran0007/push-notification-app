@@ -77,6 +77,7 @@ export async function POST(request) {
         body: notification.message,
         icon: notification.icon,
         badge: notification.badge,
+        image: notification.image,
         url: notification.url,
         tag: notification.tag,
         requireInteraction: notification.requireInteraction,

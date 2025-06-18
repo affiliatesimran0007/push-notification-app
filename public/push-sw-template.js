@@ -1,9 +1,9 @@
 // Push Notification Service Worker
 // This file should be hosted on YOUR domain at the root (e.g., https://yourdomain.com/push-sw.js)
 // It handles push notifications sent from the push notification platform
-// Version: 1.2.1 - Fixed dismiss tracking URL
+// Version: 1.2.2 - Fixed dismiss tracking URL and hero image support
 
-const SW_VERSION = 'v1.2.1';
+const SW_VERSION = 'v1.2.2';
 
 self.addEventListener('push', function(event) {
   console.log('[Service Worker] Push received at:', new Date().toISOString());

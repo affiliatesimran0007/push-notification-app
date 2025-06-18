@@ -124,6 +124,7 @@ export async function GET(request) {
               url: campaign.url,
               icon: campaign.icon,
               badge: campaign.badge,
+              image: campaign.image,
               campaignId: campaign.id,
               actions: campaign.variantA?.actions || [],
               requireInteraction: true
