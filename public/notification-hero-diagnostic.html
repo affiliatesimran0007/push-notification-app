@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Push Notification Hero Image Diagnostic</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .diagnostic-section {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .success { color: #28a745; }
+        .warning { color: #ffc107; }
+        .error { color: #dc3545; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        #console-output {
+            background: #000;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .test-image {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Push Notification Hero Image Diagnostic Tool</h1>
+    
+    <div class="diagnostic-section">
+        <h2>About Hero Images in Push Notifications</h2>
+        <p>Hero images (also called "big picture" or "large image") are supported in push notifications on:</p>
+        <ul>
+            <li class="success">✅ Chrome (Desktop & Android) - Version 56+</li>
+            <li class="success">✅ Edge - All versions</li>
+            <li class="success">✅ Firefox (Desktop) - All versions</li>
+            <li class="success">✅ Opera - Version 43+</li>
+            <li class="warning">⚠️ Safari (macOS) - Limited support</li>
+            <li class="error">❌ Safari (iOS) - Not supported</li>
+        </ul>
+    </div>
+
+    <div class="diagnostic-section">
+        <h2>Quick Actions</h2>
+        <button onclick="runDiagnostics()">Run Full Diagnostics</button>
+        <button onclick="testHeroNotification()">Test Hero Image Notification</button>
+        <button onclick="clearConsole()">Clear Console</button>
+        <button onclick="checkServiceWorker()">Check Service Worker</button>
+    </div>
+
+    <div class="diagnostic-section">
+        <h2>Test Image Preview</h2>
+        <p>This is the image that should appear in the notification:</p>
+        <img src="https://push-notification-app-steel.vercel.app/test-hero-banner.jpg" 
+             alt="Test Hero Banner" 
+             class="test-image"
+             onload="logToConsole('✅ Test image loaded successfully')"
+             onerror="logToConsole('❌ Failed to load test image')">
+    </div>
+
+    <div class="diagnostic-section">
+        <h2>Console Output</h2>
+        <div id="console-output">Diagnostic console ready. Click "Run Full Diagnostics" to start...</div>
+    </div>
+
+    <div class="diagnostic-section">
+        <h2>Troubleshooting Steps</h2>
+        <ol>
+            <li><strong>Service Worker Version:</strong> Make sure your service worker is updated to v2.2.0 or later</li>
+            <li><strong>Clear Cache:</strong> Try clearing your browser cache and reloading the page</li>
+            <li><strong>Check Permissions:</strong> Ensure notifications are allowed for this site</li>
+            <li><strong>Image URL:</strong> The image must be served over HTTPS</li>
+            <li><strong>Image Size:</strong> Keep images under 1MB for best compatibility</li>
+            <li><strong>Browser Console:</strong> Check the browser's developer console for any errors</li>
+        </ol>
+    </div>
+
+    <script src="/js/notification-diagnostic.js"></script>
+    <script>
+        let consoleOutput = document.getElementById('console-output');
+        
+        // Override console.log to display in our custom console
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        function logToConsole(message, type = 'log') {
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'warn' ? '⚠️' : '▶';
+            consoleOutput.innerHTML += `[${timestamp}] ${prefix} ${message}\n`;
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+            
+            // Also log to real console
+            if (type === 'error') originalError(message);
+            else if (type === 'warn') originalWarn(message);
+            else originalLog(message);
+        }
+        
+        console.log = function(...args) {
+            logToConsole(args.join(' '), 'log');
+        };
+        
+        console.error = function(...args) {
+            logToConsole(args.join(' '), 'error');
+        };
+        
+        console.warn = function(...args) {
+            logToConsole(args.join(' '), 'warn');
+        };
+        
+        function clearConsole() {
+            consoleOutput.innerHTML = 'Console cleared.\n';
+        }
+        
+        function runDiagnostics() {
+            clearConsole();
+            logToConsole('Starting diagnostics...', 'log');
+            // The diagnostic script will run automatically
+            location.reload();
+        }
+        
+        async function checkServiceWorker() {
+            clearConsole();
+            logToConsole('Checking service worker...', 'log');
+            
+            try {
+                const registration = await navigator.serviceWorker.getRegistration();
+                if (registration) {
+                    logToConsole('Service Worker URL: ' + registration.active?.scriptURL, 'log');
+                    logToConsole('Service Worker State: ' + registration.active?.state, 'log');
+                    
+                    // Force update
+                    logToConsole('Checking for updates...', 'log');
+                    await registration.update();
+                    logToConsole('Update check complete', 'log');
+                } else {
+                    logToConsole('No service worker registered', 'error');
+                }
+            } catch (error) {
+                logToConsole('Error checking service worker: ' + error.message, 'error');
+            }
+        }
+        
+        // Check if running in iframe
+        if (window.self !== window.top) {
+            logToConsole('⚠️ This page is running in an iframe. Some features may not work correctly.', 'warn');
+        }
+    </script>
+</body>
+</html>

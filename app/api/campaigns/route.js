@@ -222,6 +222,7 @@ export async function POST(request) {
             url: newCampaign.url,
             icon: newCampaign.icon,
             badge: newCampaign.badge,
+            image: newCampaign.image,
             campaignId: newCampaign.id,
             actions: actionData || [],
             requireInteraction: true

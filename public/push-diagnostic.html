@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Push Notification Diagnostic</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .card {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .status {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .status-success {
+      background: #d4edda;
+      color: #155724;
+    }
+    .status-warning {
+      background: #fff3cd;
+      color: #856404;
+    }
+    .status-error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    button {
+      background: #0d6efd;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background: #0b5ed7;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    pre {
+      background: #f4f4f4;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>Push Notification Diagnostic Tool</h1>
+  
+  <div class="card">
+    <h2>1. Browser Information</h2>
+    <div id="browserInfo"></div>
+  </div>
+
+  <div class="card">
+    <h2>2. Notification Permission</h2>
+    <div id="permissionStatus"></div>
+    <button onclick="requestPermission()" style="margin-top: 10px;">Request Permission</button>
+  </div>
+
+  <div class="card">
+    <h2>3. Service Worker Status</h2>
+    <div id="swStatus"></div>
+    <button onclick="checkServiceWorker()" style="margin-top: 10px;">Check Service Worker</button>
+  </div>
+
+  <div class="card">
+    <h2>4. Test Hero Image Notification</h2>
+    <p>This will send a test notification with a hero image to check if your browser supports it.</p>
+    <button onclick="testHeroImage()">Send Test with Hero Image</button>
+    <div id="heroResult" class="result" style="display: none;"></div>
+  </div>
+
+  <div class="card">
+    <h2>5. Diagnostic Summary</h2>
+    <div id="summary"></div>
+  </div>
+
+  <script>
+    // Check browser info on load
+    window.onload = function() {
+      checkBrowser();
+      checkPermission();
+      checkServiceWorker();
+    };
+
+    function checkBrowser() {
+      const ua = navigator.userAgent;
+      let browser = 'Unknown';
+      let heroSupport = 'Unknown';
+
+      if (ua.indexOf('Chrome') > -1 && ua.indexOf('Edg') === -1) {
+        browser = 'Chrome';
+        heroSupport = 'Supported (v56+)';
+      } else if (ua.indexOf('Edg') > -1) {
+        browser = 'Edge';
+        heroSupport = 'Supported';
+      } else if (ua.indexOf('Firefox') > -1) {
+        browser = 'Firefox';
+        heroSupport = 'Supported';
+      } else if (ua.indexOf('Safari') > -1 && ua.indexOf('Chrome') === -1) {
+        browser = 'Safari';
+        heroSupport = ua.indexOf('iPhone') > -1 || ua.indexOf('iPad') > -1 ? 'Not Supported' : 'Limited Support';
+      }
+
+      document.getElementById('browserInfo').innerHTML = `
+        <p><strong>Browser:</strong> ${browser}</p>
+        <p><strong>User Agent:</strong> <code>${ua}</code></p>
+        <p><strong>Hero Image Support:</strong> <span class="status ${heroSupport.includes('Supported') && !heroSupport.includes('Not') ? 'status-success' : heroSupport.includes('Limited') ? 'status-warning' : 'status-error'}">${heroSupport}</span></p>
+      `;
+    }
+
+    function checkPermission() {
+      if (!('Notification' in window)) {
+        document.getElementById('permissionStatus').innerHTML = '<span class="status status-error">Notifications not supported</span>';
+        return;
+      }
+
+      const permission = Notification.permission;
+      const statusClass = permission === 'granted' ? 'status-success' : permission === 'denied' ? 'status-error' : 'status-warning';
+      document.getElementById('permissionStatus').innerHTML = `<span class="status ${statusClass}">${permission}</span>`;
+    }
+
+    async function requestPermission() {
+      if (!('Notification' in window)) {
+        alert('Notifications not supported in this browser');
+        return;
+      }
+
+      const permission = await Notification.requestPermission();
+      checkPermission();
+    }
+
+    async function checkServiceWorker() {
+      const container = document.getElementById('swStatus');
+      
+      if (!('serviceWorker' in navigator)) {
+        container.innerHTML = '<span class="status status-error">Service Workers not supported</span>';
+        return;
+      }
+
+      try {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        if (registrations.length === 0) {
+          container.innerHTML = '<span class="status status-warning">No service worker registered</span>';
+          return;
+        }
+
+        let html = '<h4>Registered Service Workers:</h4>';
+        for (const reg of registrations) {
+          const swUrl = reg.active ? reg.active.scriptURL : 'None active';
+          const state = reg.active ? 'Active' : reg.waiting ? 'Waiting' : reg.installing ? 'Installing' : 'No active worker';
+          
+          html += `
+            <div style="margin: 10px 0; padding: 10px; background: white; border-radius: 4px;">
+              <p><strong>Scope:</strong> ${reg.scope}</p>
+              <p><strong>Script URL:</strong> <code>${swUrl}</code></p>
+              <p><strong>State:</strong> <span class="status ${state === 'Active' ? 'status-success' : 'status-warning'}">${state}</span></p>
+              <button onclick="unregisterSW('${reg.scope}')" style="background: #dc3545; font-size: 14px; padding: 5px 10px;">Unregister</button>
+            </div>
+          `;
+        }
+        container.innerHTML = html;
+      } catch (error) {
+        container.innerHTML = `<span class="status status-error">Error: ${error.message}</span>`;
+      }
+    }
+
+    async function unregisterSW(scope) {
+      try {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const reg of registrations) {
+          if (reg.scope === scope) {
+            await reg.unregister();
+            alert('Service Worker unregistered. Please refresh the page.');
+            checkServiceWorker();
+            break;
+          }
+        }
+      } catch (error) {
+        alert('Failed to unregister: ' + error.message);
+      }
+    }
+
+    async function testHeroImage() {
+      const resultDiv = document.getElementById('heroResult');
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = 'Sending test notification...';
+
+      if (Notification.permission !== 'granted') {
+        resultDiv.innerHTML = '<span class="status status-error">Please grant notification permission first</span>';
+        return;
+      }
+
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        
+        // Show notification with hero image
+        await registration.showNotification('Hero Image Test 🖼️', {
+          body: 'This notification should display a hero image below the text content.',
+          icon: 'https://push-notification-app-steel.vercel.app/icon-192x192.png',
+          badge: 'https://push-notification-app-steel.vercel.app/badge-72x72.png',
+          image: 'https://push-notification-app-steel.vercel.app/test-hero-banner.jpg',
+          tag: 'hero-test-' + Date.now(),
+          requireInteraction: true,
+          actions: [
+            { action: 'view', title: 'View' },
+            { action: 'close', title: 'Close' }
+          ]
+        });
+
+        resultDiv.innerHTML = `
+          <span class="status status-success">✓ Notification sent!</span>
+          <p style="margin-top: 10px;">Check if you can see:</p>
+          <ul>
+            <li>The notification title and body text</li>
+            <li>A small icon (app logo)</li>
+            <li>A large hero image below the text</li>
+            <li>Action buttons (View/Close)</li>
+          </ul>
+          <p><strong>If you don't see the hero image:</strong></p>
+          <ul>
+            <li>Your browser may not support hero images</li>
+            <li>Try clearing your browser cache and refreshing</li>
+            <li>Check the browser console for errors</li>
+          </ul>
+        `;
+
+        // Update summary
+        updateSummary();
+      } catch (error) {
+        resultDiv.innerHTML = `<span class="status status-error">Error: ${error.message}</span>`;
+      }
+    }
+
+    function updateSummary() {
+      const summary = document.getElementById('summary');
+      const permission = Notification.permission;
+      const hasSW = navigator.serviceWorker && navigator.serviceWorker.controller;
+      
+      let issues = [];
+      let recommendations = [];
+
+      if (permission !== 'granted') {
+        issues.push('Notification permission not granted');
+        recommendations.push('Click "Request Permission" button above');
+      }
+
+      if (!hasSW) {
+        issues.push('No active service worker');
+        recommendations.push('Register a service worker on your website');
+      }
+
+      const ua = navigator.userAgent;
+      if (ua.indexOf('Safari') > -1 && ua.indexOf('Chrome') === -1) {
+        if (ua.indexOf('iPhone') > -1 || ua.indexOf('iPad') > -1) {
+          issues.push('iOS Safari does not support hero images');
+          recommendations.push('Hero images will not display on iOS devices');
+        } else {
+          recommendations.push('Safari has limited support for notification features');
+        }
+      }
+
+      summary.innerHTML = `
+        <h4>Issues Found:</h4>
+        ${issues.length ? '<ul>' + issues.map(i => `<li>${i}</li>`).join('') + '</ul>' : '<p style="color: green;">✓ No issues found</p>'}
+        
+        <h4>Recommendations:</h4>
+        ${recommendations.length ? '<ul>' + recommendations.map(r => `<li>${r}</li>`).join('') + '</ul>' : '<p>Your setup looks good!</p>'}
+      `;
+    }
+  </script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 // Service Worker for Push Notifications
-// Version: 2.1.0 - Added delivery and click tracking
+// Version: 2.2.0 - Added hero image support
 
-const SW_VERSION = 'v2.1.0';
+const SW_VERSION = 'v2.2.0';
 
 self.addEventListener('install', (event) => {
   console.log('Service Worker installed', SW_VERSION)
@@ -27,7 +27,7 @@ self.addEventListener('push', (event) => {
     const data = event.data.json()
     console.log('Parsed push data:', data)
     
-    const { title, body, icon, badge, url, tag, requireInteraction, actions, data: customData } = data
+    const { title, body, icon, badge, image, url, tag, requireInteraction, actions, data: customData } = data
 
     // Firefox limitation: only shows 1 custom action + automatic Dismiss
     // Chrome/Edge: shows up to 2 custom actions
@@ -55,6 +55,12 @@ self.addEventListener('push', (event) => {
       vibrate: [200, 100, 200],
       timestamp: Date.now(),
       silent: false // Ensure notification is not silent
+    }
+    
+    // Add hero image if provided
+    if (image) {
+      options.image = image
+      console.log('Hero image included:', image)
     }
 
     console.log('Showing notification with options:', options)
@@ -173,6 +179,12 @@ async function retryFailedNotifications() {
 // Handle messages from the page (for testing)
 self.addEventListener('message', (event) => {
   console.log('Service worker received message:', event.data)
+  
+  // Handle version request
+  if (event.data && event.data.type === 'GET_VERSION') {
+    event.ports[0].postMessage({ version: SW_VERSION })
+    return
+  }
   
   if (event.data && event.data.type === 'PUSH_TEST') {
     // Simulate a push event

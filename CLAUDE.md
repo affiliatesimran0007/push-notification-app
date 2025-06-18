@@ -276,3 +276,22 @@ This is a Next.js 15.3.3 push notification platform MVP built with the App Route
    - Solution: Updated `webPushService.js` to detect Base64 icons/badges and convert them to default URLs
    - The system now automatically detects Base64 images and uses default icons instead
    - This fixes the QB campaign issue where custom templates weren't working
+
+5. **Hero Image Not Displaying**:
+   - Problem: Hero images weren't showing in push notifications even with proper URLs
+   - Root Causes: 
+     - Service worker (`sw.js`) wasn't extracting the `image` field from payload
+     - Campaign API wasn't including `image` field for immediate sends
+   - Solutions:
+     - Updated `sw.js` to extract and include `image` field (line 32)
+     - Updated campaign API to include `image` in notification payload
+     - Incremented service worker version to v2.2.0 to force reload
+   - Test page: `/test-hero-image` for browser compatibility testing
+   - Browser Support:
+     - ✅ Chrome/Edge/Firefox/Opera: Full support
+     - ⚠️ Safari (macOS): Limited support
+     - ❌ Safari (iOS): Not supported
+   - Common issues for users:
+     - Outdated service workers need clearing cache
+     - Some browsers/devices don't support hero images
+     - Payload size limits when including images
