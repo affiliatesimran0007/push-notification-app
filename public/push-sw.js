@@ -139,14 +139,23 @@ self.addEventListener('notificationclose', (event) => {
   const campaignId = event.notification.data.campaignId;
   const clientId = event.notification.data.clientId;
   
+  console.log('[Service Worker] Notification closed:', { campaignId, clientId });
+  
   if (campaignId) {
-    fetch(self.location.origin + '/api/campaigns/track-dismiss', {
+    // Use the app URL for tracking, not the current domain
+    const trackingUrl = 'https://push-notification-app-steel.vercel.app/api/campaigns/track-dismiss';
+    
+    fetch(trackingUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         campaignId: campaignId,
         clientId: clientId
       })
-    }).catch(err => console.error('Failed to track dismiss:', err));
+    })
+    .then(response => {
+      console.log('[Service Worker] Dismiss tracking response:', response.status);
+    })
+    .catch(err => console.error('[Service Worker] Failed to track dismiss:', err));
   }
 });

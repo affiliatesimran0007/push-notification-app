@@ -2,6 +2,18 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/db'
 import { campaignEvents } from '@/lib/campaignEvents'
 
+// OPTIONS /api/campaigns/track-dismiss - Handle CORS preflight
+export async function OPTIONS(request) {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  })
+}
+
 // POST /api/campaigns/track-dismiss - Track notification dismissal
 export async function POST(request) {
   try {
@@ -56,7 +68,13 @@ export async function POST(request) {
 
     console.log('Dismiss tracked for campaign:', campaignId)
 
-    return NextResponse.json({ success: true })
+    // Add CORS headers for cross-origin requests from service workers
+    const response = NextResponse.json({ success: true })
+    response.headers.set('Access-Control-Allow-Origin', '*')
+    response.headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type')
+    
+    return response
   } catch (error) {
     console.error('Error tracking dismiss:', error)
     return NextResponse.json(
