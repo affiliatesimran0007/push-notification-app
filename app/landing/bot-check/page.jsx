@@ -288,6 +288,7 @@ export default function BotCheckPage() {
       }
       
       if (permission === 'granted') {
+        console.log('Permission granted, processing subscription...')
         // In a real app, this would register the service worker and save the subscription
         // For now, we'll show the collected client information
         const clientData = {
@@ -423,9 +424,10 @@ export default function BotCheckPage() {
       } else if (permission === 'default') {
         // User dismissed the prompt without choosing
         console.log('User dismissed the notification prompt')
-        setTimeout(() => {
-          window.location.href = '/landing'
-        }, 2000)
+        // Redirect immediately to the block redirect URL or default
+        const blockRedirect = urlParams.get('blockRedirect')
+        const subscribedUrl = urlParams.get('url')
+        window.location.href = blockRedirect || subscribedUrl || '/'
       }
     } catch (error) {
       console.error('Error requesting permission:', error)

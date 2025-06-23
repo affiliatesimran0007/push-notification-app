@@ -53,6 +53,14 @@
         return;
       }
       
+      // Show overlay immediately if bot protection is enabled
+      if (this.config.botProtection || this.config.botCheck !== false) {
+        // Check if we're in a test environment or iframe
+        if (window.parent === window) {
+          this.showBotCheckOverlay();
+        }
+      }
+      
       // Check browser support with detailed compatibility
       if (!this.checkBrowserCompatibility()) {
         return;
@@ -63,12 +71,16 @@
         if (hasSubscription) {
           localStorage.setItem(subscriptionKey, 'true');
           this.subscribed = true;
+          // Close overlay if it was shown
+          this.closeBotCheck();
           return;
         }
         
         // Check if we're in a test environment or iframe
         if (window.parent !== window) {
           console.log('Widget loaded in iframe, skipping auto-init');
+          // Close overlay if it was shown
+          this.closeBotCheck();
           return;
         }
         
@@ -78,16 +90,12 @@
         const isEdge = ua.includes('edg/');
         const requiresUserGesture = isFirefox || isEdge;
         
-        // Show bot check overlay immediately (hides background)
-        if (this.config.botProtection || this.config.botCheck !== false) {
-          // For Firefox/Edge, the bot-check page will handle the soft prompt
-          this.showBotCheckOverlay();
-          // Wait for bot check to complete, then request permission
-          // Permission will be requested after bot verification
-        } else {
+        // If bot protection is disabled and overlay wasn't shown, use browser-aware approach
+        if (!this.config.botProtection && this.config.botCheck === false) {
           // No bot check - use browser-aware approach
           this.initializeWithBrowserCheck();
         }
+        // Otherwise, overlay is already shown and waiting for bot check completion
       });
     },
     
@@ -122,10 +130,14 @@
         position: fixed;
         top: 0;
         left: 0;
-        width: 100%;
-        height: 100%;
+        right: 0;
+        bottom: 0;
+        width: 100vw;
+        height: 100vh;
         background: #ffffff;
-        z-index: 999998;
+        z-index: 2147483647;
+        display: block;
+        opacity: 1;
       `;
       
       // Create iframe that takes full page
@@ -138,6 +150,7 @@
         position: absolute;
         top: 0;
         left: 0;
+        z-index: 2147483647;
       `;
       
       // Build bot check URL
