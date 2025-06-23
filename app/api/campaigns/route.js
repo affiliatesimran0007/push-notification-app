@@ -11,6 +11,7 @@ export async function GET(request) {
   }
 
   try {
+    console.log('[Campaigns API] Starting GET request')
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
     const type = searchParams.get('type')
@@ -19,31 +20,26 @@ export async function GET(request) {
     const skip = (page - 1) * limit
 
     // Build where clause
-    const where = {
-      AND: [
-        status ? { status } : {},
-        type ? { type } : {}
-      ]
-    }
+    const where = {}
+    if (status) where.status = status
+    if (type) where.type = type
+    
+    console.log('[Campaigns API] Query params:', { status, type, page, limit, where })
 
     // Get total count
+    console.log('[Campaigns API] Counting campaigns...')
     const total = await prisma.campaign.count({ where })
+    console.log('[Campaigns API] Total campaigns:', total)
 
     // Get paginated campaigns with calculated CTR
+    console.log('[Campaigns API] Fetching campaigns...')
     const campaigns = await prisma.campaign.findMany({
       where,
       skip,
       take: limit,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        user: {
-          select: {
-            name: true,
-            email: true
-          }
-        }
-      }
+      orderBy: { createdAt: 'desc' }
     })
+    console.log('[Campaigns API] Fetched', campaigns.length, 'campaigns')
 
     // Add calculated CTR to each campaign
     const campaignsWithCtr = campaigns.map(campaign => ({
@@ -99,17 +95,8 @@ export async function POST(request) {
     const body = await request.json()
     
     // TODO: Get user ID from session when auth is implemented
-    // For now, use the first admin user
-    const adminUser = await prisma.user.findFirst({
-      where: { role: 'admin' }
-    })
-
-    if (!adminUser) {
-      return NextResponse.json(
-        { error: 'No admin user found. Please run seed script.' },
-        { status: 400 }
-      )
-    }
+    // For now, set userId to null since user table might not exist
+    const userId = null
 
     // Build actions array from button data
     const actions = []
@@ -150,7 +137,7 @@ export async function POST(request) {
       targetAudience: body.targetAudience || 'all',
       scheduledFor: body.scheduledFor ? new Date(body.scheduledFor) : null,
       sentAt: body.status === 'draft' ? null : (body.scheduledFor ? null : new Date()),
-      userId: adminUser.id,
+      userId: userId,
       abTestEnabled: false,
       variantA: actionData.length > 0 || body.targetBrowsers || body.targetSystems ? { 
         actions: actionData.length > 0 ? actionData : undefined,
@@ -162,15 +149,7 @@ export async function POST(request) {
     }
 
     const newCampaign = await prisma.campaign.create({
-      data: campaignData,
-      include: {
-        user: {
-          select: {
-            name: true,
-            email: true
-          }
-        }
-      }
+      data: campaignData
     })
 
     // If immediate send and not a draft, trigger notification delivery
@@ -343,14 +322,6 @@ export async function PUT(request) {
           targetBrowsers: body.targetBrowsers || undefined,
           targetSystems: body.targetSystems || undefined
         } : undefined
-      },
-      include: {
-        user: {
-          select: {
-            name: true,
-            email: true
-          }
-        }
       }
     })
 
