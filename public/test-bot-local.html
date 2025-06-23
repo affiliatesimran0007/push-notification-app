@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Push Notification Integration Code - MUST BE FIRST -->
+    <script>
+    window.PUSH_CONFIG = {
+        appUrl: 'http://localhost:3002',
+        landingId: 'test-local',
+        vapidKey: 'BGv2Vm45eFGslcXFhakD-euIXAnOg6-bdqVWHoSw4gwvjvYYV1zBA_Q7uiNij5yvRqMwmDhpBYYSA1v5Z_GEv_k',
+        domain: 'localhost',
+        botProtection: true,
+        redirects: {
+            enabled: true,
+            onAllow: 'http://localhost:3002/thank-you',
+            onBlock: 'http://localhost:3002/blocked'
+        }
+    };
+    console.log('[TEST] PUSH_CONFIG set:', window.PUSH_CONFIG);
+    </script>
+    <script src="http://localhost:3002/js/push-widget.js"></script>
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local Bot Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .debug {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .debug-line {
+            margin: 5px 0;
+            padding: 5px;
+            background: white;
+            border-radius: 3px;
+        }
+        .success { color: #4caf50; }
+        .error { color: #f44336; }
+        .info { color: #2196f3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Local Bot Check Test</h1>
+        <p>This page tests the bot check overlay on localhost:3002</p>
+        
+        <div class="debug">
+            <h3>Debug Information:</h3>
+            <div id="debug-info"></div>
+        </div>
+    </div>
+
+    <script>
+        const debug = document.getElementById('debug-info');
+        
+        function addDebug(message, type = 'info') {
+            const line = document.createElement('div');
+            line.className = `debug-line ${type}`;
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            debug.appendChild(line);
+        }
+        
+        // Initial checks
+        addDebug('Page loaded', 'success');
+        addDebug('Testing on: ' + window.location.href, 'info');
+        addDebug('PUSH_CONFIG exists: ' + (!!window.PUSH_CONFIG), window.PUSH_CONFIG ? 'success' : 'error');
+        
+        if (window.PUSH_CONFIG) {
+            addDebug('Bot Protection: ' + window.PUSH_CONFIG.botProtection, 'info');
+            addDebug('App URL: ' + window.PUSH_CONFIG.appUrl, 'info');
+            addDebug('Landing ID: ' + window.PUSH_CONFIG.landingId, 'info');
+        }
+        
+        // Check after delay
+        setTimeout(() => {
+            addDebug('--- Checking widget status ---', 'info');
+            
+            // Check PushWidget
+            if (window.PushWidget) {
+                addDebug('PushWidget loaded', 'success');
+                addDebug('Overlay shown: ' + window.PushWidget.overlayShown, 'info');
+                addDebug('Subscribed: ' + window.PushWidget.subscribed, 'info');
+            } else {
+                addDebug('PushWidget NOT loaded!', 'error');
+            }
+            
+            // Check overlay
+            const overlay = document.getElementById('push-widget-overlay');
+            if (overlay) {
+                addDebug('Overlay element found', 'success');
+                addDebug('Overlay display: ' + overlay.style.display, 'info');
+                addDebug('Overlay visibility: ' + overlay.style.visibility, 'info');
+                
+                // Check iframe
+                const iframe = overlay.querySelector('iframe');
+                if (iframe) {
+                    addDebug('Iframe found', 'success');
+                    addDebug('Iframe src: ' + iframe.src, 'info');
+                } else {
+                    addDebug('Iframe NOT found!', 'error');
+                }
+            } else {
+                addDebug('Overlay element NOT found!', 'error');
+            }
+            
+            // Check body visibility
+            addDebug('Body visibility: ' + document.body.style.visibility, 'info');
+            
+            // Check localStorage
+            const subKeys = Object.keys(localStorage).filter(k => k.startsWith('push-subscribed-'));
+            if (subKeys.length > 0) {
+                addDebug('Found subscriptions in localStorage: ' + subKeys.join(', '), 'info');
+            }
+        }, 2000);
+        
+        // Add clear button
+        setTimeout(() => {
+            const clearBtn = document.createElement('button');
+            clearBtn.textContent = 'Clear localStorage & Reload';
+            clearBtn.style.cssText = 'margin-top: 20px; padding: 10px 20px; background: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer;';
+            clearBtn.onclick = () => {
+                localStorage.clear();
+                location.reload();
+            };
+            document.querySelector('.container').appendChild(clearBtn);
+        }, 1000);
+    </script>
+</body>
+</html>

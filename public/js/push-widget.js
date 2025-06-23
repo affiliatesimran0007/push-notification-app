@@ -4,8 +4,11 @@
 (function(window) {
   'use strict';
   
+  console.log('[PushWidget] Script loaded, checking for PUSH_CONFIG...');
+  
   // Auto-initialize if PUSH_CONFIG exists
   if (window.PUSH_CONFIG) {
+    console.log('[PushWidget] PUSH_CONFIG found:', window.PUSH_CONFIG);
     // Wait for DOM to be ready before initializing
     if (document.readyState === 'loading') {
       // If DOM is still loading, wait for it
@@ -19,8 +22,11 @@
   }
   
   function initWidget(config) {
+    console.log('[PushWidget] initWidget called with config:', config);
+    
     // If widget already exists, reinitialize with new config
     if (window.PushWidget) {
+      console.log('[PushWidget] Widget already exists, reinitializing...');
       window.PushWidget.config = config;
       window.PushWidget.init();
       return;
@@ -913,10 +919,12 @@
     }
   };
   
-  // Initialize the widget
-  PushWidget.init();
-  
-  // Expose for debugging
-  window.PushWidget = PushWidget;
+    // Initialize the widget
+    console.log('[PushWidget] Initializing widget...');
+    PushWidget.init();
+    
+    // Expose for debugging
+    window.PushWidget = PushWidget;
+    console.log('[PushWidget] Widget exposed to window.PushWidget');
   }
 })(window);

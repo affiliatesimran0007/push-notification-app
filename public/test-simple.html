@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Test</title>
+    <script>
+    console.log('1. Setting PUSH_CONFIG...');
+    window.PUSH_CONFIG = {
+        appUrl: 'http://localhost:3002',
+        landingId: 'test-simple',
+        vapidKey: 'BGv2Vm45eFGslcXFhakD-euIXAnOg6-bdqVWHoSw4gwvjvYYV1zBA_Q7uiNij5yvRqMwmDhpBYYSA1v5Z_GEv_k',
+        domain: 'localhost',
+        botProtection: true,
+        redirects: {
+            enabled: true,
+            onAllow: 'http://localhost:3002/allow',
+            onBlock: 'http://localhost:3002/block'
+        }
+    };
+    console.log('2. PUSH_CONFIG set:', window.PUSH_CONFIG);
+    </script>
+    <script src="http://localhost:3002/js/push-widget.js" 
+            onload="console.log('3. push-widget.js loaded successfully')"
+            onerror="console.error('3. ERROR: Failed to load push-widget.js')"></script>
+</head>
+<body style="background: #f0f0f0; padding: 50px;">
+    <h1>Simple Widget Test</h1>
+    <p>Check browser console for logs...</p>
+    
+    <script>
+    // Check status after page loads
+    window.addEventListener('load', function() {
+        console.log('4. Page fully loaded');
+        console.log('5. window.PushWidget exists?', !!window.PushWidget);
+        console.log('6. document.body exists?', !!document.body);
+        console.log('7. Overlay element?', !!document.getElementById('push-widget-overlay'));
+        
+        // Try manual init if needed
+        setTimeout(() => {
+            console.log('8. Checking after 2 seconds...');
+            if (!window.PushWidget) {
+                console.error('PushWidget still not available!');
+            } else {
+                console.log('PushWidget available:', window.PushWidget);
+            }
+        }, 2000);
+    });
+    </script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Direct Bot Check Test</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-links {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .test-link {
+            padding: 10px 20px;
+            background: #2196f3;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            display: inline-block;
+        }
+        .test-link:hover {
+            background: #1976d2;
+        }
+        iframe {
+            width: 100%;
+            height: 600px;
+            border: 2px solid #ddd;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Bot Check Direct Test</h1>
+        <p>Test the bot check page in different modes:</p>
+        
+        <div class="test-links">
+            <a href="http://localhost:3002/landing/bot-check?embedded=false&domain=localhost&landingId=test-direct" 
+               class="test-link" target="_blank">
+                Open Bot Check Directly (Not Embedded)
+            </a>
+            
+            <a href="http://localhost:3002/landing/bot-check?embedded=true&domain=localhost&landingId=test-iframe&allowRedirect=http://localhost:3002/allow&blockRedirect=http://localhost:3002/block" 
+               class="test-link" target="_blank">
+                Open Bot Check (Embedded Mode)
+            </a>
+        </div>
+        
+        <h2>Iframe Test (Embedded)</h2>
+        <iframe src="http://localhost:3002/landing/bot-check?embedded=true&domain=localhost&landingId=test-iframe&allowRedirect=http://localhost:3002/allow&blockRedirect=http://localhost:3002/block"></iframe>
+        
+        <h2>Console Output</h2>
+        <pre id="console-output" style="background: #f5f5f5; padding: 15px; border-radius: 5px; font-size: 12px;"></pre>
+    </div>
+    
+    <script>
+        // Listen for messages from iframe
+        window.addEventListener('message', function(event) {
+            const output = document.getElementById('console-output');
+            const msg = `[${new Date().toLocaleTimeString()}] Message from iframe:\n${JSON.stringify(event.data, null, 2)}\n\n`;
+            output.textContent += msg;
+            console.log('Message from iframe:', event.data);
+        });
+        
+        // Log to visible console
+        const output = document.getElementById('console-output');
+        output.textContent = `[${new Date().toLocaleTimeString()}] Page loaded, listening for iframe messages...\n\n`;
+    </script>
+</body>
+</html>

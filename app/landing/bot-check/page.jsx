@@ -176,12 +176,9 @@ export default function BotCheckPage() {
           }, '*')
         }, 500)
       } else {
-        // Chrome/Safari - auto-request permission after bot check
-        setTimeout(() => {
-          if (clientInfo) {
-            handleAllow()
-          }
-        }, 500)
+        // Not embedded - this page should only work in iframe mode
+        console.warn('[Bot Check] This page should only be accessed through the push widget iframe')
+        // Don't do anything - just show the UI
       }
     }, 1500)
 
@@ -515,6 +512,35 @@ export default function BotCheckPage() {
     }
   }
 
+  // If accessed directly (not embedded), show error message
+  if (typeof window !== 'undefined' && !window.isEmbedded) {
+    return (
+      <div style={{ 
+        minHeight: '100vh', 
+        backgroundColor: '#f8f8f8',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
+      }}>
+        <Container>
+          <Card className="mx-auto" style={{ maxWidth: '500px', border: '1px solid #d9d9d9', boxShadow: 'none' }}>
+            <Card.Body className="p-5 text-center">
+              <h3 style={{ color: '#f44336', marginBottom: '20px' }}>⚠️ Invalid Access</h3>
+              <p style={{ color: '#666' }}>
+                This bot check page should only be accessed through the push notification widget.
+              </p>
+              <p style={{ color: '#999', fontSize: '14px', marginTop: '20px' }}>
+                Please integrate the push notification widget on your website.
+              </p>
+            </Card.Body>
+          </Card>
+        </Container>
+      </div>
+    );
+  }
+  
   return (
     <div style={{ 
       minHeight: '100vh', 
