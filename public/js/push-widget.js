@@ -59,6 +59,7 @@
       // Check if already subscribed locally
       const subscriptionKey = 'push-subscribed-' + config.landingId;
       if (localStorage.getItem(subscriptionKey) === 'true') {
+        console.log('[PushWidget] Already subscribed, skipping initialization');
         this.subscribed = true;
         return;
       }
@@ -66,11 +67,17 @@
       // IMMEDIATELY show overlay if bot protection is enabled
       // This prevents the landing page background from flashing
       if (this.config.botProtection || this.config.botCheck !== false) {
+        console.log('[PushWidget] Bot protection enabled, checking environment...');
         // Check if we're in a test environment or iframe
         if (window.parent === window) {
+          console.log('[PushWidget] Not in iframe, showing bot check overlay');
           this.showBotCheckOverlay();
           this.overlayShown = true;
+        } else {
+          console.log('[PushWidget] In iframe, skipping overlay');
         }
+      } else {
+        console.log('[PushWidget] Bot protection disabled');
       }
       
       // Check browser support with detailed compatibility
@@ -80,13 +87,16 @@
       
       // Check if already has push subscription
       this.checkExistingSubscription().then(hasSubscription => {
+        console.log('[PushWidget] Existing subscription check:', hasSubscription);
         if (hasSubscription) {
+          console.log('[PushWidget] Found existing subscription, closing overlay');
           localStorage.setItem(subscriptionKey, 'true');
           this.subscribed = true;
           // Close overlay if it was shown
           this.closeBotCheck();
           return;
-        }
+        } else {
+          console.log('[PushWidget] No existing subscription found');
         
         // Check if we're in a test environment or iframe
         if (window.parent !== window) {
@@ -190,7 +200,16 @@
       
       // Append iframe to overlay
       overlay.appendChild(iframe);
+      
+      // Debug logging
+      console.log('[PushWidget] Appending overlay to body...');
       document.body.appendChild(overlay);
+      console.log('[PushWidget] Overlay appended successfully');
+      
+      // Verify overlay exists
+      const checkOverlay = document.getElementById('push-widget-overlay');
+      console.log('[PushWidget] Overlay verification:', checkOverlay ? 'Found' : 'Not found');
+      console.log('[PushWidget] Body children count:', document.body.children.length);
       
       // Listen for messages from iframe
       window.addEventListener('message', this.handleMessage.bind(this));
