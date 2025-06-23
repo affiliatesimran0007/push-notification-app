@@ -62,12 +62,12 @@
         return;
       }
       
-      // Check if already subscribed locally
+      // Check if already subscribed locally - but don't skip bot check
       const subscriptionKey = 'push-subscribed-' + config.landingId;
       if (localStorage.getItem(subscriptionKey) === 'true') {
-        console.log('[PushWidget] Already subscribed, skipping initialization');
+        console.log('[PushWidget] Already subscribed');
         this.subscribed = true;
-        return;
+        // Don't return here - let bot check still show if enabled
       }
       
       // IMMEDIATELY show overlay if bot protection is enabled
@@ -79,8 +79,12 @@
           console.log('[PushWidget] Not in iframe, showing bot check overlay');
           this.showBotCheckOverlay();
           this.overlayShown = true;
+          // IMPORTANT: Return here to prevent any further processing
+          // The bot check will handle everything via message events
+          return;
         } else {
           console.log('[PushWidget] In iframe, skipping overlay');
+          return; // Also return here to prevent further processing
         }
       } else {
         console.log('[PushWidget] Bot protection disabled');
@@ -91,7 +95,7 @@
         return;
       }
       
-      // If bot protection is disabled, check for existing subscription
+      // Only continue if bot protection is explicitly disabled
       if (!this.config.botProtection && this.config.botCheck === false) {
         // Check if already has push subscription
         this.checkExistingSubscription().then(hasSubscription => {
@@ -113,7 +117,6 @@
           this.initializeWithBrowserCheck();
         });
       }
-      // Otherwise, bot check overlay is already shown and waiting for user interaction
     },
     
     checkExistingSubscription: async function() {
@@ -149,23 +152,25 @@
       
       // Hide the page content immediately to prevent flash
       document.body.style.visibility = 'hidden';
+      document.body.style.overflow = 'hidden'; // Prevent scrolling
       
       // Create full page white overlay
       const overlay = document.createElement('div');
       overlay.id = 'push-widget-overlay';
       overlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        width: 100vw;
-        height: 100vh;
-        background: #ffffff;
-        z-index: 2147483647;
-        display: block;
-        opacity: 1;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        background: #ffffff !important;
+        z-index: 2147483647 !important;
+        display: block !important;
+        opacity: 1 !important;
         visibility: visible !important;
+        pointer-events: all !important;
       `;
       
       // Create iframe that takes full page
@@ -229,9 +234,10 @@
       const overlay = document.getElementById('push-widget-overlay');
       if (overlay) overlay.remove();
       
-      // Restore body visibility
+      // Restore body visibility and overflow
       if (document.body) {
         document.body.style.visibility = 'visible';
+        document.body.style.overflow = ''; // Restore scrolling
       }
       
       window.removeEventListener('message', this.handleMessage.bind(this));
@@ -239,11 +245,8 @@
       
       requestPermissionWithBotCheck: async function() {
       try {
-        // Close the bot check overlay first
-        this.closeBotCheck();
-        
-        // Small delay to ensure overlay is closed
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // DON'T close the bot check overlay - keep it open
+        console.log('[PushWidget] Requesting permission while bot check remains visible');
         
         // Request permission on the main page
         const permission = await Notification.requestPermission();
@@ -251,21 +254,43 @@
         
         // Process based on permission result
         if (permission === 'granted') {
-          // Register with bot check data
-          await this.registerPushSubscription(this.botCheckData || {
+          // Immediately redirect to configured allow URL
+          if (this.config.redirects && this.config.redirects.enabled && this.config.redirects.onAllow) {
+            console.log('[PushWidget] Permission granted, redirecting to:', this.config.redirects.onAllow);
+            window.location.href = this.config.redirects.onAllow;
+          }
+          // Don't close overlay - let redirect happen first
+          
+          // Register subscription in background (will complete before redirect)
+          this.registerPushSubscription(this.botCheckData || {
             browserInfo: this.getBrowserInfo(),
             location: { country: 'Unknown', city: 'Unknown' }
           });
         } else if (permission === 'denied') {
-          this.handleDenied();
+          // Redirect immediately for denied
+          if (this.config.redirects && this.config.redirects.enabled && this.config.redirects.onBlock) {
+            console.log('[PushWidget] Permission denied, redirecting to:', this.config.redirects.onBlock);
+            window.location.href = this.config.redirects.onBlock;
+          }
+          // Don't close overlay - let redirect happen first
+          
+          // Save denied status in background
+          this.saveDeniedStatus();
+        } else {
+          // User dismissed - treat as denied
+          if (this.config.redirects && this.config.redirects.enabled && this.config.redirects.onBlock) {
+            console.log('[PushWidget] Permission dismissed, redirecting to:', this.config.redirects.onBlock);
+            window.location.href = this.config.redirects.onBlock;
+          }
+          this.saveDeniedStatus();
         }
-        // If 'default' (dismissed), do nothing
         
         // Clean up
         this.botCheckData = null;
         this.botCheckCompleted = false;
       } catch (error) {
         console.error('Error requesting permission:', error);
+        this.closeBotCheck();
       }
     },
     
@@ -525,8 +550,7 @@
         // Only request if not already granted or denied
         if (Notification.permission === 'denied') {
           console.log('Notifications are already denied for this domain');
-          this.closeBotCheck();
-          // Handle redirect for denied
+          // Don't close overlay - redirect immediately
           if (this.config.redirects && this.config.redirects.enabled && this.config.redirects.onBlock) {
             window.location.href = this.config.redirects.onBlock;
           }
@@ -534,11 +558,13 @@
         }
         
         if (Notification.permission === 'granted') {
-          console.log('Notifications are already granted, proceeding with subscription');
-          // Close the iframe overlay
-          this.closeBotCheck();
-          // Register subscription
-          await this.registerPushSubscription({
+          console.log('Notifications are already granted, redirecting...');
+          // Don't close overlay - redirect immediately
+          if (this.config.redirects && this.config.redirects.enabled && this.config.redirects.onAllow) {
+            window.location.href = this.config.redirects.onAllow;
+          }
+          // Register subscription in background
+          this.registerPushSubscription({
             browserInfo: data.browserInfo,
             location: data.location
           });
@@ -602,23 +628,28 @@
         console.log('Final permission result:', permission);
         
         if (permission === 'granted') {
-          // Close the iframe overlay
-          self.closeBotCheck();
+          // Don't close overlay - redirect immediately
+          if (self.config.redirects && self.config.redirects.enabled && self.config.redirects.onAllow) {
+            console.log('[PushWidget] Firefox/Edge permission granted, redirecting to:', self.config.redirects.onAllow);
+            window.location.href = self.config.redirects.onAllow;
+          }
           
-          // Register subscription
-          await self.registerPushSubscription({
+          // Register subscription in background
+          self.registerPushSubscription({
             browserInfo: data.browserInfo,
             location: data.location
           });
         } else {
-          // Permission denied or dismissed
-          self.closeBotCheck();
+          // Permission denied or dismissed - redirect immediately
           console.log('Permission denied or dismissed by user');
           
-          // Handle redirect if configured
           if (self.config.redirects && self.config.redirects.enabled && self.config.redirects.onBlock) {
+            console.log('[PushWidget] Firefox/Edge permission denied, redirecting to:', self.config.redirects.onBlock);
             window.location.href = self.config.redirects.onBlock;
           }
+          
+          // Save denied status in background
+          self.saveDeniedStatus();
         }
       } catch (error) {
         console.error('Error handling Firefox/Edge permission:', error);
