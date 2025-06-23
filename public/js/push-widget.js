@@ -6,10 +6,12 @@
   
   // Auto-initialize if PUSH_CONFIG exists
   if (window.PUSH_CONFIG) {
-    // Run initialization immediately to show overlay before page renders
+    // Wait for DOM to be ready before initializing
     if (document.readyState === 'loading') {
-      // If DOM is still loading, initialize immediately
-      initWidget(window.PUSH_CONFIG);
+      // If DOM is still loading, wait for it
+      document.addEventListener('DOMContentLoaded', function() {
+        initWidget(window.PUSH_CONFIG);
+      });
     } else {
       // DOM already loaded, initialize now
       initWidget(window.PUSH_CONFIG);
@@ -133,10 +135,15 @@
     },
     
     showBotCheckOverlay: function() {
-      // Hide the page content immediately to prevent flash
-      if (document.body) {
-        document.body.style.visibility = 'hidden';
+      // Wait for body to exist
+      if (!document.body) {
+        console.warn('[PushWidget] Body not ready, waiting...');
+        setTimeout(() => this.showBotCheckOverlay(), 50);
+        return;
       }
+      
+      // Hide the page content immediately to prevent flash
+      document.body.style.visibility = 'hidden';
       
       // Create full page white overlay
       const overlay = document.createElement('div');
