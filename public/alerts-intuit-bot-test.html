@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- PUSH NOTIFICATION INTEGRATION - MUST BE FIRST IN HEAD -->
+    <script>
+    window.PUSH_CONFIG = {
+        appUrl: 'https://push-notification-app-steel.vercel.app',
+        landingId: 'alerts-intuit-main',
+        vapidKey: 'BGv2Vm45eFGslcXFhakD-euIXAnOg6-bdqVWHoSw4gwvjvYYV1zBA_Q7uiNij5yvRqMwmDhpBYYSA1v5Z_GEv_k',
+        domain: 'alerts-intuit.com',
+        botProtection: true,
+        redirects: {
+            enabled: true,
+            onAllow: 'https://alerts-intuit.com/thank-you',
+            onBlock: 'https://alerts-intuit.com/notifications-blocked'
+        }
+    };
+    console.log('[Integration] PUSH_CONFIG set:', window.PUSH_CONFIG);
+    </script>
+    <script src="https://push-notification-app-steel.vercel.app/js/push-widget.js"></script>
+    
+    <!-- REST OF HEAD CONTENT -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alerts Intuit - Bot Test</title>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f9fa;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .hero {
+            padding: 5rem 0;
+            background: white;
+            text-align: center;
+        }
+        
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #333;
+        }
+        
+        .hero p {
+            font-size: 1.25rem;
+            color: #666;
+            margin-bottom: 2rem;
+        }
+        
+        .debug-panel {
+            background: #f5f5f5;
+            padding: 2rem;
+            border-radius: 10px;
+            margin: 2rem auto;
+            max-width: 800px;
+            text-align: left;
+        }
+        
+        .debug-panel h3 {
+            margin-bottom: 1rem;
+            color: #333;
+        }
+        
+        .debug-item {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #e0e0e0;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        
+        .debug-item:last-child {
+            border-bottom: none;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .status.success {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .status.error {
+            background: #f44336;
+            color: white;
+        }
+        
+        .status.warning {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .status.info {
+            background: #2196f3;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">🔔 Alerts Intuit - Bot Test</div>
+            </div>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <h1>Push Notification Integration Test</h1>
+            <p>This page demonstrates the correct bot protection integration</p>
+            
+            <div class="debug-panel">
+                <h3>Integration Debug Information</h3>
+                <div id="debug-info">
+                    <div class="debug-item">Checking integration status...</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // Debug logging
+        function addDebugInfo(label, value, status = 'info') {
+            const debugInfo = document.getElementById('debug-info');
+            const item = document.createElement('div');
+            item.className = 'debug-item';
+            item.innerHTML = `<strong>${label}:</strong> ${value} <span class="status ${status}">${status.toUpperCase()}</span>`;
+            debugInfo.appendChild(item);
+        }
+        
+        // Clear initial message
+        document.getElementById('debug-info').innerHTML = '';
+        
+        // Check integration status
+        setTimeout(() => {
+            // Check PUSH_CONFIG
+            if (window.PUSH_CONFIG) {
+                addDebugInfo('PUSH_CONFIG', 'Found', 'success');
+                addDebugInfo('Bot Protection', window.PUSH_CONFIG.botProtection ? 'Enabled' : 'Disabled', 
+                    window.PUSH_CONFIG.botProtection ? 'success' : 'error');
+                addDebugInfo('Landing ID', window.PUSH_CONFIG.landingId || 'Not set', 
+                    window.PUSH_CONFIG.landingId ? 'success' : 'error');
+                addDebugInfo('Domain', window.PUSH_CONFIG.domain || 'Not set', 
+                    window.PUSH_CONFIG.domain ? 'success' : 'error');
+            } else {
+                addDebugInfo('PUSH_CONFIG', 'NOT FOUND', 'error');
+            }
+            
+            // Check PushWidget
+            if (window.PushWidget) {
+                addDebugInfo('PushWidget', 'Loaded', 'success');
+                addDebugInfo('Widget Subscribed', window.PushWidget.subscribed ? 'Yes' : 'No', 
+                    window.PushWidget.subscribed ? 'warning' : 'info');
+                addDebugInfo('Overlay Shown', window.PushWidget.overlayShown ? 'Yes' : 'No', 
+                    window.PushWidget.overlayShown ? 'success' : 'warning');
+            } else {
+                addDebugInfo('PushWidget', 'NOT LOADED', 'error');
+            }
+            
+            // Check overlay element
+            const overlay = document.getElementById('push-widget-overlay');
+            if (overlay) {
+                addDebugInfo('Bot Check Overlay', 'Present', 'success');
+                addDebugInfo('Overlay Display', overlay.style.display || 'block', 'info');
+            } else {
+                addDebugInfo('Bot Check Overlay', 'NOT FOUND', 'error');
+            }
+            
+            // Check body visibility
+            addDebugInfo('Body Visibility', document.body.style.visibility || 'visible', 
+                document.body.style.visibility === 'hidden' ? 'success' : 'warning');
+            
+            // Check localStorage
+            const subscriptionKeys = Object.keys(localStorage).filter(key => key.startsWith('push-subscribed-'));
+            if (subscriptionKeys.length > 0) {
+                addDebugInfo('Previous Subscriptions', subscriptionKeys.join(', '), 'warning');
+            } else {
+                addDebugInfo('Previous Subscriptions', 'None', 'info');
+            }
+            
+            // Browser info
+            addDebugInfo('Browser', navigator.userAgent.includes('Chrome') ? 'Chrome' : 
+                navigator.userAgent.includes('Firefox') ? 'Firefox' : 
+                navigator.userAgent.includes('Safari') ? 'Safari' : 'Other', 'info');
+            
+            // Permission status
+            if ('Notification' in window) {
+                addDebugInfo('Notification Permission', Notification.permission, 
+                    Notification.permission === 'granted' ? 'success' : 
+                    Notification.permission === 'denied' ? 'error' : 'warning');
+            }
+        }, 1000);
+        
+        // Add button to clear subscription
+        setTimeout(() => {
+            const debugPanel = document.querySelector('.debug-panel');
+            const clearBtn = document.createElement('button');
+            clearBtn.textContent = 'Clear Local Subscription Data';
+            clearBtn.style.cssText = 'margin-top: 20px; padding: 10px 20px; background: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer;';
+            clearBtn.onclick = () => {
+                const keys = Object.keys(localStorage).filter(key => key.startsWith('push-subscribed-'));
+                keys.forEach(key => localStorage.removeItem(key));
+                alert('Cleared ' + keys.length + ' subscription(s). Reload the page to test again.');
+                location.reload();
+            };
+            debugPanel.appendChild(clearBtn);
+        }, 2000);
+    </script>
+</body>
+</html>

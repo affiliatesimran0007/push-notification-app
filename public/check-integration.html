@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Integration Checker</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .check {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+        }
+        .success { border-left: 5px solid #4caf50; }
+        .error { border-left: 5px solid #f44336; }
+        .warning { border-left: 5px solid #ff9800; }
+        .info { border-left: 5px solid #2196f3; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Push Notification Integration Checker</h1>
+    <p>Copy and paste this into your browser console on alerts-intuit.com to check your integration:</p>
+    
+    <pre><code>// Integration Checker Script
+(function() {
+    console.log('=== PUSH NOTIFICATION INTEGRATION CHECK ===');
+    
+    // 1. Check PUSH_CONFIG
+    if (window.PUSH_CONFIG) {
+        console.log('✅ PUSH_CONFIG found');
+        console.log('   Bot Protection:', window.PUSH_CONFIG.botProtection);
+        console.log('   Landing ID:', window.PUSH_CONFIG.landingId);
+        console.log('   Domain:', window.PUSH_CONFIG.domain);
+        console.log('   App URL:', window.PUSH_CONFIG.appUrl);
+        
+        if (!window.PUSH_CONFIG.botProtection) {
+            console.error('❌ Bot Protection is DISABLED - overlay won\'t show!');
+        }
+    } else {
+        console.error('❌ PUSH_CONFIG not found - integration code missing or placed incorrectly');
+    }
+    
+    // 2. Check PushWidget
+    if (window.PushWidget) {
+        console.log('✅ PushWidget loaded');
+        console.log('   Subscribed:', window.PushWidget.subscribed);
+        console.log('   Overlay Shown:', window.PushWidget.overlayShown);
+    } else {
+        console.error('❌ PushWidget not loaded - script may have failed');
+    }
+    
+    // 3. Check for overlay
+    const overlay = document.getElementById('push-widget-overlay');
+    if (overlay) {
+        console.log('✅ Bot check overlay found');
+        console.log('   Display:', overlay.style.display);
+        console.log('   Z-index:', overlay.style.zIndex);
+    } else {
+        console.error('❌ No bot check overlay found');
+    }
+    
+    // 4. Check body visibility
+    console.log('Body visibility:', document.body.style.visibility || 'visible');
+    
+    // 5. Check localStorage
+    const subKeys = Object.keys(localStorage).filter(k => k.startsWith('push-subscribed-'));
+    if (subKeys.length > 0) {
+        console.warn('⚠️ Found existing subscriptions:', subKeys);
+        console.log('   To clear and test again, run: localStorage.clear()');
+    }
+    
+    // 6. Check script loading
+    const scripts = Array.from(document.scripts);
+    const widgetScript = scripts.find(s => s.src && s.src.includes('push-widget.js'));
+    if (widgetScript) {
+        console.log('✅ Widget script found:', widgetScript.src);
+        console.log('   Async:', widgetScript.async);
+        console.log('   Position in DOM:', Array.from(document.scripts).indexOf(widgetScript));
+    } else {
+        console.error('❌ Widget script not found in DOM');
+    }
+    
+    console.log('=== END CHECK ===');
+})();</code></pre>
+
+    <div class="check info">
+        <h3>Common Issues:</h3>
+        <ol>
+            <li><strong>Bot check not showing:</strong> Usually means botProtection is false or integration code is placed too late</li>
+            <li><strong>Background flash:</strong> Integration code needs to be the FIRST thing in &lt;head&gt;</li>
+            <li><strong>Already subscribed:</strong> Clear localStorage or use incognito mode to test again</li>
+        </ol>
+    </div>
+
+    <div class="check warning">
+        <h3>Correct Integration Code:</h3>
+        <pre><code>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+    &lt;!-- THIS MUST BE FIRST --&gt;
+    &lt;script&gt;
+    window.PUSH_CONFIG = {
+        appUrl: 'https://push-notification-app-steel.vercel.app',
+        landingId: 'your-landing-id-here',
+        vapidKey: 'BGv2Vm45eFGslcXFhakD-euIXAnOg6-bdqVWHoSw4gwvjvYYV1zBA_Q7uiNij5yvRqMwmDhpBYYSA1v5Z_GEv_k',
+        domain: 'alerts-intuit.com',
+        botProtection: true,  // MUST BE TRUE
+        redirects: {
+            enabled: true,
+            onAllow: 'https://alerts-intuit.com/thank-you',
+            onBlock: 'https://alerts-intuit.com/blocked'
+        }
+    };
+    &lt;/script&gt;
+    &lt;script src="https://push-notification-app-steel.vercel.app/js/push-widget.js"&gt;&lt;/script&gt;
+    
+    &lt;!-- REST OF YOUR HEAD --&gt;
+    &lt;meta charset="UTF-8"&gt;
+    &lt;title&gt;Your Title&lt;/title&gt;
+&lt;/head&gt;</code></pre>
+    </div>
+
+    <div class="check success">
+        <h3>Test Pages:</h3>
+        <ul>
+            <li><a href="/alerts-intuit-bot-test.html" target="_blank">Bot Test Page</a> - Working example with bot protection</li>
+            <li><a href="/alerts-intuit-direct.html" target="_blank">Direct Test Page</a> - Without bot protection</li>
+        </ul>
+    </div>
+</body>
+</html>

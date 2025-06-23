@@ -85,41 +85,29 @@
         return;
       }
       
-      // Check if already has push subscription
-      this.checkExistingSubscription().then(hasSubscription => {
-        console.log('[PushWidget] Existing subscription check:', hasSubscription);
-        if (hasSubscription) {
-          console.log('[PushWidget] Found existing subscription, closing overlay');
-          localStorage.setItem(subscriptionKey, 'true');
-          this.subscribed = true;
-          // Close overlay if it was shown
-          this.closeBotCheck();
-          return;
-        } else {
-          console.log('[PushWidget] No existing subscription found');
-        }
-        
-        // Check if we're in a test environment or iframe
-        if (window.parent !== window) {
-          console.log('Widget loaded in iframe, skipping auto-init');
-          // Close overlay if it was shown
-          this.closeBotCheck();
-          return;
-        }
-        
-        // Check browser type
-        const ua = navigator.userAgent.toLowerCase();
-        const isFirefox = ua.includes('firefox');
-        const isEdge = ua.includes('edg/');
-        const requiresUserGesture = isFirefox || isEdge;
-        
-        // If bot protection is disabled and overlay wasn't shown, use browser-aware approach
-        if (!this.config.botProtection && this.config.botCheck === false) {
-          // No bot check - use browser-aware approach
+      // If bot protection is disabled, check for existing subscription
+      if (!this.config.botProtection && this.config.botCheck === false) {
+        // Check if already has push subscription
+        this.checkExistingSubscription().then(hasSubscription => {
+          console.log('[PushWidget] Existing subscription check:', hasSubscription);
+          if (hasSubscription) {
+            console.log('[PushWidget] Found existing subscription');
+            localStorage.setItem(subscriptionKey, 'true');
+            this.subscribed = true;
+            return;
+          }
+          
+          // Check if we're in a test environment or iframe
+          if (window.parent !== window) {
+            console.log('Widget loaded in iframe, skipping auto-init');
+            return;
+          }
+          
+          // Use browser-aware approach
           this.initializeWithBrowserCheck();
-        }
-        // Otherwise, overlay is already shown and waiting for bot check completion
-      });
+        });
+      }
+      // Otherwise, bot check overlay is already shown and waiting for user interaction
     },
     
     checkExistingSubscription: async function() {
