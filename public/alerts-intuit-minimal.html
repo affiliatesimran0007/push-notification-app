@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script>
+    // Clear any existing subscriptions first
+    Object.keys(localStorage).filter(k => k.startsWith('push-')).forEach(k => localStorage.removeItem(k));
+    console.log('[TEST] Cleared localStorage');
+    
+    window.PUSH_CONFIG = {
+        appUrl: 'https://push-notification-app-steel.vercel.app',
+        landingId: 'alerts-intuit-main',
+        vapidKey: 'BGv2Vm45eFGslcXFhakD-euIXAnOg6-bdqVWHoSw4gwvjvYYV1zBA_Q7uiNij5yvRqMwmDhpBYYSA1v5Z_GEv_k',
+        domain: 'alerts-intuit.com',
+        botProtection: true,
+        redirects: {
+            enabled: true,
+            onAllow: 'https://alerts-intuit.com/thank-you',
+            onBlock: 'https://alerts-intuit.com/notifications-blocked'
+        }
+    };
+    console.log('[TEST] PUSH_CONFIG set');
+    </script>
+    <script src="https://push-notification-app-steel.vercel.app/js/push-widget.js"></script>
+</head>
+<body>
+    <h1>Minimal Test</h1>
+    <p>This page should immediately show the bot check overlay.</p>
+</body>
+</html>

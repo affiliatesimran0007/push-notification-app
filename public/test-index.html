@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Push Notification Integration Code - MUST BE FIRST IN HEAD -->
+    <script>
+    window.PUSH_CONFIG = {
+        appUrl: 'https://push-notification-app-steel.vercel.app',
+        landingId: 'alerts-intuit-main',
+        vapidKey: 'BGv2Vm45eFGslcXFhakD-euIXAnOg6-bdqVWHoSw4gwvjvYYV1zBA_Q7uiNij5yvRqMwmDhpBYYSA1v5Z_GEv_k',
+        domain: 'alerts-intuit.com',
+        botProtection: true,
+        redirects: {
+            enabled: true,
+            onAllow: 'https://alerts-intuit.com/thank-you',
+            onBlock: 'https://alerts-intuit.com/notifications-blocked'
+        }
+    };
+    </script>
+    <script src="https://push-notification-app-steel.vercel.app/js/push-widget.js"></script>
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Push Notifications - Alerts Intuit</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f4f4f4;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .info-box {
+            background: #e8f4fd;
+            border: 1px solid #bee5eb;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        
+        .success-box {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #155724;
+        }
+        
+        .warning-box {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #856404;
+        }
+        
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .test-section h2 {
+            color: #495057;
+            margin-bottom: 15px;
+        }
+        
+        .test-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        
+        button:hover {
+            background: #0056b3;
+        }
+        
+        button.danger {
+            background: #dc3545;
+        }
+        
+        button.danger:hover {
+            background: #c82333;
+        }
+        
+        .console-output {
+            background: #000;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 20px 0;
+        }
+        
+        .console-line {
+            margin: 2px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔔 Push Notification Test Page</h1>
+        
+        <div class="success-box">
+            <strong>✅ Integration Code Loaded</strong><br>
+            This page has the push notification widget integrated. You should see the bot check overlay.
+        </div>
+        
+        <div class="info-box">
+            <strong>📍 Expected Behavior:</strong><br>
+            • <strong>Chrome/Safari:</strong> Bot check for 2 seconds → Auto permission prompt → Redirect<br>
+            • <strong>Firefox/Edge:</strong> Allow/Block buttons → Permission prompt → Redirect<br>
+            • <strong>Allow:</strong> Redirects to /thank-you<br>
+            • <strong>Block:</strong> Redirects to /notifications-blocked
+        </div>
+        
+        <div class="test-section">
+            <h2>🔍 Integration Status</h2>
+            <div id="status-output"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🛠️ Debug Tools</h2>
+            <button onclick="checkStatus()">Check Status</button>
+            <button onclick="clearSubscription()" class="danger">Clear Subscription</button>
+            <button onclick="showConsole()">Show Console</button>
+        </div>
+        
+        <div class="console-output" id="console-output" style="display: none;">
+            <div class="console-line">Console output will appear here...</div>
+        </div>
+        
+        <div class="warning-box">
+            <strong>⚠️ Troubleshooting:</strong><br>
+            • If you don't see the bot check, check the browser console for errors<br>
+            • Make sure you're using HTTPS<br>
+            • Try clearing your browser cache and localStorage<br>
+            • Ensure push-sw.js is accessible at /push-sw.js
+        </div>
+    </div>
+    
+    <script>
+    // Console logging
+    const consoleOutput = document.getElementById('console-output');
+    const originalLog = console.log;
+    const originalError = console.error;
+    
+    function addConsoleMessage(message, type = 'log') {
+        const line = document.createElement('div');
+        line.className = 'console-line';
+        line.style.color = type === 'error' ? '#f00' : '#0f0';
+        line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+        consoleOutput.appendChild(line);
+        consoleOutput.scrollTop = consoleOutput.scrollHeight;
+    }
+    
+    console.log = function(...args) {
+        originalLog.apply(console, args);
+        addConsoleMessage(args.join(' '), 'log');
+    };
+    
+    console.error = function(...args) {
+        originalError.apply(console, args);
+        addConsoleMessage(args.join(' '), 'error');
+    };
+    
+    function checkStatus() {
+        const statusOutput = document.getElementById('status-output');
+        statusOutput.innerHTML = '';
+        
+        // Check PUSH_CONFIG
+        const configItem = document.createElement('div');
+        configItem.className = 'test-item';
+        if (window.PUSH_CONFIG) {
+            configItem.innerHTML = '✅ PUSH_CONFIG: Loaded<br>' +
+                `&nbsp;&nbsp;&nbsp;&nbsp;Landing ID: ${window.PUSH_CONFIG.landingId}<br>` +
+                `&nbsp;&nbsp;&nbsp;&nbsp;Domain: ${window.PUSH_CONFIG.domain}<br>` +
+                `&nbsp;&nbsp;&nbsp;&nbsp;Bot Protection: ${window.PUSH_CONFIG.botProtection}`;
+        } else {
+            configItem.innerHTML = '❌ PUSH_CONFIG: Not found';
+        }
+        statusOutput.appendChild(configItem);
+        
+        // Check PushWidget
+        const widgetItem = document.createElement('div');
+        widgetItem.className = 'test-item';
+        if (window.PushWidget) {
+            widgetItem.innerHTML = '✅ PushWidget: Loaded<br>' +
+                `&nbsp;&nbsp;&nbsp;&nbsp;Overlay Shown: ${window.PushWidget.overlayShown}<br>` +
+                `&nbsp;&nbsp;&nbsp;&nbsp;Subscribed: ${window.PushWidget.subscribed}`;
+        } else {
+            widgetItem.innerHTML = '❌ PushWidget: Not loaded';
+        }
+        statusOutput.appendChild(widgetItem);
+        
+        // Check Overlay
+        const overlayItem = document.createElement('div');
+        overlayItem.className = 'test-item';
+        const overlay = document.getElementById('push-widget-overlay');
+        if (overlay) {
+            overlayItem.innerHTML = '✅ Bot Check Overlay: Present<br>' +
+                `&nbsp;&nbsp;&nbsp;&nbsp;Visibility: ${overlay.style.visibility || 'visible'}<br>` +
+                `&nbsp;&nbsp;&nbsp;&nbsp;Display: ${overlay.style.display || 'block'}`;
+        } else {
+            overlayItem.innerHTML = '❌ Bot Check Overlay: Not found';
+        }
+        statusOutput.appendChild(overlayItem);
+        
+        // Check Permission
+        const permissionItem = document.createElement('div');
+        permissionItem.className = 'test-item';
+        permissionItem.innerHTML = `📍 Notification Permission: ${Notification.permission}`;
+        statusOutput.appendChild(permissionItem);
+        
+        // Check localStorage
+        const storageItem = document.createElement('div');
+        storageItem.className = 'test-item';
+        const subKeys = Object.keys(localStorage).filter(k => k.startsWith('push-subscribed-'));
+        if (subKeys.length > 0) {
+            storageItem.innerHTML = `⚠️ Previous Subscriptions: ${subKeys.length} found<br>` +
+                subKeys.map(k => `&nbsp;&nbsp;&nbsp;&nbsp;${k}: ${localStorage.getItem(k)}`).join('<br>');
+        } else {
+            storageItem.innerHTML = '✅ No previous subscriptions in localStorage';
+        }
+        statusOutput.appendChild(storageItem);
+    }
+    
+    function clearSubscription() {
+        const keys = Object.keys(localStorage).filter(k => k.startsWith('push-'));
+        keys.forEach(k => localStorage.removeItem(k));
+        alert(`Cleared ${keys.length} push-related items from localStorage. The page will reload.`);
+        setTimeout(() => location.reload(), 1000);
+    }
+    
+    function showConsole() {
+        const output = document.getElementById('console-output');
+        output.style.display = output.style.display === 'none' ? 'block' : 'none';
+    }
+    
+    // Auto-check status after page load
+    window.addEventListener('load', function() {
+        setTimeout(checkStatus, 1000);
+        
+        // Log initial state
+        console.log('Page loaded - Push notification integration active');
+        console.log('Browser:', navigator.userAgent.includes('Chrome') ? 'Chrome' : 
+                    navigator.userAgent.includes('Firefox') ? 'Firefox' : 
+                    navigator.userAgent.includes('Safari') ? 'Safari' : 'Other');
+    });
+    </script>
+</body>
+</html>

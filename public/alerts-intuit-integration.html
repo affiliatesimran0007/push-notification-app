@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alerts Intuit - Integration Code</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+            position: relative;
+            overflow: auto;
+        }
+        pre {
+            margin: 0;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #333;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .copy-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .copy-button:hover {
+            background: #0056b3;
+        }
+        .copy-button.copied {
+            background: #28a745;
+        }
+        .section {
+            margin: 40px 0;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #856404;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #155724;
+        }
+        .step {
+            margin: 20px 0;
+            padding-left: 30px;
+            position: relative;
+        }
+        .step-number {
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: #007bff;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .redirect-info {
+            background: #e8f4fd;
+            border: 1px solid #bee5eb;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        code {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+            color: #e83e8c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔔 Push Notification Integration for alerts-intuit.com</h1>
+        <p class="subtitle">Complete integration guide with bot protection enabled</p>
+
+        <div class="success">
+            <strong>✅ Your landing page is configured and ready!</strong><br>
+            Bot protection is enabled to ensure quality subscribers.
+        </div>
+
+        <div class="redirect-info">
+            <strong>📍 Configured Redirects:</strong><br>
+            • Allow notifications → <code>https://alerts-intuit.com/thank-you</code><br>
+            • Block notifications → <code>https://alerts-intuit.com/notifications-blocked</code>
+        </div>
+
+        <div class="section">
+            <h2>Integration Steps</h2>
+            
+            <div class="step">
+                <span class="step-number">1</span>
+                <strong>Add this code to the HEAD section of your website</strong>
+                <p>This code MUST be placed at the very beginning of the <code>&lt;head&gt;</code> tag, before any other scripts:</p>
+                
+                <div class="code-block">
+                    <button class="copy-button" onclick="copyCode('integration-code')">Copy Code</button>
+                    <pre id="integration-code"><!-- Push Notification Integration Code - MUST BE FIRST IN HEAD -->
+<script>
+window.PUSH_CONFIG = {
+    appUrl: 'https://push-notification-app-steel.vercel.app',
+    landingId: 'alerts-intuit-main',
+    vapidKey: 'BGv2Vm45eFGslcXFhakD-euIXAnOg6-bdqVWHoSw4gwvjvYYV1zBA_Q7uiNij5yvRqMwmDhpBYYSA1v5Z_GEv_k',
+    domain: 'alerts-intuit.com',
+    botProtection: true,
+    redirects: {
+        enabled: true,
+        onAllow: 'https://alerts-intuit.com/thank-you',
+        onBlock: 'https://alerts-intuit.com/notifications-blocked'
+    }
+};
+</script>
+<script src="https://push-notification-app-steel.vercel.app/js/push-widget.js"></script></pre>
+                </div>
+            </div>
+
+            <div class="step">
+                <span class="step-number">2</span>
+                <strong>Download and host the service worker file</strong>
+                <p>Download <a href="https://push-notification-app-steel.vercel.app/push-sw-template.js" download>push-sw-template.js</a> and save it as <code>push-sw.js</code> in your website's root directory.</p>
+                <p>The file must be accessible at: <code>https://alerts-intuit.com/push-sw.js</code></p>
+            </div>
+
+            <div class="step">
+                <span class="step-number">3</span>
+                <strong>Create redirect pages (optional but recommended)</strong>
+                <p>Create these pages on your website:</p>
+                <ul>
+                    <li><code>/thank-you</code> - Page shown after users allow notifications</li>
+                    <li><code>/notifications-blocked</code> - Page shown after users block notifications</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>How It Works</h2>
+            <p>When users visit your website:</p>
+            <ol>
+                <li><strong>Chrome/Safari:</strong> A Cloudflare-style bot check appears for 2 seconds, then automatically prompts for notification permission</li>
+                <li><strong>Firefox/Edge:</strong> A manual Allow/Block interface appears (due to browser requirements)</li>
+                <li>Users are immediately redirected based on their choice</li>
+                <li>The bot check overlay remains visible throughout the entire process</li>
+            </ol>
+        </div>
+
+        <div class="warning">
+            <strong>⚠️ Important Notes:</strong>
+            <ul style="margin: 10px 0 0 0; padding-left: 20px;">
+                <li>The integration code must be placed BEFORE any other scripts in the HEAD</li>
+                <li>The service worker file (push-sw.js) must be hosted on YOUR domain</li>
+                <li>HTTPS is required for push notifications to work</li>
+                <li>Make sure the redirect pages exist on your website</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Testing Your Integration</h2>
+            <p>After adding the code to your website:</p>
+            <ol>
+                <li>Visit your website in an incognito/private window</li>
+                <li>You should see the bot check overlay immediately</li>
+                <li>Follow the prompts to allow or block notifications</li>
+                <li>Verify you're redirected to the correct page</li>
+            </ol>
+        </div>
+
+        <div class="section">
+            <h2>Need Help?</h2>
+            <p>If you encounter any issues:</p>
+            <ul>
+                <li>Check the browser console for error messages</li>
+                <li>Ensure the service worker file is accessible</li>
+                <li>Verify HTTPS is enabled on your website</li>
+                <li>Clear your browser cache and try again</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function copyCode(elementId) {
+            const codeElement = document.getElementById(elementId);
+            const textToCopy = codeElement.textContent;
+            
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                const button = codeElement.parentElement.querySelector('.copy-button');
+                button.textContent = 'Copied!';
+                button.classList.add('copied');
+                
+                setTimeout(() => {
+                    button.textContent = 'Copy Code';
+                    button.classList.remove('copied');
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>

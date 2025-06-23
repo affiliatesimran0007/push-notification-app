@@ -57,7 +57,6 @@ model Campaign {
   sentCount      Int                    @default(0)
   deliveredCount Int                    @default(0)
   clickedCount   Int                    @default(0)
-  dismissedCount Int                    @default(0)
   failedCount    Int                    @default(0)
   scheduledFor   DateTime?
   sentAt         DateTime?
@@ -68,6 +67,8 @@ model Campaign {
   variantB       Json?
   trafficSplit   Int                    @default(50)
   userId         String
+  dismissedCount Int                    @default(0)
+  pendingCount   Int                    @default(0)
   user           User                   @relation(fields: [userId], references: [id])
   segments       CampaignSegment[]
   notifications  NotificationDelivery[]

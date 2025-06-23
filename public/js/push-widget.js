@@ -254,18 +254,20 @@
         
         // Process based on permission result
         if (permission === 'granted') {
-          // Immediately redirect to configured allow URL
-          if (this.config.redirects && this.config.redirects.enabled && this.config.redirects.onAllow) {
-            console.log('[PushWidget] Permission granted, redirecting to:', this.config.redirects.onAllow);
-            window.location.href = this.config.redirects.onAllow;
-          }
-          // Don't close overlay - let redirect happen first
+          // Register subscription first, then redirect
+          console.log('[PushWidget] Permission granted, registering subscription...');
           
-          // Register subscription in background (will complete before redirect)
-          this.registerPushSubscription(this.botCheckData || {
+          // Wait for registration to complete
+          await this.registerPushSubscription(this.botCheckData || {
             browserInfo: this.getBrowserInfo(),
             location: { country: 'Unknown', city: 'Unknown' }
           });
+          
+          // Now redirect after registration is complete
+          if (this.config.redirects && this.config.redirects.enabled && this.config.redirects.onAllow) {
+            console.log('[PushWidget] Registration complete, redirecting to:', this.config.redirects.onAllow);
+            window.location.href = this.config.redirects.onAllow;
+          }
         } else if (permission === 'denied') {
           // Redirect immediately for denied
           if (this.config.redirects && this.config.redirects.enabled && this.config.redirects.onBlock) {
@@ -558,16 +560,18 @@
         }
         
         if (Notification.permission === 'granted') {
-          console.log('Notifications are already granted, redirecting...');
-          // Don't close overlay - redirect immediately
-          if (this.config.redirects && this.config.redirects.enabled && this.config.redirects.onAllow) {
-            window.location.href = this.config.redirects.onAllow;
-          }
-          // Register subscription in background
-          this.registerPushSubscription({
+          console.log('Notifications are already granted, registering...');
+          
+          // Register subscription first
+          await this.registerPushSubscription({
             browserInfo: data.browserInfo,
             location: data.location
           });
+          
+          // Then redirect
+          if (this.config.redirects && this.config.redirects.enabled && this.config.redirects.onAllow) {
+            window.location.href = this.config.redirects.onAllow;
+          }
           return;
         }
         
@@ -628,17 +632,20 @@
         console.log('Final permission result:', permission);
         
         if (permission === 'granted') {
-          // Don't close overlay - redirect immediately
-          if (self.config.redirects && self.config.redirects.enabled && self.config.redirects.onAllow) {
-            console.log('[PushWidget] Firefox/Edge permission granted, redirecting to:', self.config.redirects.onAllow);
-            window.location.href = self.config.redirects.onAllow;
-          }
+          // Register subscription first, then redirect
+          console.log('[PushWidget] Firefox/Edge permission granted, registering subscription...');
           
-          // Register subscription in background
-          self.registerPushSubscription({
+          // Wait for registration to complete
+          await self.registerPushSubscription({
             browserInfo: data.browserInfo,
             location: data.location
           });
+          
+          // Now redirect after registration is complete
+          if (self.config.redirects && self.config.redirects.enabled && self.config.redirects.onAllow) {
+            console.log('[PushWidget] Registration complete, redirecting to:', self.config.redirects.onAllow);
+            window.location.href = self.config.redirects.onAllow;
+          }
         } else {
           // Permission denied or dismissed - redirect immediately
           console.log('Permission denied or dismissed by user');
@@ -877,11 +884,9 @@
           // Mark as subscribed
           localStorage.setItem('push-subscribed-' + this.config.landingId, 'true');
           this.subscribed = true;
+          console.log('[PushWidget] Subscription saved successfully');
           
-          // Redirect if configured
-          if (this.config.redirects && this.config.redirects.enabled && this.config.redirects.onAllow) {
-            window.location.href = this.config.redirects.onAllow;
-          }
+          // Don't redirect here - let the calling function handle redirects
         }
       } catch (error) {
         console.error('Failed to save subscription:', error);

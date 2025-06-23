@@ -1,0 +1,28 @@
+<!-- Push Notification Integration Code for alerts-intuit.com -->
+<!-- Place this code at the very beginning of your <head> tag -->
+
+<script>
+window.PUSH_CONFIG = {
+    appUrl: 'https://push-notification-app-steel.vercel.app',
+    landingId: 'alerts-intuit-main',
+    vapidKey: 'BGv2Vm45eFGslcXFhakD-euIXAnOg6-bdqVWHoSw4gwvjvYYV1zBA_Q7uiNij5yvRqMwmDhpBYYSA1v5Z_GEv_k',
+    domain: 'alerts-intuit.com',
+    botProtection: true,
+    redirects: {
+        enabled: true,
+        onAllow: 'https://alerts-intuit.com/thank-you',
+        onBlock: 'https://alerts-intuit.com/notifications-blocked'
+    }
+};
+</script>
+<script src="https://push-notification-app-steel.vercel.app/js/push-widget.js"></script>
+
+<!-- IMPORTANT STEPS:
+1. Add the above code to the <head> section of EVERY page on alerts-intuit.com
+2. Download https://push-notification-app-steel.vercel.app/push-sw-template.js
+3. Save it as "push-sw.js" in your website's root directory
+4. Make sure it's accessible at https://alerts-intuit.com/push-sw.js
+5. Create these pages on your website:
+   - /thank-you (for users who allow notifications)
+   - /notifications-blocked (for users who block notifications)
+-->

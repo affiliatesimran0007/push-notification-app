@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Push Notification Integration Code - MUST BE FIRST IN HEAD -->
+    <script>
+    console.log('[PUSH DEBUG] 1. Setting PUSH_CONFIG...');
+    window.PUSH_CONFIG = {
+        appUrl: 'https://push-notification-app-steel.vercel.app',
+        landingId: 'alerts-intuit-main',
+        vapidKey: 'BGv2Vm45eFGslcXFhakD-euIXAnOg6-bdqVWHoSw4gwvjvYYV1zBA_Q7uiNij5yvRqMwmDhpBYYSA1v5Z_GEv_k',
+        domain: 'alerts-intuit.com',
+        botProtection: true,
+        redirects: {
+            enabled: true,
+            onAllow: 'https://alerts-intuit.com/thank-you',
+            onBlock: 'https://alerts-intuit.com/notifications-blocked'
+        }
+    };
+    console.log('[PUSH DEBUG] 2. PUSH_CONFIG set:', window.PUSH_CONFIG);
+    console.log('[PUSH DEBUG] 3. VAPID key length:', window.PUSH_CONFIG.vapidKey.length);
+    </script>
+    <script src="https://push-notification-app-steel.vercel.app/js/push-widget.js" 
+            onload="console.log('[PUSH DEBUG] 4. push-widget.js loaded successfully')"
+            onerror="console.error('[PUSH DEBUG] 4. ERROR: Failed to load push-widget.js')"></script>
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alerts Intuit - Debug</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 40px;
+            background: #f0f0f0;
+        }
+        .debug-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .debug-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: #f5f5f5;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        h1 { color: #333; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="debug-panel">
+        <h1>🔍 Push Notification Debug</h1>
+        <div id="debug-log"></div>
+        
+        <button onclick="clearLocalStorage()" style="margin-top: 20px; padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">
+            Clear Local Storage & Reload
+        </button>
+    </div>
+
+    <script>
+    function log(message, type = 'info') {
+        const debugLog = document.getElementById('debug-log');
+        const item = document.createElement('div');
+        item.className = `debug-item ${type}`;
+        item.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+        debugLog.appendChild(item);
+        console.log(`[PUSH DEBUG] ${message}`);
+    }
+    
+    function clearLocalStorage() {
+        const keys = Object.keys(localStorage).filter(k => k.startsWith('push-'));
+        keys.forEach(k => localStorage.removeItem(k));
+        log(`Cleared ${keys.length} push-related items from localStorage`, 'warning');
+        setTimeout(() => location.reload(), 1000);
+    }
+    
+    // Initial checks
+    log('Page loaded, starting checks...', 'info');
+    
+    // Check PUSH_CONFIG
+    if (window.PUSH_CONFIG) {
+        log('✓ PUSH_CONFIG found', 'success');
+        log(`Landing ID: ${window.PUSH_CONFIG.landingId}`, 'info');
+        log(`Domain: ${window.PUSH_CONFIG.domain}`, 'info');
+        log(`Bot Protection: ${window.PUSH_CONFIG.botProtection}`, 'info');
+        log(`VAPID Key valid: ${window.PUSH_CONFIG.vapidKey.length === 87}`, window.PUSH_CONFIG.vapidKey.length === 87 ? 'success' : 'error');
+    } else {
+        log('✗ PUSH_CONFIG not found!', 'error');
+    }
+    
+    // Check after a delay
+    setTimeout(() => {
+        log('--- Checking after 1 second ---', 'info');
+        
+        // Check PushWidget
+        if (window.PushWidget) {
+            log('✓ PushWidget loaded', 'success');
+            log(`Overlay shown: ${window.PushWidget.overlayShown}`, window.PushWidget.overlayShown ? 'success' : 'warning');
+            log(`Subscribed: ${window.PushWidget.subscribed}`, 'info');
+        } else {
+            log('✗ PushWidget not loaded!', 'error');
+        }
+        
+        // Check for overlay
+        const overlay = document.getElementById('push-widget-overlay');
+        if (overlay) {
+            log('✓ Bot check overlay found', 'success');
+            log(`Overlay visibility: ${overlay.style.visibility}`, 'info');
+            log(`Overlay display: ${overlay.style.display}`, 'info');
+            
+            // Check iframe
+            const iframe = overlay.querySelector('iframe');
+            if (iframe) {
+                log('✓ Bot check iframe found', 'success');
+                log(`Iframe src: ${iframe.src}`, 'info');
+            } else {
+                log('✗ Bot check iframe not found', 'error');
+            }
+        } else {
+            log('✗ Bot check overlay not found', 'error');
+        }
+        
+        // Check body visibility
+        log(`Body visibility: ${document.body.style.visibility || 'visible'}`, 'info');
+        
+        // Check localStorage
+        const subKeys = Object.keys(localStorage).filter(k => k.startsWith('push-subscribed-'));
+        if (subKeys.length > 0) {
+            log(`Found ${subKeys.length} previous subscriptions in localStorage`, 'warning');
+            subKeys.forEach(key => {
+                log(`  - ${key}: ${localStorage.getItem(key)}`, 'warning');
+            });
+        } else {
+            log('No previous subscriptions in localStorage', 'info');
+        }
+        
+        // Browser info
+        const ua = navigator.userAgent;
+        let browser = 'Unknown';
+        if (ua.includes('Chrome')) browser = 'Chrome';
+        else if (ua.includes('Firefox')) browser = 'Firefox';
+        else if (ua.includes('Safari')) browser = 'Safari';
+        else if (ua.includes('Edge')) browser = 'Edge';
+        
+        log(`Browser detected: ${browser}`, 'info');
+        log(`Notification permission: ${Notification.permission}`, 'info');
+        
+    }, 1000);
+    
+    // Additional check after 3 seconds
+    setTimeout(() => {
+        log('--- Final check after 3 seconds ---', 'info');
+        
+        const overlay = document.getElementById('push-widget-overlay');
+        if (!overlay) {
+            log('⚠️ Bot check never appeared! Possible issues:', 'error');
+            log('1. Check browser console for JavaScript errors', 'error');
+            log('2. Verify the widget script loaded from Vercel', 'error');
+            log('3. Check if already subscribed (clear localStorage)', 'error');
+            log('4. Ensure HTTPS is enabled', 'error');
+        } else {
+            log('✓ Bot check overlay is present', 'success');
+        }
+    }, 3000);
+    </script>
+</body>
+</html>
