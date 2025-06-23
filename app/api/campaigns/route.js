@@ -11,7 +11,6 @@ export async function GET(request) {
   }
 
   try {
-    console.log('[Campaigns API] Starting GET request')
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
     const type = searchParams.get('type')
@@ -23,23 +22,16 @@ export async function GET(request) {
     const where = {}
     if (status) where.status = status
     if (type) where.type = type
-    
-    console.log('[Campaigns API] Query params:', { status, type, page, limit, where })
-
     // Get total count
-    console.log('[Campaigns API] Counting campaigns...')
     const total = await prisma.campaign.count({ where })
-    console.log('[Campaigns API] Total campaigns:', total)
 
     // Get paginated campaigns with calculated CTR
-    console.log('[Campaigns API] Fetching campaigns...')
     const campaigns = await prisma.campaign.findMany({
       where,
       skip,
       take: limit,
       orderBy: { createdAt: 'desc' }
     })
-    console.log('[Campaigns API] Fetched', campaigns.length, 'campaigns')
 
     // Add calculated CTR to each campaign
     const campaignsWithCtr = campaigns.map(campaign => ({
