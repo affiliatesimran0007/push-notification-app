@@ -6,7 +6,14 @@
   
   // Auto-initialize if PUSH_CONFIG exists
   if (window.PUSH_CONFIG) {
-    initWidget(window.PUSH_CONFIG);
+    // Run initialization immediately to show overlay before page renders
+    if (document.readyState === 'loading') {
+      // If DOM is still loading, initialize immediately
+      initWidget(window.PUSH_CONFIG);
+    } else {
+      // DOM already loaded, initialize now
+      initWidget(window.PUSH_CONFIG);
+    }
   }
   
   function initWidget(config) {
@@ -22,6 +29,7 @@
       permissionResult: null,
       botCheckData: null,
       botCheckCompleted: false,
+      overlayShown: false,
       
       init: function() {
       
@@ -53,11 +61,13 @@
         return;
       }
       
-      // Show overlay immediately if bot protection is enabled
+      // IMMEDIATELY show overlay if bot protection is enabled
+      // This prevents the landing page background from flashing
       if (this.config.botProtection || this.config.botCheck !== false) {
         // Check if we're in a test environment or iframe
         if (window.parent === window) {
           this.showBotCheckOverlay();
+          this.overlayShown = true;
         }
       }
       
@@ -123,6 +133,11 @@
     },
     
     showBotCheckOverlay: function() {
+      // Hide the page content immediately to prevent flash
+      if (document.body) {
+        document.body.style.visibility = 'hidden';
+      }
+      
       // Create full page white overlay
       const overlay = document.createElement('div');
       overlay.id = 'push-widget-overlay';
@@ -182,6 +197,12 @@
     closeBotCheck: function() {
       const overlay = document.getElementById('push-widget-overlay');
       if (overlay) overlay.remove();
+      
+      // Restore body visibility
+      if (document.body) {
+        document.body.style.visibility = 'visible';
+      }
+      
       window.removeEventListener('message', this.handleMessage.bind(this));
     },
       

@@ -197,32 +197,23 @@ export default function LandingPage() {
     
     return `<!-- Push Notification Integration Code -->
 <!-- Domain: ${landing.domain} | Landing Page: ${landing.name} -->
+<!-- IMPORTANT: Place this code as early as possible in your HTML, preferably right after <head> -->
 <script>
-(function() {
-  // Configuration
-  window.PUSH_CONFIG = {
-    appUrl: '${appUrl}',
-    landingId: '${landing.landingId}',
-    vapidKey: '${vapidKey}',
-    domain: '${landing.domain}',
-    botProtection: ${landing.botProtection},
-    redirects: {
-      enabled: ${landing.enableRedirect || false},
-      onAllow: ${landing.allowRedirectUrl ? `'${landing.allowRedirectUrl}'` : 'null'},
-      onBlock: ${landing.blockRedirectUrl ? `'${landing.blockRedirectUrl}'` : 'null'}
-    }
-  };
-  
-  // Load push notification widget
-  const script = document.createElement('script');
-  script.src = window.PUSH_CONFIG.appUrl + '/js/push-widget.js?v=' + Date.now();
-  script.async = true;
-  script.onload = function() {
-    console.log('Push notification widget loaded for ${landing.name}');
-  };
-  document.head.appendChild(script);
-})();
-</script>`
+// Configuration - must be set before widget loads
+window.PUSH_CONFIG = {
+  appUrl: '${appUrl}',
+  landingId: '${landing.landingId}',
+  vapidKey: '${vapidKey}',
+  domain: '${landing.domain}',
+  botProtection: ${landing.botProtection},
+  redirects: {
+    enabled: ${landing.enableRedirect || false},
+    onAllow: ${landing.allowRedirectUrl ? `'${landing.allowRedirectUrl}'` : 'null'},
+    onBlock: ${landing.blockRedirectUrl ? `'${landing.blockRedirectUrl}'` : 'null'}
+  }
+};
+</script>
+<script src="${appUrl}/js/push-widget.js?v=${Date.now()}"></script>`
   }
 
   return (
@@ -634,7 +625,7 @@ export default function LandingPage() {
           
           <h5 className="mb-3">2. Add Integration Code</h5>
           <p className="mb-3">
-            Copy this code and add it to your website's HTML, preferably in the &lt;head&gt; section:
+            Copy this code and add it to your website's HTML <strong>as early as possible</strong>, ideally right after the opening &lt;head&gt; tag:
           </p>
           
           <div className="position-relative">
@@ -693,6 +684,7 @@ export default function LandingPage() {
             <ul className="mb-0">
               <li>Your domain MUST be HTTPS-enabled (required for service workers)</li>
               <li>The <code>push-sw.js</code> file MUST be accessible at the root of your domain</li>
+              <li>Place the integration code <strong>as early as possible in your HTML</strong> to prevent page content from flashing</li>
               <li>Bot protection (if enabled) will show verification in an overlay - visitors stay on your domain</li>
               <li>Users who have already subscribed won't see the prompt again</li>
               <li>Test the service worker by visiting: <code>https://{selectedLanding?.domain}/push-sw.js</code></li>

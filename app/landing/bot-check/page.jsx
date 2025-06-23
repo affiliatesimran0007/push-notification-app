@@ -157,36 +157,28 @@ export default function BotCheckPage() {
       return // IMPORTANT: Exit here, no timer for Firefox/Edge
     }
     
-    // ONLY Chrome/Safari get the bot check timer
-    const timer = setTimeout(() => {
-      setIsChecking(false)
-      setIsVerified(true)
-      
-      // If embedded, send verification complete message to parent
-      if (window.isEmbedded && window.parent !== window) {
-        setTimeout(() => {
-          window.parent.postMessage({
-            type: 'bot-check-verified',
-            browserInfo: clientInfo,
-            location: {
-              country: 'United States',
-              city: 'New York',
-              ip: ipAddress
-            }
-          }, '*')
-        }, 500)
-      } else {
-        // Chrome/Safari - auto-request
-        setTimeout(() => {
-          if (clientInfo) {
-            handleAllow()
-          }
-        }, 500)
+    // For Chrome/Safari, immediately send verification message
+    // This triggers the notification prompt right away
+    setIsChecking(false)
+    setIsVerified(true)
+    
+    // If embedded, immediately send verification complete message to parent
+    if (window.isEmbedded && window.parent !== window) {
+      // Send message immediately to trigger prompt
+      window.parent.postMessage({
+        type: 'bot-check-verified',
+        browserInfo: clientInfo,
+        location: {
+          country: 'United States',
+          city: 'New York',
+          ip: ipAddress
+        }
+      }, '*')
+    } else {
+      // Chrome/Safari - immediately request permission
+      if (clientInfo) {
+        handleAllow()
       }
-    }, 1500)
-
-    return () => {
-      clearTimeout(timer)
     }
   }, [clientInfo, ipAddress, isFirefoxOrEdge, showSoftPrompt])
 
