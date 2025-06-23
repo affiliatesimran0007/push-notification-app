@@ -87,8 +87,31 @@ export async function POST(request) {
     const body = await request.json()
     
     // TODO: Get user ID from session when auth is implemented
-    // For now, set userId to null since user table might not exist
-    const userId = null
+    // For now, try to use existing user or create a default one
+    let userId = null
+    
+    try {
+      // Try to find an existing user
+      const existingUser = await prisma.user.findFirst()
+      
+      if (existingUser) {
+        userId = existingUser.id
+      } else {
+        // Create a default user if none exists
+        const defaultUser = await prisma.user.create({
+          data: {
+            email: 'admin@pushnotifications.com',
+            password: 'temp-password-hash',
+            name: 'Admin User',
+            role: 'admin'
+          }
+        })
+        userId = defaultUser.id
+      }
+    } catch (error) {
+      console.log('User lookup/creation failed, proceeding without userId:', error.message)
+      // If user table doesn't exist or there's an error, continue with null
+    }
 
     // Build actions array from button data
     const actions = []
@@ -129,7 +152,7 @@ export async function POST(request) {
       targetAudience: body.targetAudience || 'all',
       scheduledFor: body.scheduledFor ? new Date(body.scheduledFor) : null,
       sentAt: body.status === 'draft' ? null : (body.scheduledFor ? null : new Date()),
-      userId: userId,
+      ...(userId ? { userId } : {}), // Only include userId if it exists
       abTestEnabled: false,
       variantA: actionData.length > 0 || body.targetBrowsers || body.targetSystems ? { 
         actions: actionData.length > 0 ? actionData : undefined,
