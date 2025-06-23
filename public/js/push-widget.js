@@ -97,6 +97,7 @@
           return;
         } else {
           console.log('[PushWidget] No existing subscription found');
+        }
         
         // Check if we're in a test environment or iframe
         if (window.parent !== window) {
