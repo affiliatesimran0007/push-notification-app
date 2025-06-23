@@ -159,6 +159,7 @@
         z-index: 2147483647;
         display: block;
         opacity: 1;
+        visibility: visible !important;
       `;
       
       // Create iframe that takes full page
@@ -187,6 +188,9 @@
       
       iframe.src = this.config.appUrl + '/landing/bot-check?' + params.toString();
       
+      // Debug iframe
+      console.log('[PushWidget] Bot check iframe URL:', iframe.src);
+      
       // Append iframe to overlay
       overlay.appendChild(iframe);
       
@@ -198,7 +202,13 @@
       // Verify overlay exists
       const checkOverlay = document.getElementById('push-widget-overlay');
       console.log('[PushWidget] Overlay verification:', checkOverlay ? 'Found' : 'Not found');
-      console.log('[PushWidget] Body children count:', document.body.children.length);
+      console.log('[PushWidget] Overlay styles:', checkOverlay ? checkOverlay.style.cssText : 'N/A');
+      console.log('[PushWidget] Body visibility:', document.body.style.visibility);
+      
+      // Check iframe
+      const checkIframe = document.getElementById('push-widget-iframe');
+      console.log('[PushWidget] Iframe verification:', checkIframe ? 'Found' : 'Not found');
+      console.log('[PushWidget] Iframe src:', checkIframe ? checkIframe.src : 'N/A');
       
       // Listen for messages from iframe
       window.addEventListener('message', this.handleMessage.bind(this));
