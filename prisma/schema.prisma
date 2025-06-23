@@ -66,10 +66,10 @@ model Campaign {
   variantA       Json?
   variantB       Json?
   trafficSplit   Int                    @default(50)
-  userId         String
+  userId         String?
   dismissedCount Int                    @default(0)
   pendingCount   Int                    @default(0)
-  user           User                   @relation(fields: [userId], references: [id])
+  user           User?                  @relation(fields: [userId], references: [id])
   segments       CampaignSegment[]
   notifications  NotificationDelivery[]
 }
@@ -89,8 +89,8 @@ model Template {
   requireInteraction Boolean  @default(false)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
-  userId             String
-  user               User     @relation(fields: [userId], references: [id])
+  userId             String?
+  user               User?    @relation(fields: [userId], references: [id])
 }
 
 model NotificationDelivery {
