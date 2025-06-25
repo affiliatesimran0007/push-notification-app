@@ -11,7 +11,10 @@ export async function middleware(request) {
   response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive, nosnippet, noimageindex, nocache')
   
   // Additional security headers for internal apps
-  response.headers.set('X-Frame-Options', 'DENY')
+  // Allow iframe embedding for bot-check page (needed for landing pages)
+  if (!url.pathname.startsWith('/landing/bot-check')) {
+    response.headers.set('X-Frame-Options', 'DENY')
+  }
   response.headers.set('X-Content-Type-Options', 'nosniff')
   
   // Skip custom domain logic for localhost, ngrok, and Vercel preview deployments
@@ -50,9 +53,8 @@ export async function middleware(request) {
       botCheckUrl.searchParams.set('vapidKey', process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY)
       
       const redirectResponse = NextResponse.redirect(botCheckUrl)
-      // Copy security headers to redirect response
+      // Copy security headers to redirect response (but don't block iframe for bot-check)
       redirectResponse.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive, nosnippet, noimageindex, nocache')
-      redirectResponse.headers.set('X-Frame-Options', 'DENY')
       redirectResponse.headers.set('X-Content-Type-Options', 'nosniff')
       return redirectResponse
     }
