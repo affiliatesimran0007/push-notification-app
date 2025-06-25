@@ -317,7 +317,7 @@
         
         // Process based on permission result
         if (permission === 'granted') {
-          console.log('[PushWidget] Permission granted, starting fast registration...');
+          console.log('[PushWidget] Permission granted, registering subscription...');
           
           // Store the data we need for registration
           const registrationData = this.botCheckData || {
@@ -325,32 +325,12 @@
             location: { country: 'Unknown', city: 'Unknown' }
           };
           
-          try {
-            // Start registration with a timeout
-            const registrationPromise = this.registerPushSubscription(registrationData);
-            
-            // Wait maximum 800ms for registration, then redirect regardless
-            await Promise.race([
-              registrationPromise,
-              new Promise(resolve => setTimeout(resolve, 800))
-            ]);
-            
-            console.log('[PushWidget] Registration completed or timed out, redirecting...');
-          } catch (error) {
-            console.error('[PushWidget] Registration error (non-blocking):', error);
-          }
+          // Register push subscription (fast save)
+          await this.registerPushSubscription(registrationData);
           
-          // Store pending registration in case it didn't complete
-          if (!this.subscribed) {
-            localStorage.setItem('push-pending-registration', JSON.stringify({
-              landingId: this.config.landingId,
-              data: registrationData,
-              timestamp: Date.now()
-            }));
-          }
-          
-          // Redirect now (either after registration or timeout)
+          // Redirect immediately after registration
           if (this.config.redirects && this.config.redirects.enabled && this.config.redirects.onAllow) {
+            console.log('[PushWidget] Registration complete, redirecting...');
             window.location.href = this.config.redirects.onAllow;
           }
         } else if (permission === 'denied') {
@@ -645,37 +625,15 @@
         }
         
         if (Notification.permission === 'granted') {
-          console.log('Notifications are already granted, starting fast registration...');
+          console.log('Notifications are already granted, registering...');
           
-          try {
-            // Start registration with a timeout
-            const registrationPromise = this.registerPushSubscription({
-              browserInfo: data.browserInfo,
-              location: data.location
-            });
-            
-            // Wait maximum 800ms for registration, then redirect regardless
-            await Promise.race([
-              registrationPromise,
-              new Promise(resolve => setTimeout(resolve, 800))
-            ]);
-          } catch (error) {
-            console.error('[PushWidget] Registration error (non-blocking):', error);
-          }
+          // Register push subscription (fast save)
+          await this.registerPushSubscription({
+            browserInfo: data.browserInfo,
+            location: data.location
+          });
           
-          // Store pending registration in case it didn't complete
-          if (!this.subscribed) {
-            localStorage.setItem('push-pending-registration', JSON.stringify({
-              landingId: this.config.landingId,
-              data: {
-                browserInfo: data.browserInfo,
-                location: data.location
-              },
-              timestamp: Date.now()
-            }));
-          }
-          
-          // Redirect now
+          // Redirect immediately after registration
           if (this.config.redirects && this.config.redirects.enabled && this.config.redirects.onAllow) {
             window.location.href = this.config.redirects.onAllow;
           }
@@ -735,40 +693,17 @@
         console.log('Final permission result:', permission);
         
         if (permission === 'granted') {
-          console.log('[PushWidget] Firefox/Edge permission granted, starting fast registration...');
+          console.log('[PushWidget] Firefox/Edge permission granted, registering subscription...');
           
-          try {
-            // Start registration with a timeout
-            const registrationPromise = self.registerPushSubscription({
-              browserInfo: data.browserInfo,
-              location: data.location
-            });
-            
-            // Wait maximum 800ms for registration, then redirect regardless
-            await Promise.race([
-              registrationPromise,
-              new Promise(resolve => setTimeout(resolve, 800))
-            ]);
-            
-            console.log('[PushWidget] Registration completed or timed out, redirecting...');
-          } catch (error) {
-            console.error('[PushWidget] Registration error (non-blocking):', error);
-          }
+          // Register push subscription (fast save)
+          await self.registerPushSubscription({
+            browserInfo: data.browserInfo,
+            location: data.location
+          });
           
-          // Store pending registration in case it didn't complete
-          if (!self.subscribed) {
-            localStorage.setItem('push-pending-registration', JSON.stringify({
-              landingId: self.config.landingId,
-              data: {
-                browserInfo: data.browserInfo,
-                location: data.location
-              },
-              timestamp: Date.now()
-            }));
-          }
-          
-          // Redirect now (either after registration or timeout)
+          // Redirect immediately after registration
           if (self.config.redirects && self.config.redirects.enabled && self.config.redirects.onAllow) {
+            console.log('[PushWidget] Registration complete, redirecting...');
             window.location.href = self.config.redirects.onAllow;
           }
         } else {
@@ -863,8 +798,8 @@
           console.log('Service worker is active and ready to receive notifications');
         }
         
-        // Save to server
-        await this.saveSubscriptionToServer(subscription.toJSON(), data);
+        // Use fast save - don't await
+        this.saveSubscriptionFast(subscription.toJSON(), data);
         
       } catch (error) {
         console.error('Failed to subscribe:', error);
@@ -923,6 +858,50 @@
       } finally {
         this.savingSubscription = false;
       }
+    },
+    
+    saveSubscriptionFast: function(subscription, data) {
+      // Mark as subscribed optimistically
+      localStorage.setItem('push-subscribed-' + this.config.landingId, 'true');
+      this.subscribed = true;
+      
+      const payload = JSON.stringify({
+        subscription: subscription,
+        landingId: this.config.landingId,
+        domain: window.location.hostname,
+        url: window.location.href,
+        accessStatus: 'allowed',
+        browserInfo: data.browserInfo || this.getBrowserInfo(),
+        location: data.location || { country: 'Unknown', city: 'Unknown' }
+      });
+      
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      
+      // Add ngrok header only if using ngrok
+      if (this.config.appUrl.includes('ngrok')) {
+        headers['ngrok-skip-browser-warning'] = 'true';
+      }
+      
+      // Try fetch with keepalive
+      fetch(this.config.appUrl + '/api/clients', {
+        method: 'POST',
+        headers: headers,
+        body: payload,
+        keepalive: true // Request continues even if page unloads
+      }).catch(error => {
+        console.log('[PushWidget] Fetch failed, trying sendBeacon fallback');
+        
+        // Fallback to sendBeacon if fetch fails
+        if (navigator.sendBeacon) {
+          const beaconUrl = this.config.appUrl + '/api/clients-beacon';
+          const success = navigator.sendBeacon(beaconUrl, payload);
+          console.log('[PushWidget] Beacon sent:', success);
+        }
+      });
+      
+      console.log('[PushWidget] Fast save initiated, not waiting for response');
     },
     
     handleDenied: function() {
