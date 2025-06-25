@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import AppNavbar from './Navbar'
 import Sidebar from './Sidebar'
+import ProtectedRoute from '@/app/components/auth/ProtectedRoute'
 
 export default function DashboardLayout({ children }) {
   // Initialize state from localStorage if available
@@ -22,7 +23,7 @@ export default function DashboardLayout({ children }) {
   }
 
   return (
-    <>
+    <ProtectedRoute>
       <AppNavbar onToggleSidebar={toggleSidebar} />
       <div className="main-layout">
         <Sidebar isCollapsed={sidebarCollapsed} onToggle={toggleSidebar} />
@@ -32,6 +33,6 @@ export default function DashboardLayout({ children }) {
           </div>
         </main>
       </div>
-    </>
+    </ProtectedRoute>
   )
 }
