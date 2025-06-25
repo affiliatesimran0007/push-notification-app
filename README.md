@@ -2,6 +2,8 @@
 
 A comprehensive push notification platform built with Next.js, Bootstrap, and modern UI libraries.
 
+**Current Build**: 0642ddf (December 25, 2024)
+
 ## Features Implemented
 
 ### 📊 Dashboard
