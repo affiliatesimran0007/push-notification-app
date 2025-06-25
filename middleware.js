@@ -4,21 +4,31 @@ export async function middleware(request) {
   const hostname = request.headers.get('host')
   const url = request.nextUrl.clone()
   
-  // Skip middleware for localhost, ngrok, and Vercel preview deployments
+  // Create response with security headers for all requests
+  const response = NextResponse.next()
+  
+  // Add X-Robots-Tag header to prevent indexing
+  response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive, nosnippet, noimageindex, nocache')
+  
+  // Additional security headers for internal apps
+  response.headers.set('X-Frame-Options', 'DENY')
+  response.headers.set('X-Content-Type-Options', 'nosniff')
+  
+  // Skip custom domain logic for localhost, ngrok, and Vercel preview deployments
   if (hostname.includes('localhost') || 
       hostname.includes('ngrok') || 
       hostname.includes('127.0.0.1') ||
       hostname.includes('vercel.app') ||
       hostname.includes('vercel.sh')) {
-    return NextResponse.next()
+    return response
   }
   
-  // Skip middleware for API routes and static files
+  // Skip custom domain logic for API routes and static files
   if (url.pathname.startsWith('/api') || 
       url.pathname.startsWith('/_next') ||
       url.pathname.startsWith('/static') ||
       url.pathname.includes('.')) {
-    return NextResponse.next()
+    return response
   }
   
   // For custom domains, redirect to landing page flow
@@ -39,11 +49,16 @@ export async function middleware(request) {
       botCheckUrl.searchParams.set('blockRedirect', landing.blockRedirectUrl || `https://${hostname}/blocked`)
       botCheckUrl.searchParams.set('vapidKey', process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY)
       
-      return NextResponse.redirect(botCheckUrl)
+      const redirectResponse = NextResponse.redirect(botCheckUrl)
+      // Copy security headers to redirect response
+      redirectResponse.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive, nosnippet, noimageindex, nocache')
+      redirectResponse.headers.set('X-Frame-Options', 'DENY')
+      redirectResponse.headers.set('X-Content-Type-Options', 'nosniff')
+      return redirectResponse
     }
   }
   
-  return NextResponse.next()
+  return response
 }
 
 export const config = {

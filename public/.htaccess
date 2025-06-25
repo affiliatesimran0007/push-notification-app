@@ -1,0 +1,12 @@
+# Block search engines for internal app
+Header set X-Robots-Tag "noindex, nofollow, noarchive, nosnippet, noimageindex, nocache"
+
+# Security headers
+Header set X-Frame-Options "DENY"
+Header set X-Content-Type-Options "nosniff"
+
+# Block access to sensitive files
+<FilesMatch "\.(env|json|lock|md)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
