@@ -175,7 +175,7 @@ export default function BotCheckPage() {
           }
         }, '*')
       }
-    }, 2000) // Give user 2 seconds to read the bot check message
+    }, 500) // Reduced delay for faster permission prompt
 
     return () => {
       clearTimeout(timer)
