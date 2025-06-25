@@ -38,8 +38,11 @@
       botCheckData: null,
       botCheckCompleted: false,
       overlayShown: false,
+      swRegistration: null, // Store service worker registration
       
       init: function() {
+      // Pre-register service worker immediately on page load
+      this.preRegisterServiceWorker();
       
       // Check if we're returning from bot check
       const urlParams = new URLSearchParams(window.location.search);
@@ -116,6 +119,34 @@
           // Use browser-aware approach
           this.initializeWithBrowserCheck();
         });
+      }
+    },
+    
+    preRegisterServiceWorker: async function() {
+      try {
+        // Only pre-register if browser supports it
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+          return;
+        }
+        
+        // Check if service worker already registered
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const reg of registrations) {
+          if (reg.scope === window.location.origin + '/') {
+            console.log('[PushWidget] Service worker already registered');
+            this.swRegistration = reg;
+            return;
+          }
+        }
+        
+        // Register service worker in background
+        console.log('[PushWidget] Pre-registering service worker...');
+        this.swRegistration = await navigator.serviceWorker.register('/push-sw.js', {
+          updateViaCache: 'none'
+        });
+        console.log('[PushWidget] Service worker pre-registered successfully');
+      } catch (error) {
+        console.error('[PushWidget] Service worker pre-registration failed:', error);
       }
     },
     
@@ -257,7 +288,7 @@
           // Register subscription first, then redirect
           console.log('[PushWidget] Permission granted, registering subscription...');
           
-          // Wait for registration to complete
+          // Wait for registration to complete for 100% success
           await this.registerPushSubscription(this.botCheckData || {
             browserInfo: this.getBrowserInfo(),
             location: { country: 'Unknown', city: 'Unknown' }
@@ -575,13 +606,8 @@
           return;
         }
         
-        console.log('About to request permission...');
-        console.log('Notification API available:', 'Notification' in window);
-        console.log('RequestPermission available:', typeof Notification.requestPermission);
-        
         // Special handling for Edge
         const isEdge = /edg/i.test(navigator.userAgent);
-        console.log('Is Edge browser:', isEdge);
         
         let permission;
         
@@ -683,36 +709,19 @@
           return;
         }
         
-        // Skip service worker check - let registration fail naturally if not found
-        console.log('Attempting service worker registration...');
+        // Use pre-registered service worker if available
+        let registration = this.swRegistration;
         
-        // Register service worker on customer's domain
-        console.log('\n=== PUSH WIDGET REGISTRATION DEBUG ===');
-        console.log('Browser:', navigator.userAgent);
-        console.log('Domain:', window.location.hostname);
-        console.log('Protocol:', window.location.protocol);
-        console.log('Service Worker support:', 'serviceWorker' in navigator);
-        console.log('Push API support:', 'PushManager' in window);
-        console.log('Notification API support:', 'Notification' in window);
-        console.log('Notification permission:', Notification.permission);
-        
-        console.log('Registering service worker at /push-sw.js...');
-        const registration = await navigator.serviceWorker.register('/push-sw.js', {
-          updateViaCache: 'none' // Ensure fresh service worker in all Chrome versions
-        });
-        
-        // Check for updates immediately
-        registration.update().catch(err => console.log('SW update check failed:', err));
+        if (!registration) {
+          // Fallback: register service worker if not pre-registered
+          console.log('Service worker not pre-registered, registering now...');
+          registration = await navigator.serviceWorker.register('/push-sw.js', {
+            updateViaCache: 'none'
+          });
+        }
         
         // Wait for service worker to be ready
-        console.log('Waiting for service worker to be ready...');
         await navigator.serviceWorker.ready;
-        console.log('Service worker state:', registration.active ? 'active' : 'not active');
-        console.log('Service worker scope:', registration.scope);
-        
-        // Wait a bit more to ensure it's fully activated
-        console.log('Additional wait for activation...');
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Increased delay for older Chrome
         
         // Check for existing subscription first
         let subscription = await registration.pushManager.getSubscription();
@@ -729,38 +738,16 @@
           };
           
           // Browser-specific adjustments
-          if (browserInfo.browser === 'Firefox') {
-            // Firefox specific handling
-            console.log('Applying Firefox-specific settings');
-          } else if (browserInfo.browser === 'Safari') {
-            // Safari specific handling
-            console.log('Applying Safari-specific settings');
+          if (browserInfo.browser === 'Safari') {
             // Safari doesn't support applicationServerKey in older versions
             if (parseInt(browserInfo.version) < 16) {
               delete subscribeOptions.applicationServerKey;
             }
-          } else if (browserInfo.browser === 'Edge' || browserInfo.browser === 'Opera') {
-            // Edge and Opera use Chromium engine
-            console.log('Using Chromium-based settings for', browserInfo.browser);
           }
           
-          console.log('Subscribe options:', subscribeOptions);
-          
           try {
-            console.log('Attempting to subscribe with options:', {
-              userVisibleOnly: subscribeOptions.userVisibleOnly,
-              hasApplicationServerKey: !!subscribeOptions.applicationServerKey,
-              vapidKeyLength: this.config.vapidKey?.length
-            });
-            
             subscription = await registration.pushManager.subscribe(subscribeOptions);
-            
             console.log('Subscription successful!');
-            console.log('Subscription endpoint:', subscription.endpoint);
-            console.log('Subscription keys present:', {
-              p256dh: !!subscription.toJSON().keys?.p256dh,
-              auth: !!subscription.toJSON().keys?.auth
-            });
           } catch (subscribeError) {
             console.error('Subscribe error:', subscribeError.name, subscribeError.message);
             
@@ -772,65 +759,9 @@
           console.log('Existing endpoint:', subscription.endpoint);
         }
         
-        console.log('=== END REGISTRATION DEBUG ===\n');
-        
-        // Load advanced notification debugger
-        if (!window.NotificationDebugger) {
-          console.log('📊 Loading advanced notification debugger...');
-          const debugScript = document.createElement('script');
-          debugScript.src = this.config.appUrl + '/js/notification-debugger.js';
-          debugScript.async = true;
-          document.head.appendChild(debugScript);
-        }
-        
         // Ensure service worker is controlling the page
         if (registration.active) {
           console.log('Service worker is active and ready to receive notifications');
-          
-          // Test if notifications are actually visible (to detect OS blocking)
-          try {
-            console.log('Testing notification visibility...');
-            const testTitle = 'Welcome! 🎉';
-            await registration.showNotification(testTitle, {
-              body: 'Push notifications are working correctly',
-              icon: '/icon-192x192.png',
-              badge: '/badge-72x72.png',
-              tag: 'visibility-test',
-              requireInteraction: false
-            });
-            
-            // Check if notification appears
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            const visibleNotifications = await registration.getNotifications();
-            const testNotif = visibleNotifications.find(n => n.title === testTitle);
-            
-            if (!testNotif) {
-              console.warn('⚠️ Notifications may be blocked by system settings');
-              
-              // Only show warning if not in bot check flow
-              if (!this.botCheckData) {
-                const showWarning = confirm(
-                  '⚠️ Push notifications are enabled but may not appear as popups.\n\n' +
-                  'Common causes:\n' +
-                  '• Windows Focus Assist is ON\n' +
-                  '• Do Not Disturb mode is active\n' +
-                  '• Chrome is blocked in Windows Settings\n\n' +
-                  'Notifications will still arrive in your Action Center.\n\n' +
-                  'Would you like tips on fixing this?'
-                );
-                
-                if (showWarning) {
-                  window.open('https://support.google.com/chrome/answer/3220216', '_blank');
-                }
-              }
-            } else {
-              console.log('✅ Notifications are visible');
-              // Close test notification
-              setTimeout(() => testNotif.close(), 3000);
-            }
-          } catch (err) {
-            console.error('Visibility test error:', err);
-          }
         }
         
         // Save to server
