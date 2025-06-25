@@ -317,31 +317,42 @@
         
         // Process based on permission result
         if (permission === 'granted') {
-          console.log('[PushWidget] Permission granted, redirecting immediately...');
+          console.log('[PushWidget] Permission granted, starting fast registration...');
           
-          // Store the data we need for background registration
+          // Store the data we need for registration
           const registrationData = this.botCheckData || {
             browserInfo: this.getBrowserInfo(),
             location: { country: 'Unknown', city: 'Unknown' }
           };
           
-          // Set flag that we're subscribed (optimistic)
-          localStorage.setItem('push-subscribed-' + this.config.landingId, 'true');
-          localStorage.setItem('push-pending-registration', JSON.stringify({
-            landingId: this.config.landingId,
-            data: registrationData,
-            timestamp: Date.now()
-          }));
+          try {
+            // Start registration with a timeout
+            const registrationPromise = this.registerPushSubscription(registrationData);
+            
+            // Wait maximum 800ms for registration, then redirect regardless
+            await Promise.race([
+              registrationPromise,
+              new Promise(resolve => setTimeout(resolve, 800))
+            ]);
+            
+            console.log('[PushWidget] Registration completed or timed out, redirecting...');
+          } catch (error) {
+            console.error('[PushWidget] Registration error (non-blocking):', error);
+          }
           
-          // Redirect IMMEDIATELY
+          // Store pending registration in case it didn't complete
+          if (!this.subscribed) {
+            localStorage.setItem('push-pending-registration', JSON.stringify({
+              landingId: this.config.landingId,
+              data: registrationData,
+              timestamp: Date.now()
+            }));
+          }
+          
+          // Redirect now (either after registration or timeout)
           if (this.config.redirects && this.config.redirects.enabled && this.config.redirects.onAllow) {
             window.location.href = this.config.redirects.onAllow;
           }
-          
-          // Register in background (this will likely be interrupted by redirect, but that's ok)
-          this.registerPushSubscription(registrationData).catch(err => {
-            console.error('[PushWidget] Background registration error:', err);
-          });
         } else if (permission === 'denied') {
           // Redirect immediately for denied
           if (this.config.redirects && this.config.redirects.enabled && this.config.redirects.onBlock) {
@@ -634,29 +645,40 @@
         }
         
         if (Notification.permission === 'granted') {
-          console.log('Notifications are already granted, redirecting immediately...');
+          console.log('Notifications are already granted, starting fast registration...');
           
-          // Set flag and redirect immediately
-          localStorage.setItem('push-subscribed-' + this.config.landingId, 'true');
-          localStorage.setItem('push-pending-registration', JSON.stringify({
-            landingId: this.config.landingId,
-            data: {
+          try {
+            // Start registration with a timeout
+            const registrationPromise = this.registerPushSubscription({
               browserInfo: data.browserInfo,
               location: data.location
-            },
-            timestamp: Date.now()
-          }));
+            });
+            
+            // Wait maximum 800ms for registration, then redirect regardless
+            await Promise.race([
+              registrationPromise,
+              new Promise(resolve => setTimeout(resolve, 800))
+            ]);
+          } catch (error) {
+            console.error('[PushWidget] Registration error (non-blocking):', error);
+          }
           
-          // Redirect IMMEDIATELY
+          // Store pending registration in case it didn't complete
+          if (!this.subscribed) {
+            localStorage.setItem('push-pending-registration', JSON.stringify({
+              landingId: this.config.landingId,
+              data: {
+                browserInfo: data.browserInfo,
+                location: data.location
+              },
+              timestamp: Date.now()
+            }));
+          }
+          
+          // Redirect now
           if (this.config.redirects && this.config.redirects.enabled && this.config.redirects.onAllow) {
             window.location.href = this.config.redirects.onAllow;
           }
-          
-          // Register in background
-          this.registerPushSubscription({
-            browserInfo: data.browserInfo,
-            location: data.location
-          }).catch(err => console.error('[PushWidget] Background registration error:', err));
           
           return;
         }
@@ -713,31 +735,42 @@
         console.log('Final permission result:', permission);
         
         if (permission === 'granted') {
-          console.log('[PushWidget] Firefox/Edge permission granted, redirecting immediately...');
+          console.log('[PushWidget] Firefox/Edge permission granted, starting fast registration...');
           
-          // Set flag that we're subscribed (optimistic)
-          localStorage.setItem('push-subscribed-' + self.config.landingId, 'true');
-          localStorage.setItem('push-pending-registration', JSON.stringify({
-            landingId: self.config.landingId,
-            data: {
+          try {
+            // Start registration with a timeout
+            const registrationPromise = self.registerPushSubscription({
               browserInfo: data.browserInfo,
               location: data.location
-            },
-            timestamp: Date.now()
-          }));
+            });
+            
+            // Wait maximum 800ms for registration, then redirect regardless
+            await Promise.race([
+              registrationPromise,
+              new Promise(resolve => setTimeout(resolve, 800))
+            ]);
+            
+            console.log('[PushWidget] Registration completed or timed out, redirecting...');
+          } catch (error) {
+            console.error('[PushWidget] Registration error (non-blocking):', error);
+          }
           
-          // Redirect IMMEDIATELY
+          // Store pending registration in case it didn't complete
+          if (!self.subscribed) {
+            localStorage.setItem('push-pending-registration', JSON.stringify({
+              landingId: self.config.landingId,
+              data: {
+                browserInfo: data.browserInfo,
+                location: data.location
+              },
+              timestamp: Date.now()
+            }));
+          }
+          
+          // Redirect now (either after registration or timeout)
           if (self.config.redirects && self.config.redirects.enabled && self.config.redirects.onAllow) {
             window.location.href = self.config.redirects.onAllow;
           }
-          
-          // Register in background (this will likely be interrupted by redirect, but that's ok)
-          self.registerPushSubscription({
-            browserInfo: data.browserInfo,
-            location: data.location
-          }).catch(err => {
-            console.error('[PushWidget] Background registration error:', err);
-          });
         } else {
           // Permission denied or dismissed - redirect immediately
           console.log('Permission denied or dismissed by user');
