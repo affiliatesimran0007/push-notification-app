@@ -27,10 +27,12 @@
         // Create hidden iframe to subdomain
         this.createSubdomainIframe();
         
-        // Check for bot protection
-        if (this.config.botProtection !== false) {
-          this.showBotCheckOverlay();
-        }
+        // Check for bot protection after a small delay to ensure iframe is ready
+        setTimeout(() => {
+          if (this.config.botProtection !== false) {
+            this.showBotCheckOverlay();
+          }
+        }, 100);
       },
       
       createSubdomainIframe: function() {
@@ -153,10 +155,21 @@
             // Convert VAPID key to Uint8Array for the subdomain
             const vapidUint8Array = this.urlBase64ToUint8Array(this.config.vapidKey);
             
+            // Check if iframe exists
+            if (!this.iframe || !this.iframe.contentWindow) {
+              console.error('[PushWidget-Subdomain] Subdomain iframe not found!');
+              this.closeOverlay();
+              return;
+            }
+            
             // Send registration request to subdomain
+            const targetOrigin = this.config.subdomainUrl || 'https://push.usproadvisor.com';
+            console.log('[PushWidget-Subdomain] Sending to iframe:', targetOrigin);
+            
+            // Send VAPID key as base64 string instead of Uint8Array
             this.iframe.contentWindow.postMessage({
               type: 'REGISTER_PUSH',
-              vapidKey: vapidUint8Array,
+              vapidKey: this.config.vapidKey, // Send as string
               clientData: {
                 landingId: this.config.landingId,
                 domain: this.config.domain,
@@ -164,7 +177,7 @@
                 location: botCheckData.location || { country: 'Unknown', city: 'Unknown' },
                 url: window.location.href
               }
-            }, this.config.subdomainUrl || 'https://push.usproadvisor.com');
+            }, targetOrigin);
             
             console.log('[PushWidget-Subdomain] Registration request sent to subdomain');
           } else {
