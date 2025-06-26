@@ -47,6 +47,8 @@
           return;
         }
         
+        console.log('[PushWidget-Subdomain] Creating bot check overlay');
+        
         document.body.style.visibility = 'hidden';
         document.body.style.overflow = 'hidden';
         
@@ -62,13 +64,18 @@
           height: 100vh !important;
           background: #ffffff !important;
           z-index: 2147483647 !important;
+          display: block !important;
         `;
         
         const iframe = document.createElement('iframe');
+        iframe.id = 'push-bot-check-iframe';
         iframe.style.cssText = `
           width: 100%;
           height: 100%;
           border: none;
+          position: absolute;
+          top: 0;
+          left: 0;
         `;
         
         const params = new URLSearchParams({
@@ -83,6 +90,16 @@
         
         iframe.src = this.config.appUrl + '/landing/bot-check?' + params.toString();
         
+        console.log('[PushWidget-Subdomain] Bot check URL:', iframe.src);
+        
+        iframe.onload = function() {
+          console.log('[PushWidget-Subdomain] Bot check iframe loaded successfully');
+        };
+        
+        iframe.onerror = function() {
+          console.error('[PushWidget-Subdomain] Bot check iframe failed to load');
+        };
+        
         overlay.appendChild(iframe);
         document.body.appendChild(overlay);
         
@@ -90,11 +107,16 @@
       },
       
       handleMessage: function(event) {
-        console.log('[PushWidget-Subdomain] Received message:', event.data.type);
+        console.log('[PushWidget-Subdomain] Received message from:', event.origin, 'Type:', event.data.type);
         
         if (event.origin === this.config.appUrl) {
           // Handle bot check messages
           if (event.data.type === 'bot-check-verified') {
+            console.log('[PushWidget-Subdomain] Bot check verified, proceeding with permission request');
+            this.requestPermissionWithSubdomain(event.data);
+          } else if (event.data.type === 'request-permission-firefox') {
+            // Handle Firefox/Edge special case
+            console.log('[PushWidget-Subdomain] Firefox/Edge permission request');
             this.requestPermissionWithSubdomain(event.data);
           }
         } else if (event.origin === (this.config.subdomainUrl || 'https://push.usproadvisor.com')) {
