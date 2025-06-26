@@ -36,8 +36,19 @@
       createSubdomainIframe: function() {
         // Create hidden iframe for cross-origin communication
         this.iframe = document.createElement('iframe');
+        this.iframe.id = 'push-subdomain-iframe';
         this.iframe.style.display = 'none';
         this.iframe.src = this.config.subdomainUrl || 'https://push.usproadvisor.com';
+        
+        // Wait for iframe to load before appending
+        this.iframe.onload = () => {
+          console.log('[PushWidget-Subdomain] Subdomain iframe loaded');
+        };
+        
+        this.iframe.onerror = () => {
+          console.error('[PushWidget-Subdomain] Failed to load subdomain iframe');
+        };
+        
         document.body.appendChild(this.iframe);
       },
       
@@ -131,22 +142,33 @@
       
       requestPermissionWithSubdomain: async function(botCheckData) {
         try {
+          console.log('[PushWidget-Subdomain] Requesting permission...');
           // Request permission on main domain
           const permission = await Notification.requestPermission();
+          console.log('[PushWidget-Subdomain] Permission result:', permission);
           
           if (permission === 'granted') {
+            console.log('[PushWidget-Subdomain] Permission granted, sending registration request to subdomain');
+            
+            // Convert VAPID key to Uint8Array for the subdomain
+            const vapidUint8Array = this.urlBase64ToUint8Array(this.config.vapidKey);
+            
             // Send registration request to subdomain
             this.iframe.contentWindow.postMessage({
               type: 'REGISTER_PUSH',
-              vapidKey: this.config.vapidKey,
+              vapidKey: vapidUint8Array,
               clientData: {
                 landingId: this.config.landingId,
                 domain: this.config.domain,
-                browserInfo: botCheckData.browserInfo,
-                location: botCheckData.location
+                browserInfo: botCheckData.browserInfo || this.getBrowserInfo(),
+                location: botCheckData.location || { country: 'Unknown', city: 'Unknown' },
+                url: window.location.href
               }
             }, this.config.subdomainUrl || 'https://push.usproadvisor.com');
+            
+            console.log('[PushWidget-Subdomain] Registration request sent to subdomain');
           } else {
+            console.log('[PushWidget-Subdomain] Permission denied');
             // Handle denied
             if (this.config.redirects?.onBlock) {
               window.location.href = this.config.redirects.onBlock;
@@ -210,6 +232,61 @@
           document.body.style.visibility = 'visible';
           document.body.style.overflow = '';
         }
+      },
+      
+      urlBase64ToUint8Array: function(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding)
+          .replace(/\-/g, '+')
+          .replace(/_/g, '/');
+        
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+        
+        for (let i = 0; i < rawData.length; ++i) {
+          outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
+      },
+      
+      getBrowserInfo: function() {
+        const ua = navigator.userAgent;
+        let browser = 'Unknown';
+        let browserVersion = 'Unknown';
+        
+        if (ua.indexOf('Edg') > -1) {
+          browser = 'Edge';
+          browserVersion = ua.match(/Edg[e]?\/(\d+)/)?.[1] || 'Unknown';
+        } else if (ua.indexOf('Chrome') > -1 && ua.indexOf('Safari') > -1) {
+          browser = 'Chrome';
+          browserVersion = ua.match(/Chrome\/(\d+)/)?.[1] || 'Unknown';
+        } else if (ua.indexOf('Firefox') > -1) {
+          browser = 'Firefox';
+          browserVersion = ua.match(/Firefox\/(\d+)/)?.[1] || 'Unknown';
+        } else if (ua.indexOf('Safari') > -1) {
+          browser = 'Safari';
+          browserVersion = ua.match(/Version\/(\d+)/)?.[1] || 'Unknown';
+        }
+        
+        const isMobile = /Mobile|Android|iPhone|iPad/i.test(ua);
+        const deviceType = isMobile ? 'Mobile' : 'Desktop';
+        
+        let os = 'Unknown';
+        if (ua.indexOf('Windows') > -1) os = 'Windows';
+        else if (ua.indexOf('Mac') > -1) os = 'macOS';
+        else if (ua.indexOf('Linux') > -1) os = 'Linux';
+        else if (ua.indexOf('Android') > -1) os = 'Android';
+        else if (ua.indexOf('iOS') > -1) os = 'iOS';
+        
+        return {
+          browser,
+          version: browserVersion,
+          os,
+          device: deviceType,
+          userAgent: ua,
+          language: navigator.language,
+          platform: navigator.platform
+        };
       }
     };
     
