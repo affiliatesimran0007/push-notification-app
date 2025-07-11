@@ -34,6 +34,7 @@ export default function Clients() {
     browser: null,
     country: null,
     deviceType: null,
+    accessStatus: { value: 'allowed', label: 'Allowed' },
   })
   const [showSendModal, setShowSendModal] = useState(false)
   const [selectedClient, setSelectedClient] = useState(null)
@@ -49,15 +50,14 @@ export default function Clients() {
   const [diagnosticResults, setDiagnosticResults] = useState(null)
   const [runningDiagnostics, setRunningDiagnostics] = useState(false)
 
-  // Build API URL with query params
+  // Build API URL with query params (no pagination - show filtered clients)
   const buildApiUrl = () => {
     const params = new URLSearchParams()
-    params.append('page', currentPage)
-    params.append('limit', '10')
     if (searchTerm) params.append('search', searchTerm)
     if (selectedFilters.browser?.value) params.append('browser', selectedFilters.browser.value)
     if (selectedFilters.country?.value) params.append('country', selectedFilters.country.value)
     if (selectedFilters.deviceType?.value) params.append('device', selectedFilters.deviceType.value)
+    if (selectedFilters.accessStatus?.value) params.append('accessStatus', selectedFilters.accessStatus.value)
     return `/api/clients?${params.toString()}`
   }
 
@@ -168,6 +168,14 @@ export default function Clients() {
     { value: 'desktop', label: 'Desktop' },
     { value: 'mobile', label: 'Mobile' },
     { value: 'tablet', label: 'Tablet' },
+  ]
+  
+  const accessStatusOptions = [
+    { value: 'all', label: 'All' },
+    { value: 'allowed', label: 'Allowed' },
+    { value: 'blocked', label: 'Blocked' },
+    { value: 'expired', label: 'Expired' },
+    { value: 'pending', label: 'Pending' },
   ]
 
   // Get clients from API response
@@ -536,7 +544,7 @@ Full Debug Info in Console`;
         <MDBCard className="mb-4 shadow-sm" style={{ backgroundColor: '#f8f9fa' }}>
           <MDBCardBody>
             <Row className="align-items-end">
-              <Col md={3} className="mb-3 mb-md-0">
+              <Col md={2} className="mb-3 mb-md-0">
                 <label className="form-label small text-muted">Search</label>
                 <div className="input-group">
                   <span className="input-group-text bg-white">
@@ -551,7 +559,7 @@ Full Debug Info in Console`;
                   />
                 </div>
               </Col>
-              <Col md={3} className="mb-3 mb-md-0">
+              <Col md={2} className="mb-3 mb-md-0">
                 <label className="form-label small text-muted">Browser</label>
                 {mounted ? (
                   <Select
@@ -566,7 +574,7 @@ Full Debug Info in Console`;
                   <div style={{ height: '38px', backgroundColor: '#f8f9fa', borderRadius: '4px' }} />
                 )}
               </Col>
-              <Col md={3} className="mb-3 mb-md-0">
+              <Col md={2} className="mb-3 mb-md-0">
                 <label className="form-label small text-muted">Country</label>
                 {mounted ? (
                   <Select
@@ -581,7 +589,7 @@ Full Debug Info in Console`;
                   <div style={{ height: '38px', backgroundColor: '#f8f9fa', borderRadius: '4px' }} />
                 )}
               </Col>
-              <Col md={3} className="mb-3 mb-md-0">
+              <Col md={2} className="mb-3 mb-md-0">
                 <label className="form-label small text-muted">Device Type</label>
                 {mounted ? (
                   <Select
@@ -590,6 +598,21 @@ Full Debug Info in Console`;
                     onChange={(value) => setSelectedFilters({...selectedFilters, deviceType: value})}
                     isClearable
                     placeholder="All devices"
+                    classNamePrefix="react-select"
+                  />
+                ) : (
+                  <div style={{ height: '38px', backgroundColor: '#f8f9fa', borderRadius: '4px' }} />
+                )}
+              </Col>
+              <Col md={2} className="mb-3 mb-md-0">
+                <label className="form-label small text-muted">Access Status</label>
+                {mounted ? (
+                  <Select
+                    options={accessStatusOptions}
+                    value={selectedFilters.accessStatus}
+                    onChange={(value) => setSelectedFilters({...selectedFilters, accessStatus: value})}
+                    isClearable
+                    placeholder="All statuses"
                     classNamePrefix="react-select"
                   />
                 ) : (
@@ -777,36 +800,12 @@ Full Debug Info in Console`;
           </MDBCardBody>
         </MDBCard>
         
-        {/* Pagination */}
-        {!loading && !error && pagination.totalPages > 1 && (
-          <div className="d-flex justify-content-between align-items-center mt-3">
+        {/* Show total count instead of pagination */}
+        {!loading && !error && clients.length > 0 && (
+          <div className="d-flex justify-content-center align-items-center mt-3">
             <div className="text-muted">
-              Showing {((currentPage - 1) * 10) + 1} to {Math.min(currentPage * 10, pagination.total)} of {pagination.total} clients
+              Showing all {clients.length} {selectedFilters.accessStatus?.value === 'all' ? '' : selectedFilters.accessStatus?.label?.toLowerCase() || 'allowed'} clients
             </div>
-            <nav>
-              <ul className="pagination mb-0">
-                <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                  <button className="page-link" onClick={() => setCurrentPage(currentPage - 1)}>
-                    Previous
-                  </button>
-                </li>
-                {[...Array(Math.min(5, pagination.totalPages))].map((_, i) => {
-                  const pageNum = i + 1
-                  return (
-                    <li key={pageNum} className={`page-item ${currentPage === pageNum ? 'active' : ''}`}>
-                      <button className="page-link" onClick={() => setCurrentPage(pageNum)}>
-                        {pageNum}
-                      </button>
-                    </li>
-                  )
-                })}
-                <li className={`page-item ${currentPage === pagination.totalPages ? 'disabled' : ''}`}>
-                  <button className="page-link" onClick={() => setCurrentPage(currentPage + 1)}>
-                    Next
-                  </button>
-                </li>
-              </ul>
-            </nav>
           </div>
         )}
       </div>

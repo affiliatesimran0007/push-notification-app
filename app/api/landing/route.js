@@ -16,7 +16,11 @@ export async function GET() {
       },
       include: {
         _count: {
-          select: { clients: true }
+          select: { 
+            clients: {
+              where: { accessStatus: 'allowed' }
+            }
+          }
         }
       }
     })
@@ -105,7 +109,11 @@ export async function POST(request) {
       },
       include: {
         _count: {
-          select: { clients: true }
+          select: { 
+            clients: {
+              where: { accessStatus: 'allowed' }
+            }
+          }
         }
       }
     })
@@ -168,7 +176,11 @@ export async function PUT(request) {
       },
       include: {
         _count: {
-          select: { clients: true }
+          select: { 
+            clients: {
+              where: { accessStatus: 'allowed' }
+            }
+          }
         }
       }
     })

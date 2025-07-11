@@ -110,7 +110,10 @@ export async function GET(request) {
         }
         
         const clients = await prisma.client.findMany({
-          where: whereClause,
+          where: {
+            ...whereClause,
+            accessStatus: 'allowed' // Only send to allowed clients
+          },
           select: { id: true }
         })
         

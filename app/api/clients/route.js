@@ -11,13 +11,15 @@ export async function GET(request) {
     const browser = searchParams.get('browser') || ''
     const country = searchParams.get('country') || ''
     const device = searchParams.get('device') || ''
+    const accessStatus = searchParams.get('accessStatus') || 'allowed' // Default to allowed
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
     const skip = (page - 1) * limit
 
-    // Build where clause
+    // Build where clause - filter by access status (default to allowed)
     const where = {
       AND: [
+        accessStatus === 'all' ? {} : { accessStatus }, // Show all or filter by status
         search ? {
           OR: [
             { browser: { contains: search, mode: 'insensitive' } },
@@ -37,8 +39,7 @@ export async function GET(request) {
       prisma.client.count({ where }),
       prisma.client.findMany({
         where,
-        skip,
-        take: limit,
+        // Remove pagination - show all allowed clients
         orderBy: { subscribedAt: 'desc' },
         include: {
           landingPage: {
