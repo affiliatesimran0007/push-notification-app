@@ -193,7 +193,7 @@ export default function LandingPage() {
     if (!landing) return ''
     
     const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://push-notification-app-steel.vercel.app'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pushlogin.com'
     
     return `<!-- Push Notification Integration Code -->
 <!-- Domain: ${landing.domain} | Landing Page: ${landing.name} -->

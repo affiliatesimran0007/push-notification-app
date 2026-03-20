@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/db'
 import { campaignEvents } from '@/lib/campaignEvents'
 
-// Temporary in-memory storage for analytics events
+// In-memory storage for analytics events (used only for GET debug endpoint)
 let analyticsEvents = []
 
 // OPTIONS /api/analytics/track - Handle CORS preflight
@@ -69,7 +69,7 @@ export async function POST(request) {
               clickedCount: { increment: 1 }
             }
           })
-          
+
           // Emit real-time update
           campaignEvents.emitStatsUpdate(campaignId, {
             clickedCount: updatedCampaign.clickedCount,
@@ -86,16 +86,47 @@ export async function POST(request) {
               deliveredCount: { increment: 1 }
             }
           })
-          
+
           // Emit real-time update
           campaignEvents.emitStatsUpdate(campaignId, {
             deliveredCount: updatedCampaign.deliveredCount
+          })
+        } else if (event === 'notification_dismissed') {
+          // Update dismissed count
+          const updatedCampaign = await prisma.campaign.update({
+            where: { id: campaignId },
+            data: {
+              dismissedCount: { increment: 1 }
+            }
+          })
+
+          // Emit real-time update
+          campaignEvents.emitStatsUpdate(campaignId, {
+            dismissedCount: updatedCampaign.dismissedCount
           })
         }
       } catch (dbError) {
         console.error('Failed to update campaign metrics:', dbError)
         // Continue even if database update fails
       }
+    }
+
+    // Persist analytics event to DB
+    try {
+      await prisma.analyticsEvent.create({
+        data: {
+          event: event,
+          campaignId: campaignId || null,
+          clientId: clientId || null,
+          metadata: body,
+          ip: analyticsEvent.ip,
+          userAgent: analyticsEvent.userAgent,
+          timestamp: new Date(timestamp || Date.now())
+        }
+      })
+    } catch (dbError) {
+      console.error('Failed to persist analytics event to DB:', dbError)
+      // Continue even if DB write fails
     }
 
     console.log('Analytics event tracked:', analyticsEvent)

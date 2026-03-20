@@ -8,10 +8,10 @@ export async function GET(request) {
     const authHeader = request.headers.get('authorization')
     const cronSecret = process.env.CRON_SECRET || 'default-cron-secret'
     
-    // Basic auth check (optional - for production use)
+    // Enforce auth check
     if (authHeader !== `Bearer ${cronSecret}`) {
       console.log('Unauthorized cron request')
-      // For now, allow without auth for testing
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     
     // Find campaigns that are scheduled and ready to run

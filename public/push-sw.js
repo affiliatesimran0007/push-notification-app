@@ -2,7 +2,7 @@
 // Customers download and host this file on their domain
 // Version: 2.3.0 - Fixed click tracking with trackingUrl
 
-const SW_VERSION = 'v2.3.0';
+const SW_VERSION = 'v2.4.0';
 
 self.addEventListener('install', (event) => {
   console.log('[Service Worker] Installing...', SW_VERSION);
@@ -39,6 +39,7 @@ self.addEventListener('push', (event) => {
       clientId: data.data?.clientId || data.clientId,
       notificationId: data.data?.notificationId || data.notificationId,
       trackingUrl: data.trackingUrl || data.data?.trackingUrl,
+      platformUrl: data.platformUrl || data.data?.platformUrl,
       actions: data.actions || []
     },
     actions: data.actions || [],
@@ -136,26 +137,29 @@ self.addEventListener('notificationclick', (event) => {
 
 self.addEventListener('notificationclose', (event) => {
   // Track close/dismiss event
-  const campaignId = event.notification.data.campaignId;
-  const clientId = event.notification.data.clientId;
-  
+  const data = event.notification.data || {};
+  const campaignId = data.campaignId;
+  const clientId = data.clientId;
+  const platformUrl = data.platformUrl;
+
   console.log('[Service Worker] Notification closed:', { campaignId, clientId });
-  
-  if (campaignId) {
-    // Use the app URL for tracking, not the current domain
-    const trackingUrl = 'https://push-notification-app-steel.vercel.app/api/campaigns/track-dismiss';
-    
-    fetch(trackingUrl, {
+
+  if (!platformUrl || !campaignId) return;
+
+  event.waitUntil(
+    fetch(`${platformUrl}/api/analytics/track`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        event: 'notification_dismissed',
         campaignId: campaignId,
-        clientId: clientId
+        clientId: clientId,
+        timestamp: new Date().toISOString()
       })
     })
     .then(response => {
       console.log('[Service Worker] Dismiss tracking response:', response.status);
     })
-    .catch(err => console.error('[Service Worker] Failed to track dismiss:', err));
-  }
+    .catch(err => console.error('[Service Worker] Failed to track dismiss:', err))
+  );
 });

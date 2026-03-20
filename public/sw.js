@@ -1,7 +1,7 @@
 // Service Worker for Push Notifications
 // Version: 2.2.0 - Added hero image support
 
-const SW_VERSION = 'v2.2.0';
+const SW_VERSION = 'v2.3.0';
 
 self.addEventListener('install', (event) => {
   console.log('Service Worker installed', SW_VERSION)
@@ -133,7 +133,8 @@ self.addEventListener('notificationclick', (event) => {
 
   // Track click analytics
   if (event.notification.data?.campaignId) {
-    fetch('/api/analytics/track', {
+    const trackingUrl = event.notification.data?.trackingUrl || '/api/analytics/track'
+    fetch(trackingUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -149,18 +150,26 @@ self.addEventListener('notificationclick', (event) => {
 // Handle notification close
 self.addEventListener('notificationclose', (event) => {
   console.log('Notification closed:', event)
-  
+
   // Track close analytics
-  if (event.notification.data?.campaignId) {
-    fetch('/api/analytics/track', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        event: 'notification_closed',
-        campaignId: event.notification.data.campaignId,
-        timestamp: new Date().toISOString()
-      })
-    }).catch(err => console.error('Failed to track close:', err))
+  const data = event.notification.data || {}
+  if (data.campaignId) {
+    const platformUrl = data.platformUrl
+    const trackingUrl = platformUrl
+      ? `${platformUrl}/api/analytics/track`
+      : '/api/analytics/track'
+    event.waitUntil(
+      fetch(trackingUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event: 'notification_dismissed',
+          campaignId: data.campaignId,
+          clientId: data.clientId,
+          timestamp: new Date().toISOString()
+        })
+      }).catch(err => console.error('Failed to track close:', err))
+    )
   }
 })
 
