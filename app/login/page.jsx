@@ -28,7 +28,7 @@ export default function LoginPage() {
     setError('');
 
     // Fixed credentials check
-    if (formData.email === 'admin@gmail.com' && formData.password === 'Babaji@123') {
+    if (formData.email === 'admin@gmail.com' && formData.password === 'Babaji@123!!@$') {
       // Store auth state in localStorage
       localStorage.setItem('isAuthenticated', 'true');
       localStorage.setItem('userEmail', formData.email);
