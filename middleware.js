@@ -37,8 +37,9 @@ export async function middleware(request) {
   // For custom domains, redirect to landing page flow
   // This handles domains like alerts-intuit.com pointing to your app
   if (!url.pathname.startsWith('/landing/bot-check')) {
-    // Look up landing page by domain
-    const landingResponse = await fetch(`${url.origin}/api/landing/by-domain?domain=${hostname}`)
+    // Look up landing page by domain (use localhost to avoid proxy SSL issues)
+    const internalBase = process.env.INTERNAL_API_URL || 'http://localhost:3000'
+    const landingResponse = await fetch(`${internalBase}/api/landing/by-domain?domain=${hostname}`)
     
     if (landingResponse.ok) {
       const landing = await landingResponse.json()
