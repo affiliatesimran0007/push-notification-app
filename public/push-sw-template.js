@@ -1,9 +1,9 @@
 // Push Notification Service Worker
 // This file should be hosted on YOUR domain at the root (e.g., https://yourdomain.com/push-sw.js)
 // It handles push notifications sent from the push notification platform
-// Version: 1.2.2 - Fixed dismiss tracking URL and hero image support
+// Version: 1.3.0 - Fixed dismiss tracking to use dynamic platformUrl
 
-const SW_VERSION = 'v1.2.2';
+const SW_VERSION = 'v1.3.0';
 
 self.addEventListener('push', function(event) {
   console.log('[Service Worker] Push received at:', new Date().toISOString());
@@ -47,6 +47,7 @@ self.addEventListener('push', function(event) {
       notificationId: data.notificationId || data.data?.notificationId,
       clientId: data.clientId || data.data?.clientId,
       trackingUrl: data.trackingUrl || data.data?.trackingUrl,
+      platformUrl: data.platformUrl || data.data?.platformUrl,
       actions: data.actions || []
     }
   };
@@ -197,18 +198,21 @@ self.addEventListener('notificationclick', function(event) {
 
 self.addEventListener('notificationclose', function(event) {
   console.log('[Service Worker] Notification closed');
-  
-  // Track dismiss event
+
   const data = event.notification.data;
-  if (data && data.campaignId) {
-    fetch('https://push-notification-app-steel.vercel.app/api/campaigns/track-dismiss', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        campaignId: data.campaignId,
-        clientId: data.clientId
-      })
-    }).catch(err => console.error('[Service Worker] Failed to track dismiss:', err));
+  if (data && data.campaignId && data.platformUrl) {
+    event.waitUntil(
+      fetch(data.platformUrl + '/api/analytics/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event: 'notification_dismissed',
+          campaignId: data.campaignId,
+          clientId: data.clientId,
+          timestamp: new Date().toISOString()
+        })
+      }).catch(err => console.error('[Service Worker] Failed to track dismiss:', err))
+    );
   }
 });
 
