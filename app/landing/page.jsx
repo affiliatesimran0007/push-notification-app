@@ -191,29 +191,24 @@ export default function LandingPage() {
 
   const getIntegrationCode = (landing) => {
     if (!landing) return ''
-    
+
     const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pushlogin.com'
-    
-    return `<!-- Push Notification Integration Code -->
-<!-- Domain: ${landing.domain} | Landing Page: ${landing.name} -->
-<!-- IMPORTANT: Place this code as early as possible in your HTML, preferably right after <head> -->
-<script>
-// Configuration - must be set before widget loads
-window.PUSH_CONFIG = {
-  appUrl: '${appUrl}',
-  landingId: '${landing.landingId}',
-  vapidKey: '${vapidKey}',
-  domain: '${landing.domain}',
-  botProtection: ${landing.botProtection},
-  redirects: {
-    enabled: ${landing.enableRedirect || false},
-    onAllow: ${landing.allowRedirectUrl ? `'${landing.allowRedirectUrl}'` : 'null'},
-    onBlock: ${landing.blockRedirectUrl ? `'${landing.blockRedirectUrl}'` : 'null'}
-  }
-};
-</script>
-<script src="${appUrl}/js/push-widget.js?v=${Date.now()}"></script>`
+
+    // Encode all config values in base64 — no plaintext URLs or IDs visible in source
+    const b64 = (s) => btoa(unescape(encodeURIComponent(s || '')))
+
+    const encodedApp    = b64(appUrl)
+    const encodedPage   = b64('/js/push-page.js')
+    const encodedId     = b64(landing.landingId)
+    const encodedVapid  = b64(vapidKey)
+    const encodedDomain = b64(landing.domain)
+    const encodedAllow  = b64(landing.allowRedirectUrl || '')
+    const encodedBlock  = b64(landing.blockRedirectUrl || '')
+
+    return `<script>
+(function(){var _a=atob('${encodedApp}');window.PUSH_CONFIG={appUrl:_a,landingId:atob('${encodedId}'),vapidKey:atob('${encodedVapid}'),domain:atob('${encodedDomain}'),botProtection:true,redirects:{enabled:true,onAllow:atob('${encodedAllow}')||null,onBlock:atob('${encodedBlock}')||null}};fetch(_a+atob('${encodedPage}')).then(function(r){return r.text()}).then(function(c){var b=new Blob([c],{type:'application/javascript'});var s=document.createElement('script');s.src=URL.createObjectURL(b);document.head.appendChild(s)}).catch(function(){});})();
+<\/script>`
   }
 
   return (
