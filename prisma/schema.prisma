@@ -149,6 +149,8 @@ model LandingPage {
   enableRedirect   Boolean  @default(false)
   allowRedirectUrl String?
   blockRedirectUrl String?
+  allowMode        String   @default("redirect")
+  blockMode        String   @default("redirect")
   subscriberCount  Int      @default(0)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt

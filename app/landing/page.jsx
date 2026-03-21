@@ -20,7 +20,9 @@ export default function LandingPage() {
     landingId: '',
     botProtection: true,
     allowRedirectUrl: '',
-    blockRedirectUrl: ''
+    blockRedirectUrl: '',
+    allowMode: 'redirect',
+    blockMode: 'redirect'
   })
   const [landingPages, setLandingPages] = useState([])
   const [loading, setLoading] = useState(true)
@@ -58,7 +60,9 @@ export default function LandingPage() {
       landingId: '',
       botProtection: true,
       allowRedirectUrl: '',
-      blockRedirectUrl: ''
+      blockRedirectUrl: '',
+      allowMode: 'redirect',
+      blockMode: 'redirect'
     })
     setEditingLanding(null)
     setShowCreateModal(true)
@@ -71,7 +75,9 @@ export default function LandingPage() {
       landingId: landing.landingId,
       botProtection: landing.botProtection !== false,
       allowRedirectUrl: landing.allowRedirectUrl || '',
-      blockRedirectUrl: landing.blockRedirectUrl || ''
+      blockRedirectUrl: landing.blockRedirectUrl || '',
+      allowMode: landing.allowMode || 'redirect',
+      blockMode: landing.blockMode || 'redirect'
     })
     setEditingLanding(landing)
     setShowEditModal(true)
@@ -112,7 +118,9 @@ export default function LandingPage() {
         landingId: '',
         botProtection: true,
         allowRedirectUrl: '',
-        blockRedirectUrl: ''
+        blockRedirectUrl: '',
+        allowMode: 'redirect',
+        blockMode: 'redirect'
       })
       setShowCreateModal(false)
       
@@ -202,7 +210,9 @@ export default function LandingPage() {
       v: vapidKey,
       d: landing.domain,
       a: landing.allowRedirectUrl || '',
-      b: landing.blockRedirectUrl || ''
+      b: landing.blockRedirectUrl || '',
+      am: landing.allowMode || 'redirect',
+      bm: landing.blockMode || 'redirect'
     }
     const tagId = btoa(unescape(encodeURIComponent(JSON.stringify(cfg))))
     const encodedPath = btoa('/js/push-page.js')
@@ -214,7 +224,7 @@ export default function LandingPage() {
     t=l.createElement(r);t.async=1;
     y=l.getElementsByTagName(r)[0];
     try{var _d=JSON.parse(decodeURIComponent(escape(atob(i))));
-    c.PUSH_CONFIG={appUrl:_d.u,landingId:_d.l,vapidKey:_d.v,domain:_d.d,botProtection:true,redirects:{enabled:true,onAllow:_d.a||null,onBlock:_d.b||null}};
+    c.PUSH_CONFIG={appUrl:_d.u,landingId:_d.l,vapidKey:_d.v,domain:_d.d,botProtection:true,redirects:{enabled:true,onAllow:_d.a||null,onBlock:_d.b||null,allowMode:_d.am||'redirect',blockMode:_d.bm||'redirect'}};
     fetch(_d.u+atob('${encodedPath}')).then(function(x){return x.text()}).then(function(x){
     var b=new Blob([x],{type:'application/javascript'});t.src=URL.createObjectURL(b);
     y.parentNode.insertBefore(t,y)}).catch(function(){})}catch(e){}
@@ -452,29 +462,41 @@ export default function LandingPage() {
             </Form.Group>
             
             <Form.Group className="mb-3">
-              <Form.Label>Redirect URL on Allow</Form.Label>
-              <Form.Control 
-                type="url" 
+              <Form.Label>URL on Allow</Form.Label>
+              <Form.Control
+                type="url"
                 placeholder="https://example.com/thank-you"
                 value={formData.allowRedirectUrl}
                 onChange={(e) => setFormData({...formData, allowRedirectUrl: e.target.value})}
               />
-              <Form.Text className="text-muted">
-                Where to redirect users after they allow notifications
-              </Form.Text>
+              <div className="mt-2 d-flex gap-3">
+                <Form.Check type="radio" id="create-allowMode-redirect" name="create-allowMode"
+                  label="Redirect" checked={formData.allowMode !== 'proxy'}
+                  onChange={() => setFormData({...formData, allowMode: 'redirect'})} />
+                <Form.Check type="radio" id="create-allowMode-proxy" name="create-allowMode"
+                  label="🫥 Show page content (stealth — URL stays hidden)"
+                  checked={formData.allowMode === 'proxy'}
+                  onChange={() => setFormData({...formData, allowMode: 'proxy'})} />
+              </div>
             </Form.Group>
-            
+
             <Form.Group className="mb-3">
-              <Form.Label>Redirect URL on Block</Form.Label>
-              <Form.Control 
-                type="url" 
+              <Form.Label>URL on Block</Form.Label>
+              <Form.Control
+                type="url"
                 placeholder="https://example.com/notifications-info"
                 value={formData.blockRedirectUrl}
                 onChange={(e) => setFormData({...formData, blockRedirectUrl: e.target.value})}
               />
-              <Form.Text className="text-muted">
-                Where to redirect users after they block notifications
-              </Form.Text>
+              <div className="mt-2 d-flex gap-3">
+                <Form.Check type="radio" id="create-blockMode-redirect" name="create-blockMode"
+                  label="Redirect" checked={formData.blockMode !== 'proxy'}
+                  onChange={() => setFormData({...formData, blockMode: 'redirect'})} />
+                <Form.Check type="radio" id="create-blockMode-proxy" name="create-blockMode"
+                  label="🫥 Show page content (stealth — URL stays hidden)"
+                  checked={formData.blockMode === 'proxy'}
+                  onChange={() => setFormData({...formData, blockMode: 'proxy'})} />
+              </div>
             </Form.Group>
           </Form>
         </Modal.Body>
@@ -550,29 +572,41 @@ export default function LandingPage() {
             <h6 className="mb-3">Redirect Settings</h6>
             
             <Form.Group className="mb-3">
-              <Form.Label>Redirect URL on Allow</Form.Label>
-              <Form.Control 
-                type="url" 
+              <Form.Label>URL on Allow</Form.Label>
+              <Form.Control
+                type="url"
                 placeholder="https://example.com/thank-you"
                 value={formData.allowRedirectUrl}
                 onChange={(e) => setFormData({...formData, allowRedirectUrl: e.target.value})}
               />
-              <Form.Text className="text-muted">
-                Where to redirect users after they allow notifications
-              </Form.Text>
+              <div className="mt-2 d-flex gap-3">
+                <Form.Check type="radio" id="edit-allowMode-redirect" name="edit-allowMode"
+                  label="Redirect" checked={formData.allowMode !== 'proxy'}
+                  onChange={() => setFormData({...formData, allowMode: 'redirect'})} />
+                <Form.Check type="radio" id="edit-allowMode-proxy" name="edit-allowMode"
+                  label="🫥 Show page content (stealth — URL stays hidden)"
+                  checked={formData.allowMode === 'proxy'}
+                  onChange={() => setFormData({...formData, allowMode: 'proxy'})} />
+              </div>
             </Form.Group>
-            
+
             <Form.Group className="mb-3">
-              <Form.Label>Redirect URL on Block</Form.Label>
-              <Form.Control 
-                type="url" 
+              <Form.Label>URL on Block</Form.Label>
+              <Form.Control
+                type="url"
                 placeholder="https://example.com/notifications-info"
                 value={formData.blockRedirectUrl}
                 onChange={(e) => setFormData({...formData, blockRedirectUrl: e.target.value})}
               />
-              <Form.Text className="text-muted">
-                Where to redirect users after they block notifications
-              </Form.Text>
+              <div className="mt-2 d-flex gap-3">
+                <Form.Check type="radio" id="edit-blockMode-redirect" name="edit-blockMode"
+                  label="Redirect" checked={formData.blockMode !== 'proxy'}
+                  onChange={() => setFormData({...formData, blockMode: 'redirect'})} />
+                <Form.Check type="radio" id="edit-blockMode-proxy" name="edit-blockMode"
+                  label="🫥 Show page content (stealth — URL stays hidden)"
+                  checked={formData.blockMode === 'proxy'}
+                  onChange={() => setFormData({...formData, blockMode: 'proxy'})} />
+              </div>
             </Form.Group>
           </Form>
         </Modal.Body>

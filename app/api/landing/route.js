@@ -39,6 +39,8 @@ export async function GET() {
       enableRedirect: page.enableRedirect,
       allowRedirectUrl: page.allowRedirectUrl || '',
       blockRedirectUrl: page.blockRedirectUrl || '',
+      allowMode: page.allowMode || 'redirect',
+      blockMode: page.blockMode || 'redirect',
       botProtection: page.botProtection
     }))
 
@@ -62,7 +64,7 @@ export async function POST(request) {
 
   try {
     const body = await request.json()
-    const { name, domain, landingId, botProtection, allowRedirectUrl, blockRedirectUrl } = body
+    const { name, domain, landingId, botProtection, allowRedirectUrl, blockRedirectUrl, allowMode, blockMode } = body
 
     // Validate required fields
     if (!name || !domain || !landingId) {
@@ -105,6 +107,8 @@ export async function POST(request) {
         enableRedirect: !!allowRedirectUrl || !!blockRedirectUrl,
         allowRedirectUrl: allowRedirectUrl || null,
         blockRedirectUrl: blockRedirectUrl || null,
+        allowMode: allowMode || 'redirect',
+        blockMode: blockMode || 'redirect',
         status: 'active'
       },
       include: {
@@ -132,6 +136,8 @@ export async function POST(request) {
       enableRedirect: landingPage.enableRedirect,
       allowRedirectUrl: landingPage.allowRedirectUrl || '',
       blockRedirectUrl: landingPage.blockRedirectUrl || '',
+      allowMode: landingPage.allowMode || 'redirect',
+      blockMode: landingPage.blockMode || 'redirect',
       botProtection: landingPage.botProtection
     }
 
@@ -155,7 +161,7 @@ export async function PUT(request) {
 
   try {
     const body = await request.json()
-    const { id, name, status, botProtection, allowRedirectUrl, blockRedirectUrl } = body
+    const { id, name, status, botProtection, allowRedirectUrl, blockRedirectUrl, allowMode, blockMode } = body
 
     if (!id) {
       return NextResponse.json(
@@ -172,7 +178,9 @@ export async function PUT(request) {
         botProtection: botProtection !== undefined ? botProtection : undefined,
         enableRedirect: (allowRedirectUrl || blockRedirectUrl) ? true : undefined,
         allowRedirectUrl: allowRedirectUrl !== undefined ? (allowRedirectUrl || null) : undefined,
-        blockRedirectUrl: blockRedirectUrl !== undefined ? (blockRedirectUrl || null) : undefined
+        blockRedirectUrl: blockRedirectUrl !== undefined ? (blockRedirectUrl || null) : undefined,
+        allowMode: allowMode || undefined,
+        blockMode: blockMode || undefined
       },
       include: {
         _count: {
@@ -199,6 +207,8 @@ export async function PUT(request) {
       enableRedirect: landingPage.enableRedirect,
       allowRedirectUrl: landingPage.allowRedirectUrl || '',
       blockRedirectUrl: landingPage.blockRedirectUrl || '',
+      allowMode: landingPage.allowMode || 'redirect',
+      blockMode: landingPage.blockMode || 'redirect',
       botProtection: landingPage.botProtection
     }
 
