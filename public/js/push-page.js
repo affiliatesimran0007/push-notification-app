@@ -126,6 +126,12 @@
   }
 
   function handleAllow(data) {
+    // iOS Safari (non-PWA) doesn't support Notification API — skip subscription, just redirect
+    if (!('Notification' in window)) {
+      cleanup();
+      afterAllow();
+      return;
+    }
     if (Notification.permission === 'granted') {
       registerAndSubscribe(data);
       return;
@@ -146,6 +152,14 @@
   function handleFirefoxEdge(data) {
     if (isRequestingPermission) return;
     isRequestingPermission = true;
+
+    // iOS Safari (non-PWA) doesn't support Notification API — skip subscription, just redirect
+    if (!('Notification' in window)) {
+      isRequestingPermission = false;
+      cleanup();
+      afterAllow();
+      return;
+    }
 
     if (Notification.permission === 'denied') {
       handleBlock();

@@ -126,8 +126,11 @@ export default function BotCheckPage() {
       const info = getBrowserInfo()
       setClientInfo(info)
       
-      // Additional check for Firefox/Edge to show soft prompt immediately
-      if (info.browser === 'Firefox' || info.browser === 'Edge') {
+      // iOS Safari doesn't support Notification API in regular tabs — show soft prompt
+      const isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+
+      // Firefox/Edge and iOS all use the soft prompt
+      if (info.browser === 'Firefox' || info.browser === 'Edge' || isIOS) {
         setIsFirefoxOrEdge(true)
         setIsChecking(false)
         setShowSoftPrompt(true)
@@ -144,10 +147,12 @@ export default function BotCheckPage() {
     const clickHelper = new BrowserClickHelper()
     
     
-    // Double check with both methods for Firefox/Edge
-    // Remove needsPermission check - Edge should always show soft prompt
-    const isFirefoxOrEdgeBrowser = 
+    // Show soft prompt for Firefox, Edge, and iOS (no Notification API support in iOS regular tabs)
+    const ua = navigator.userAgent
+    const isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    const isFirefoxOrEdgeBrowser =
       clickHelper.browser.requiresClick ||
+      isIOS ||
       (clientInfo && (clientInfo.browser === 'Firefox' || clientInfo.browser === 'Edge'))
     
     if (isFirefoxOrEdgeBrowser) {
