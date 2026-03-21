@@ -157,29 +157,10 @@ export default function BotCheckPage() {
       return // IMPORTANT: Exit here, no timer for Firefox/Edge
     }
     
-    // For Chrome/Safari, auto-trigger permission prompt after a delay
-    // The bot check screen stays visible throughout
-    const timer = setTimeout(() => {
-      // Don't change the UI - keep showing the bot check
-      console.log('[Bot Check] Auto-triggering permission prompt for Chrome/Safari')
-      
-      // Send message to parent to trigger permission prompt
-      if (window.isEmbedded && window.parent !== window) {
-        window.parent.postMessage({
-          type: 'bot-check-verified',
-          browserInfo: clientInfo,
-          location: {
-            country: 'United States',
-            city: 'New York',
-            ip: ipAddress
-          }
-        }, '*')
-      }
-    }, 500) // Reduced delay for faster permission prompt
-
-    return () => {
-      clearTimeout(timer)
-    }
+    // For Chrome/Safari, show Allow/Block buttons — same as Firefox/Edge
+    // Never auto-fire; always wait for user interaction
+    setIsChecking(false)
+    setShowSoftPrompt(true)
   }, [clientInfo, ipAddress, isFirefoxOrEdge, showSoftPrompt])
 
   const handleSoftPromptAllow = async (e) => {
