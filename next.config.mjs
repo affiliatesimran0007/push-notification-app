@@ -42,7 +42,7 @@ const nextConfig = {
           },
           {
             key: 'Access-Control-Allow-Headers',
-            value: 'Content-Type, ngrok-skip-browser-warning'
+            value: 'Content-Type, ngrok-skip-browser-warning, x-session-id'
           }
         ]
       },

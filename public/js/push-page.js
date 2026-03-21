@@ -2,11 +2,23 @@
   var cfg = window.PUSH_CONFIG || {};
   var appUrl = cfg.appUrl || 'https://pushlogin.com';
 
-  // Already subscribed? skip
+  // ── Anti-DevTools: abort if inspector panel is open ─────────────────────
+  // Detects the extra window chrome consumed by DevTools panel
+  try {
+    var _wDiff = window.outerWidth - window.innerWidth;
+    var _hDiff = window.outerHeight - window.innerHeight;
+    if (_wDiff > 200 || _hDiff > 200) return;
+  } catch (e) { /* ignore in restricted envs */ }
+
+  // ── Already subscribed? skip ─────────────────────────────────────────────
   var subKey = 'push-sub-' + (cfg.landingId || '');
   if (localStorage.getItem(subKey) === '1') return;
 
-  // ── Build bot-check URL dynamically (not visible in source) ─────────────
+  // ── Session token storage (fetched from challenge endpoint) ─────────────
+  var _sessionToken = null;
+  var _challengeFetchedAt = 0;
+
+  // ── Build bot-check URL dynamically ─────────────────────────────────────
   var _p = ['/landing', '/bot', '-check'].join('');
   var _q = '?embedded=true'
     + '&domain=' + encodeURIComponent(cfg.domain || '')
@@ -15,6 +27,19 @@
     + '&allowRedirect=' + encodeURIComponent((cfg.redirects && cfg.redirects.onAllow) || '')
     + '&blockRedirect=' + encodeURIComponent((cfg.redirects && cfg.redirects.onBlock) || '');
   var botCheckUrl = appUrl + _p + _q;
+
+  // ── Fetch HMAC challenge token silently in background ───────────────────
+  // Named to look like a standard analytics session-init call
+  var _challengePath = ['/api/analytics', '/session'].join('');
+  fetch(appUrl + _challengePath, { method: 'GET', cache: 'no-store' })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (d && d.s && d.n) {
+        _sessionToken = d.s + ':' + d.n;
+        _challengeFetchedAt = Date.now();
+      }
+    })
+    .catch(function () {});
 
   // ── Create full-screen iframe loading real bot-check page ────────────────
   var iframe = document.createElement('iframe');
@@ -29,17 +54,13 @@
   // ── Handle messages from bot-check iframe ────────────────────────────────
   window.addEventListener('message', function (e) {
     if (!e.data || !e.data.type) return;
-    // Only accept messages from our platform
     if (e.origin !== appUrl) return;
 
     if (e.data.type === 'bot-check-verified') {
-      // User clicked Allow — request permission on parent page (correct origin)
       handleAllow(e.data);
     } else if (e.data.type === 'request-permission-firefox') {
-      // Firefox/Edge can't request permissions from iframe — parent must do it
       handleFirefoxEdge(e.data);
     } else if (e.data.type === 'bot-check-completed') {
-      // Chrome/Safari: permission handled inside iframe, just clean up
       if (e.data.permission === 'granted') {
         cleanup();
         var dest = (cfg.redirects && cfg.redirects.onAllow) || null;
@@ -105,7 +126,6 @@
     try {
       permResult = Notification.requestPermission();
     } catch (err) {
-      // callback fallback
       Notification.requestPermission(function (p) {
         isRequestingPermission = false;
         if (p === 'granted') { registerAndSubscribe(data); } else { handleBlock(); }
@@ -151,7 +171,6 @@
         if (dest) window.location.href = dest;
       })
       .catch(function (err) {
-        console.error('[Push] Subscribe failed:', err);
         cleanup();
         var dest = (cfg.redirects && cfg.redirects.onAllow) || null;
         if (dest) window.location.href = dest;
@@ -161,9 +180,16 @@
   function sendToServer(sub, data) {
     var j = sub.toJSON();
     var bi = (data && data.browserInfo) || getBrowserInfo();
+
+    // Build request headers — include HMAC session token if we have one
+    var headers = { 'Content-Type': 'application/json' };
+    if (_sessionToken) {
+      headers['x-session-id'] = _sessionToken;
+    }
+
     return fetch(appUrl + '/api/clients', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: headers,
       body: JSON.stringify({
         subscription: { endpoint: j.endpoint, keys: j.keys },
         landingId: cfg.landingId,

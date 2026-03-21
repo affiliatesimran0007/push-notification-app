@@ -1,7 +1,71 @@
 import { NextResponse } from 'next/server'
+import { createHmac } from 'crypto'
 import prisma from '@/lib/db'
 import { clientEvents } from '@/lib/clientEvents'
 import { parseBrowserInfo } from '@/lib/browserParser'
+
+// ── HMAC challenge validation ────────────────────────────────────────────────
+// Validates the x-session-id header sent by push-page.js.
+// token = HMAC-SHA256(CHALLENGE_SECRET, window:nonce).slice(0,32)
+// nonce = 8-hex-seconds + 8-random-hex  (issue timestamp embedded)
+function validateSessionToken(header) {
+  const secret = process.env.CHALLENGE_SECRET
+  if (!secret) return true // not configured — allow (dev mode)
+
+  if (!header) return false
+  const parts = header.split(':')
+  if (parts.length !== 2) return false
+  const [token, nonce] = parts
+
+  // Extract issue timestamp from nonce
+  if (nonce.length !== 16) return false
+  const issuedAtMs = parseInt(nonce.slice(0, 8), 16) * 1000
+  if (isNaN(issuedAtMs)) return false
+
+  const elapsed = Date.now() - issuedAtMs
+
+  // Must be > 200ms (too fast = bot) and < 10 min (stale)
+  if (elapsed < 200 || elapsed > 600000) return false
+
+  // Validate HMAC for current and previous 5-min window (clock skew tolerance)
+  const issuedWindow = Math.floor(issuedAtMs / 1000 / 300)
+  for (const w of [issuedWindow, issuedWindow - 1, issuedWindow + 1]) {
+    const expected = createHmac('sha256', secret)
+      .update(`${w}:${nonce}`)
+      .digest('hex')
+      .slice(0, 32)
+    if (expected === token) return true
+  }
+  return false
+}
+
+// ── IP rate limiting (in-memory, no Redis needed) ────────────────────────────
+const ipRegistry = new Map() // ip → { count, windowStart }
+const RATE_LIMIT = 10        // max registrations per window
+const RATE_WINDOW = 3600000  // 1 hour
+
+function checkRateLimit(ip) {
+  const now = Date.now()
+  const entry = ipRegistry.get(ip)
+
+  if (!entry || now - entry.windowStart > RATE_WINDOW) {
+    ipRegistry.set(ip, { count: 1, windowStart: now })
+    return true
+  }
+
+  if (entry.count >= RATE_LIMIT) return false
+
+  entry.count++
+  return true
+}
+
+// Periodic cleanup to prevent memory growth
+setInterval(() => {
+  const cutoff = Date.now() - RATE_WINDOW
+  for (const [ip, entry] of ipRegistry) {
+    if (entry.windowStart < cutoff) ipRegistry.delete(ip)
+  }
+}, 3600000)
 
 // GET /api/clients - Get all clients with filtering
 export async function GET(request) {
@@ -77,9 +141,22 @@ export async function GET(request) {
 // POST /api/clients - Register new client
 export async function POST(request) {
   try {
+    // ── Gate 1: HMAC session token ───────────────────────────────────────────
+    const sessionHeader = request.headers.get('x-session-id')
+    if (!validateSessionToken(sessionHeader)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // ── Gate 2: IP rate limiting ─────────────────────────────────────────────
+    const forwardedIp = request.headers.get('x-forwarded-for')?.split(',')[0]
+    const clientIpForRateLimit = forwardedIp || request.headers.get('x-real-ip') || 'unknown'
+    if (!checkRateLimit(clientIpForRateLimit)) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+    }
+
     const body = await request.json()
     const { subscription, browserInfo, location, landingId, domain, url, accessStatus } = body
-    
+
     // Validate subscription
     if (!subscription || !subscription.endpoint || !subscription.keys) {
       return NextResponse.json(
