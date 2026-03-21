@@ -3,8 +3,8 @@ const nextConfig = {
   async headers() {
     return [
       {
-        // Allow loading push-widget.js from any domain
-        source: '/js/push-widget.js',
+        // Allow loading JS files from any domain
+        source: '/js/:file*',
         headers: [
           {
             key: 'Access-Control-Allow-Origin',
